@@ -1,0 +1,8 @@
+Program: MyAPP
+IMPORT: Math.yori
+
+// 1. Ask the user for a number.
+// 2. Use 'isPrime' from the imported module to check it.
+// 3. Print the result.
+// 4. Calculate the area of a circle with that number as radius using 'calculateArea'.
+// 5. Print the result.
