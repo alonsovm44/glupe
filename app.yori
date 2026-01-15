@@ -1,0 +1,10 @@
+PROGRAMA: Saludos
+TECH: C++ Standard
+
+//>> Instrucciones
+
+1. Crea un programa que pida nombre al usuario
+2. Imprime un saludo personalizado
+3. usa un bucle para imprimir una cuenta regresiva del 5 al 0
+4. al final imprime "Sistema en linea, yori funciona"
+

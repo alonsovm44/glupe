@@ -1,0 +1,16 @@
+# --- Binarios y Ejecutables ---
+*.exe
+*.dll
+*.o
+*.obj
+
+# --- Archivos Temporales de Yori ---
+temp_build.cpp
+request_temp.json
+
+# --- Configuración y Secretos (SEGURIDAD) ---
+config.json
+
+# --- Carpetas de IDE ---
+.vscode/
+.idea/
