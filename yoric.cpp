@@ -334,9 +334,8 @@ int main(int argc, char* argv[]) {
                     system(copyCmd.c_str());
                 }
                 
-                // Opcional: ¿Guardar también el código fuente?
-                // Muchos usuarios de Yori querrán ver el código generado.
-                // Guardémoslo como example.cpp
+                // Users of yori would like to see the generated code
+                // save as example.cpp
                 string sourceName = stripExt(outputName) + CURRENT_LANG.extension;
                 remove(sourceName.c_str());
                 rename(tempFile.c_str(), sourceName.c_str());
