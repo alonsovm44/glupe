@@ -1,6 +1,6 @@
-/* YORI COMPILER (yori.exe) - v4.2 (Universal Polyglot)
+/* YORI COMPILER (yori.exe) - v4.4 (Robust + AI Logging)
    Usage: yori file.yori [-o output] [FLAGS]
-   Supported: C++, C, Rust, Go, Zig, Swift, Java, C#, Python, JS, TS, Ruby, PHP, Lua, Perl, R, Julia, Haskell, Bash, PowerShell.
+   Features: Polyglot support, Robust File Handling, AI Debug Logging.
 */
 
 #include <iostream>
@@ -16,11 +16,14 @@
 #include <map>
 #include <algorithm>
 #include <iomanip>
+#include <filesystem>
+#include <ctime>
 
 #include "json.hpp" 
 
 using json = nlohmann::json;
 using namespace std;
+namespace fs = std::filesystem;
 
 // --- CONFIGURATION ---
 string PROVIDER = "local"; 
@@ -29,32 +32,39 @@ string MODEL_ID = "";
 string API_URL = "";
 const int MAX_RETRIES = 5;
 
+// --- LOGGER SYSTEM (NEW) ---
+ofstream logFile;
+
+void initLogger() {
+    logFile.open("yori.log", ios::app); // Append mode
+    if (logFile.is_open()) {
+        auto t = time(nullptr);
+        auto tm = *localtime(&t);
+        logFile << "\n--- SESSION START: " << put_time(&tm, "%Y-%m-%d %H:%M:%S") << " ---\n";
+    }
+}
+
+void log(string level, string message) {
+    if (logFile.is_open()) {
+        auto t = time(nullptr);
+        auto tm = *localtime(&t);
+        logFile << "[" << put_time(&tm, "%H:%M:%S") << "] [" << level << "] " << message << endl;
+    }
+}
+
 // --- LANGUAGE SYSTEM ---
 struct LangProfile {
-    string id;         
-    string name;       
-    string extension;  
-    string versionCmd; // To check installation
-    string buildCmd;   // To check syntax/build
-    bool producesBinary; 
+    string id; string name; string extension;  
+    string versionCmd; string buildCmd; bool producesBinary; 
 };
 
-// MASSIVE LANGUAGE DB
 map<string, LangProfile> LANG_DB = {
-    // SYSTEMS
     {"cpp",  {"cpp", "C++", ".cpp", "g++ --version", "g++ -std=c++17", true}},
     {"c",    {"c",   "C",   ".c",   "gcc --version", "gcc", true}},
     {"rust", {"rust","Rust",".rs",  "rustc --version", "rustc --crate-type bin", true}},
     {"go",   {"go",  "Go",  ".go",  "go version", "go build", true}},
     {"zig",  {"zig", "Zig", ".zig", "zig version", "zig build-exe", true}},
     {"swift",{"swift","Swift",".swift","swiftc --version", "swiftc", true}},
-    
-    // ENTERPRISE / JVM / .NET
-    {"java", {"java","Java",".java","javac -version", "javac", false}}, // Class files are binaries but treated as source for yori
-    {"cs",   {"cs",  "C#",  ".cs",  "dotnet --version", "dotnet build", true}}, // Assumes dotnet core project context usually, but simple csc works too if installed. We stick to dotnet.
-    {"scala",{"scala","Scala",".scala","scalac -version", "scalac", false}},
-
-    // SCRIPTING / WEB
     {"py",   {"py",  "Python", ".py", "python --version", "python -m py_compile", false}},
     {"js",   {"js",  "JavaScript", ".js", "node --version", "node -c", false}},
     {"ts",   {"ts",  "TypeScript", ".ts", "tsc --version", "tsc --noEmit", false}},
@@ -62,14 +72,13 @@ map<string, LangProfile> LANG_DB = {
     {"php",  {"php", "PHP", ".php",   "php --version", "php -l", false}},
     {"lua",  {"lua", "Lua", ".lua",   "luac -v", "luac -p", false}},
     {"pl",   {"pl",  "Perl", ".pl",   "perl --version", "perl -c", false}},
-
-    // DATA / FUNCTIONAL
-    {"r",    {"r",   "R", ".R",       "R --version", "R CMD BATCH --no-save --no-restore", false}}, 
-    {"hs",   {"hs",  "Haskell", ".hs","ghc --version", "ghc -fno-code", false}}, // -fno-code just checks logic
-    {"jl",   {"jl",  "Julia", ".jl",  "julia -v", "julia", false}},
-    // SHELL
+    {"java", {"java","Java",".java","javac -version", "javac", false}}, 
+    {"cs",   {"cs",  "C#",  ".cs",  "dotnet --version", "dotnet build", true}},
     {"sh",   {"sh",  "Bash", ".sh",   "bash --version", "bash -n", false}},
-    {"ps1",  {"ps1", "PowerShell", ".ps1", "pwsh -v", "pwsh -Command Get-Date", false}} // pwsh checks install
+    {"ps1",  {"ps1", "PowerShell", ".ps1", "pwsh -v", "pwsh -Command Get-Date", false}},
+    {"jl",   {"jl",  "Julia", ".jl",  "julia -v", "julia", false}},
+    {"r",    {"r",   "R", ".R",       "R --version", "R CMD BATCH --no-save --no-restore", false}}, 
+    {"hs",   {"hs",  "Haskell", ".hs","ghc --version", "ghc -fno-code", false}}
 };
 
 LangProfile CURRENT_LANG; 
@@ -82,15 +91,15 @@ extern "C" { FILE* _popen(const char* command, const char* mode); int _pclose(FI
     #define _pclose pclose
 #endif
 
-string execCmd(string cmd) {
-    array<char, 128> buffer;
-    string result;
-    string full_cmd = cmd + " 2>&1"; 
+struct CmdResult { string output; int exitCode; };
+
+CmdResult execCmd(string cmd) {
+    array<char, 128> buffer; string result; string full_cmd = cmd + " 2>&1"; 
     FILE* pipe = _popen(full_cmd.c_str(), "r");
-    if (!pipe) return "EXEC_FAIL";
+    if (!pipe) return {"EXEC_FAIL", -1};
     while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) result += buffer.data();
-    _pclose(pipe);
-    return result;
+    int code = _pclose(pipe);
+    return {result, code};
 }
 
 string stripExt(string fname) {
@@ -103,7 +112,7 @@ string getExt(string fname) {
     return (lastindex == string::npos) ? "" : fname.substr(lastindex); 
 }
 
-// --- CONFIG LOADER ---
+// --- CONFIG ---
 bool loadConfig(string mode) {
     ifstream f("config.json");
     if (!f.is_open()) { cerr << "FATAL: config.json missing." << endl; return false; }
@@ -115,11 +124,13 @@ bool loadConfig(string mode) {
         if (mode == "cloud") API_KEY = profile["api_key"];
         MODEL_ID = profile["model_id"];
         if (mode == "local") API_URL = profile.contains("api_url") ? profile["api_url"].get<string>() : "http://localhost:11434/api/generate";
+        
+        log("CONFIG", "Loaded profile: " + mode + " (" + MODEL_ID + ")");
         return true;
     } catch (...) { return false; }
 }
 
-// --- AI INTERFACE ---
+// --- AI CORE ---
 string callAI(string prompt) {
     string response;
     while (true) {
@@ -128,8 +139,15 @@ string callAI(string prompt) {
         else { body["contents"][0]["parts"][0]["text"]=prompt; url="https://generativelanguage.googleapis.com/v1beta/models/"+MODEL_ID+":generateContent?key="+API_KEY; }
         ofstream file("request_temp.json"); file << body.dump(); file.close();
         string cmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @request_temp.json \"" + url + "\"";
-        response = execCmd(cmd); remove("request_temp.json");
-        if (PROVIDER == "cloud" && response.find("429") != string::npos) { this_thread::sleep_for(chrono::seconds(30)); continue; }
+        
+        CmdResult res = execCmd(cmd);
+        response = res.output;
+        
+        remove("request_temp.json");
+        if (PROVIDER == "cloud" && response.find("429") != string::npos) { 
+            log("WARN", "Rate limit hit. Waiting 30s...");
+            this_thread::sleep_for(chrono::seconds(30)); continue; 
+        }
         break;
     }
     return response;
@@ -139,24 +157,29 @@ string extractCode(string jsonResponse) {
     try {
         json j = json::parse(jsonResponse);
         string raw = "";
-        if (j.contains("error")) return "ERROR: API Error";
+        if (j.contains("error")) {
+            string msg = "API Error";
+            if (j["error"].is_object() && j["error"].contains("message")) msg = j["error"]["message"];
+            log("ERROR", "AI API returned: " + msg);
+            return "ERROR: " + msg;
+        }
         if (PROVIDER == "local") { if (j.contains("response")) raw = j["response"]; } 
         else { if (j.contains("candidates")) raw = j["candidates"][0]["content"]["parts"][0]["text"]; }
+        
         size_t start = raw.find("```"); if (start == string::npos) return raw;
         size_t end_line = raw.find('\n', start); size_t end_block = raw.rfind("```");
         if (end_line != string::npos && end_block != string::npos) return raw.substr(end_line + 1, end_block - end_line - 1);
         return raw;
-    } catch (...) { return "JSON_PARSE_ERROR"; }
+    } catch (exception& e) { 
+        log("ERROR", "JSON Parse Failed: " + string(e.what()));
+        return "JSON_PARSE_ERROR"; 
+    }
 }
 
-// --- INTERACTIVE MENU ---
 void selectLanguage() {
     cout << "\n[?] Ambiguous output. Please select target language:\n" << endl;
-    
     vector<string> keys;
     for(auto const& [key, val] : LANG_DB) keys.push_back(key);
-    
-    // Simple 3-column layout
     int i = 1;
     for (const auto& key : keys) {
         cout << std::left << std::setw(4) << i << std::setw(15) << (LANG_DB[key].name + " (" + LANG_DB[key].id + ")");
@@ -164,19 +187,16 @@ void selectLanguage() {
         i++;
     }
     cout << "\n\n> Selection [1-" << keys.size() << "]: ";
-    
-    int choice;
-    if (!(cin >> choice)) choice = 1;
+    int choice; if (!(cin >> choice)) choice = 1;
     if (choice < 1 || choice > keys.size()) choice = 1;
-    
     CURRENT_LANG = LANG_DB[keys[choice-1]];
-    
-    // Clear buffer
     string dummy; getline(cin, dummy); 
 }
 
 // --- MAIN ---
 int main(int argc, char* argv[]) {
+    initLogger(); // Start logging session
+
     if (argc < 2) {
         cout << "Usage: yori <file.yori> [-o output] [FLAGS]" << endl;
         return 0;
@@ -188,27 +208,20 @@ int main(int argc, char* argv[]) {
     bool explicitLang = false;
     bool updateMode = false;
 
-    // 1. ARGUMENT PARSING
     for(int i=2; i<argc; i++) {
         string arg = argv[i];
         if (arg == "-cloud") mode = "cloud";
         if (arg == "-local") mode = "local";
         if (arg == "-u") updateMode = true;
         if (arg == "-o" && i+1 < argc) outputName = argv[i+1];
-
-        // Flag detection (e.g. -rust, -zig, -ts)
         if (arg[0] == '-') {
             string cleanArg = arg.substr(1); 
-            if (LANG_DB.count(cleanArg)) {
-                CURRENT_LANG = LANG_DB[cleanArg];
-                explicitLang = true;
-            }
+            if (LANG_DB.count(cleanArg)) { CURRENT_LANG = LANG_DB[cleanArg]; explicitLang = true; }
         }
     }
 
     if (!loadConfig(mode)) return 1;
 
-    // 2. LANGUAGE NEGOTIATION
     if (!explicitLang) {
         if (outputName.empty()) {
              cout << "[INFO] No lang specified. Defaulting to C++." << endl;
@@ -216,13 +229,8 @@ int main(int argc, char* argv[]) {
         } else {
             string ext = getExt(outputName);
             bool found = false;
-            // Scan DB for extension match
             for (auto const& [key, val] : LANG_DB) {
-                if (val.extension == ext) {
-                    CURRENT_LANG = val;
-                    found = true;
-                    break;
-                }
+                if (val.extension == ext) { CURRENT_LANG = val; found = true; break; }
             }
             if (!found) selectLanguage();
             else cout << "[INFO] Detected: " << CURRENT_LANG.name << endl;
@@ -230,133 +238,120 @@ int main(int argc, char* argv[]) {
     }
 
     if (outputName.empty()) outputName = stripExt(inputFile) + CURRENT_LANG.extension;
+    log("INFO", "Target: " + CURRENT_LANG.name + " | Output: " + outputName);
 
-    // 3. HEALTH CHECK
+    // HEALTH CHECK
     cout << "[CHECK] Looking for " << CURRENT_LANG.name << " toolchain..." << endl;
-    string verCheck = execCmd(CURRENT_LANG.versionCmd);
+    CmdResult check = execCmd(CURRENT_LANG.versionCmd);
     bool toolchainActive = true;
 
-    if (verCheck.find("not recognized") != string::npos || 
-        verCheck.find("not found") != string::npos || 
-        verCheck == "EXEC_FAIL") {
-        
-        cerr << "\n[MISSING TOOLS] '" << CURRENT_LANG.versionCmd << "' failed." << endl;
+    if (check.exitCode != 0) {
+        cerr << "\n[MISSING TOOLS] '" << CURRENT_LANG.versionCmd << "' returned code " << check.exitCode << "." << endl;
+        log("WARN", "Toolchain missing for " + CURRENT_LANG.name);
         cout << "Continue in BLIND MODE? [y/N]: ";
-        char ans; cin >> ans;
-        if (ans != 'y' && ans != 'Y') return 1;
+        char ans; cin >> ans; if (ans != 'y' && ans != 'Y') return 1;
         toolchainActive = false;
     } else {
         cout << "   [OK] Found." << endl;
     }
 
-    // 4. GENERATION LOOP
     ifstream f(inputFile);
     if (!f.is_open()) { cerr << "Error: Input missing." << endl; return 1; }
     string rawCode((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
     string finalLogic = rawCode; 
 
-    // Handle existing code for -u
     string existingCode = "";
     if (updateMode) {
         ifstream old(outputName);
         if (old.is_open()) existingCode = string((istreambuf_iterator<char>(old)), istreambuf_iterator<char>());
     }
 
-    string tempFile = "temp_src" + CURRENT_LANG.extension;
+    string tempSrc = "temp_src" + CURRENT_LANG.extension;
+    string tempBin = "temp_bin.exe"; 
     string currentError = "";
     int passes = toolchainActive ? MAX_RETRIES : 1;
 
     for(int gen=1; gen<=passes; gen++) {
         cout << "   [Pass " << gen << "] Writing " << CURRENT_LANG.name << "..." << endl;
+        log("GEN " + to_string(gen), "Generating code...");
         
         string prompt;
         if (currentError.empty()) {
-            if (updateMode && !existingCode.empty()) {
-                prompt = "ROLE: Expert " + CURRENT_LANG.name + " Dev.\nTASK: Update existing code.\n[OLD CODE]:\n" + existingCode + "\n[CHANGES]:\n" + finalLogic + "\nOUTPUT: Full " + CURRENT_LANG.name + " code.";
-            } else {
-                prompt = "ROLE: Expert " + CURRENT_LANG.name + " Dev.\nTASK: Write single-file program.\nINSTRUCTIONS:\n" + finalLogic + "\nOUTPUT: Valid " + CURRENT_LANG.name + " code only.";
-            }
+            if (updateMode && !existingCode.empty()) prompt = "ROLE: Expert " + CURRENT_LANG.name + " Dev.\nTASK: Update code.\n[OLD CODE]:\n" + existingCode + "\n[CHANGES]:\n" + finalLogic + "\nOUTPUT: Full " + CURRENT_LANG.name + " code.";
+            else prompt = "ROLE: Expert " + CURRENT_LANG.name + " Dev.\nTASK: Write single-file program.\nINSTRUCTIONS:\n" + finalLogic + "\nOUTPUT: Valid " + CURRENT_LANG.name + " code only.";
         } else {
-            prompt = "ROLE: Expert Debugger.\nTASK: Fix " + CURRENT_LANG.name + " syntax.\nERROR:\n" + currentError + "\nCODE:\n" + finalLogic + "\nOUTPUT: Corrected code.";
+            prompt = "ROLE: Expert Debugger.\nTASK: Fix " + CURRENT_LANG.name + " error.\nERROR:\n" + currentError + "\nCODE:\n" + finalLogic + "\nOUTPUT: Corrected code.";
+            log("EVOLUTION", "Fixing error: " + currentError.substr(0, 100) + "...");
         }
 
         string response = callAI(prompt);
         string code = extractCode(response);
-
         if (code.find("ERROR:") == 0) { cerr << "AI Error: " << code << endl; return 1; }
         
-        ofstream out(tempFile); out << code; out.close();
+        ofstream out(tempSrc); out << code; out.close();
 
         if (!toolchainActive) {
-            remove(outputName.c_str()); rename(tempFile.c_str(), outputName.c_str());
+            fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
             cout << "\nSaved (Blind): " << outputName << endl;
+            log("SUCCESS", "Blind save completed.");
             return 0;
         }
 
         cout << "   Verifying..." << endl;
-        string valCmd = CURRENT_LANG.buildCmd + " " + tempFile; 
-        if (CURRENT_LANG.producesBinary && (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "go")) {
-             valCmd += " -o temp_check.exe";
-        }
-        // KEY CORRECTION:
-        // Si es C++ o C, g++ necesita saber explícitamente dónde poner el exe temporal
-        // para que no choque con nuestros archivos.
-        string tempBin = "temp_check.exe";
-        if (CURRENT_LANG.producesBinary && (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "go" || CURRENT_LANG.id == "rust")) {
-             // Rust usa -o de forma distinta, pero para g++ es crucial
-             if (CURRENT_LANG.id == "rust") valCmd += " -o " + tempBin;
-             else valCmd += " -o " + tempBin;
+        string valCmd = CURRENT_LANG.buildCmd + " " + tempSrc; 
+        
+        if (CURRENT_LANG.producesBinary) {
+             if (fs::exists(tempBin)) fs::remove(tempBin);
+             if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "go" || CURRENT_LANG.id == "rust") {
+                 if (CURRENT_LANG.id == "rust") valCmd += " -o " + tempBin;
+                 else valCmd += " -o " + tempBin;
+             }
         }
 
-        string output = execCmd(valCmd);
-        
-        // Success heuristic
-        bool success = (output.find("error") == string::npos && output.find("Error") == string::npos && output.find("Exception") == string::npos);
-        // Special case for languages that output errors to stdout/stderr differently
-        if (CURRENT_LANG.id == "php" && output.find("No syntax errors") == string::npos) success = false;
+        CmdResult buildResult = execCmd(valCmd);
+        bool success = (buildResult.exitCode == 0);
+
+        if (success && CURRENT_LANG.producesBinary) {
+            if (!fs::exists(tempBin) || fs::file_size(tempBin) == 0) {
+                success = false;
+                currentError = "Compiler returned success but binary missing/empty.";
+                log("FAIL", "Ghost binary detected (0KB).");
+            }
+        } else if (!success) {
+            currentError = buildResult.output;
+            log("FAIL", "Compilation failed. Exit code: " + to_string(buildResult.exitCode));
+        }
 
         if (success) {
             cout << "\nBUILD SUCCESSFUL: " << outputName << endl;
+            log("SUCCESS", "Build valid on Pass " + to_string(gen));
             
-            // SAVING LOGIC CORRECTED
-            
-            // CASO 1: COMPILED LANGUAGES (C++, Rust, Go, Zig)
-            // El usuario quiere el .exe final, no el código fuente (usualmente).
-            if (CURRENT_LANG.producesBinary) {
-                // Borramos cualquier basura anterior
-                remove(outputName.c_str());
-                
-                // Renombramos el binario temporal generado por el compilador al nombre final
-                if (rename(tempBin.c_str(), outputName.c_str()) != 0) {
-                    cerr << "Error moving binary to " << outputName << endl;
-                    // Fallback: copiar si rename falla (común en Windows entre discos)
-                    string copyCmd = "copy /Y " + tempBin + " " + outputName + " > NUL";
-                    system(copyCmd.c_str());
+            try {
+                if (CURRENT_LANG.producesBinary) {
+                    fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
+                    string srcName = stripExt(outputName) + CURRENT_LANG.extension;
+                    fs::copy_file(tempSrc, srcName, fs::copy_options::overwrite_existing);
+                    cout << "   [Binary]: " << outputName << endl;
+                    cout << "   [Source]: " << srcName << endl;
+                } else {
+                    fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
+                    cout << "   [Script]: " << outputName << endl;
                 }
-                
-                // Users of yori would like to see the generated code
-                // save as example.cpp
-                string sourceName = stripExt(outputName) + CURRENT_LANG.extension;
-                remove(sourceName.c_str());
-                rename(tempFile.c_str(), sourceName.c_str());
-                
-                cout << "   [Binary]: " << outputName << endl;
-                cout << "   [Source]: " << sourceName << endl;
-            } 
-            // CASO 2: Lenguajes Interpretados/Scripts (Python, JS, etc)
-            else {
-                remove(outputName.c_str());
-                rename(tempFile.c_str(), outputName.c_str());
-                cout << "   [Script]: " << outputName << endl;
+            } catch (fs::filesystem_error& e) {
+                cerr << "FATAL FILE ERROR: " << e.what() << endl;
+                log("FATAL", "File move failed: " + string(e.what()));
+                return 1;
             }
+
+            if (fs::exists("temp_check.exe")) fs::remove("temp_check.exe");
+            if (fs::exists(tempBin)) fs::remove(tempBin);
+            if (fs::exists(tempSrc)) fs::remove(tempSrc);
             
-            // Limpieza final
-            remove(tempBin.c_str());
             return 0;
         }
-        currentError = output;
     }
 
     cerr << "\nFAILED to generate valid code." << endl;
+    log("FATAL", "Max generations reached. Aborting.");
     return 1;
 }
