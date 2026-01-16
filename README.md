@@ -44,16 +44,22 @@ Programming has traditionally required years of study to master syntax and memor
  PowerShell> yori <file.yori> [-o output_name] [LANGUAGE_FLAG] [-u] [-local | -cloud]
 Language Flags (The Polyglot System)
 Yori auto-detects the language from the output extension (e.g., -o app.py), but you can force specific languages with flags:FlagLanguageTool Used-cppC++g++
--py Python
--ts TypeScripttsc-
--rs Rustrustc
--go Gogo
--js JavaScript
+-py     Python
+-ts     TypeScripttsc-
+-rs     Rustrustc
+-go     Gogo
+-js     JavaScript
 -zig    Zigzig
--cs C#.net
--sh Bash
+-cs     C#.net
+-sh     Bash
 -ps1    PowerShell pwsh...
-and many more (Java, Ruby, PHP, Lua, R, Julia, Haskell).
+-java   Java
+-rb    Ruby 
+-php    PHP
+-lua    Lua 
+-r      R 
+-jl    Juli 
+-hs   Haskell.
 
 Other Flags
 -o <name>: Specifies output filename.

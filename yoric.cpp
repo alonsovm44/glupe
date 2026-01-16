@@ -66,7 +66,7 @@ map<string, LangProfile> LANG_DB = {
     // DATA / FUNCTIONAL
     {"r",    {"r",   "R", ".R",       "R --version", "R CMD BATCH --no-save --no-restore", false}}, 
     {"hs",   {"hs",  "Haskell", ".hs","ghc --version", "ghc -fno-code", false}}, // -fno-code just checks logic
-
+    {"jl",   {"jl",  "Julia", ".jl",  "julia -v", "julia", false}},
     // SHELL
     {"sh",   {"sh",  "Bash", ".sh",   "bash --version", "bash -n", false}},
     {"ps1",  {"ps1", "PowerShell", ".ps1", "pwsh -v", "pwsh -Command Get-Date", false}} // pwsh checks install
