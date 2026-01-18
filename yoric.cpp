@@ -19,6 +19,16 @@
 #include <filesystem>
 #include <ctime>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <unistd.h>
+#include <limits.h>
+#endif
+
 #include "json.hpp" 
 
 using json = nlohmann::json;
@@ -85,11 +95,21 @@ LangProfile CURRENT_LANG;
 
 // --- UTILS ---
 #ifdef _WIN32
-extern "C" { FILE* _popen(const char* command, const char* mode); int _pclose(FILE* stream); }
 #else
     #define _popen popen
     #define _pclose pclose
 #endif
+
+string getExePath() {
+    char buffer[1024] = {0};
+#ifdef _WIN32
+    if (GetModuleFileNameA(NULL, buffer, 1024) == 0) return "";
+#else
+    ssize_t count = readlink("/proc/self/exe", buffer, 1023);
+    if (count != -1) buffer[count] = '\0'; else return "";
+#endif
+    return string(buffer);
+}
 
 struct CmdResult { string output; int exitCode; };
 
@@ -114,7 +134,18 @@ string getExt(string fname) {
 
 // --- CONFIG ---
 bool loadConfig(string mode) {
-    ifstream f("config.json");
+    string configPath = "config.json";
+    string exeStr = getExePath();
+    if (!exeStr.empty()) {
+        fs::path exePath(exeStr);
+        fs::path installConfig = exePath.parent_path().parent_path() / "config.json";
+        if (fs::exists(installConfig)) configPath = installConfig.string();
+        else if (fs::exists("C:\\Yori\\config.json")) configPath = "C:\\Yori\\config.json";
+    }
+
+    ifstream f(configPath);
+    if (!f.is_open() && configPath != "config.json") f.open("config.json");
+
     if (!f.is_open()) { cerr << "FATAL: config.json missing." << endl; return false; }
     try {
         json j = json::parse(f);
