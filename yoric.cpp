@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <filesystem>
 #include <ctime>
+#include <functional>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -323,6 +324,20 @@ int main(int argc, char* argv[]) {
     fs::path p(inputFile);
     string finalLogic = resolveImports(rawCode, p.parent_path().string());
 
+    // --- CACHING ---
+    size_t currentHash = hash<string>{}(finalLogic + CURRENT_LANG.id + to_string(updateMode) + MODEL_ID);
+    string cacheFile = inputFile + ".cache";
+    
+    if (!updateMode && fs::exists(cacheFile) && fs::exists(outputName)) {
+        ifstream cFile(cacheFile);
+        size_t storedHash;
+        if (cFile >> storedHash && storedHash == currentHash) {
+            cout << "[CACHE] No changes detected. Using existing build." << endl;
+            log("INFO", "Cache hit for " + inputFile);
+            return 0;
+        }
+    }
+
     string existingCode = "";
     if (updateMode) {
         string readPath = outputName;
@@ -427,6 +442,10 @@ int main(int argc, char* argv[]) {
             if (fs::exists(tempBin)) fs::remove(tempBin);
             if (fs::exists(tempSrc)) fs::remove(tempSrc);
             
+            // Save Cache
+            ofstream cFile(cacheFile);
+            cFile << currentHash;
+
             return 0;
         }
     }
