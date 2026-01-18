@@ -1,4 +1,0 @@
-MODULE: Math
-
-// Define a function 'calculateArea' that takes a radius (float) and returns the area of a circle.
-// Define a function 'isPrime' that checks if an int is prime.

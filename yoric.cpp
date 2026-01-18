@@ -137,7 +137,7 @@ string callAI(string prompt) {
         json body; string url;
         if (PROVIDER == "local") { body["model"]=MODEL_ID; body["prompt"]=prompt; body["stream"]=false; url=API_URL; }
         else { body["contents"][0]["parts"][0]["text"]=prompt; url="https://generativelanguage.googleapis.com/v1beta/models/"+MODEL_ID+":generateContent?key="+API_KEY; }
-        ofstream file("request_temp.json"); file << body.dump(); file.close();
+        ofstream file("request_temp.json"); file << body.dump(-1, ' ', false, json::error_handler_t::replace); file.close();
         string cmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @request_temp.json \"" + url + "\"";
         
         CmdResult res = execCmd(cmd);
@@ -262,8 +262,21 @@ int main(int argc, char* argv[]) {
 
     string existingCode = "";
     if (updateMode) {
-        ifstream old(outputName);
-        if (old.is_open()) existingCode = string((istreambuf_iterator<char>(old)), istreambuf_iterator<char>());
+        string readPath = outputName;
+        bool safeToRead = true;
+        if (CURRENT_LANG.producesBinary) {
+            string srcPath = stripExt(outputName) + CURRENT_LANG.extension;
+            if (fs::exists(srcPath)) readPath = srcPath;
+            else safeToRead = false;
+        }
+        if (safeToRead) {
+            ifstream old(readPath);
+            if (old.is_open()) {
+                string content((istreambuf_iterator<char>(old)), istreambuf_iterator<char>());
+                if (content.find('\0') == string::npos) existingCode = content;
+                else log("WARN", "Ignored binary file for update: " + readPath);
+            }
+        }
     }
 
     string tempSrc = "temp_src" + CURRENT_LANG.extension;
