@@ -42,6 +42,7 @@ string API_KEY = "";
 string MODEL_ID = ""; 
 string API_URL = "";
 const int MAX_RETRIES = 5;
+bool VERBOSE_MODE = false;
 
 // --- LOGGER SYSTEM (NEW) ---
 ofstream logFile;
@@ -61,6 +62,7 @@ void log(string level, string message) {
         auto tm = *localtime(&t);
         logFile << "[" << put_time(&tm, "%H:%M:%S") << "] [" << level << "] " << message << endl;
     }
+    if (VERBOSE_MODE) cout << "   [" << level << "] " << message << endl;
 }
 
 // --- LANGUAGE SYSTEM ---
@@ -264,7 +266,7 @@ int main(int argc, char* argv[]) {
     initLogger(); // Start logging session
 
     if (argc < 2) {
-        cout << "Usage: yori <file.yori> [-o output] [FLAGS]" << endl;
+        cout << "Usage: yori <input.extension> [-o output.extension] [-u]\nNote: Yori accepts any text file as input, it does not need to be a .yori file" << endl;
         return 0;
     }
 
@@ -283,6 +285,7 @@ int main(int argc, char* argv[]) {
         if (arg == "-cloud") mode = "cloud";
         if (arg == "-local") mode = "local";
         if (arg == "-u") updateMode = true;
+        if (arg == "-verbose") VERBOSE_MODE = true;
         if (arg == "-o" && i+1 < argc) outputName = argv[i+1];
         if (arg[0] == '-') {
             string cleanArg = arg.substr(1); 
@@ -382,6 +385,8 @@ int main(int argc, char* argv[]) {
             log("EVOLUTION", "Fixing error: " + currentError.substr(0, 100) + "...");
         }
 
+        if (VERBOSE_MODE) cout << "\n[DEBUG] Prompt sent to AI:\n" << prompt << "\n" << endl;
+
         string response = callAI(prompt);
         string code = extractCode(response);
         if (code.find("ERROR:") == 0) { cerr << "AI Error: " << code << endl; return 1; }
@@ -418,6 +423,7 @@ int main(int argc, char* argv[]) {
         } else if (!success) {
             currentError = buildResult.output;
             log("FAIL", "Compilation failed. Exit code: " + to_string(buildResult.exitCode));
+            if (VERBOSE_MODE) cout << "\n[DEBUG] Compiler Output:\n" << currentError << "\n" << endl;
         }
 
         if (success) {
