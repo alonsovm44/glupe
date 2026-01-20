@@ -1,15 +1,23 @@
+## Recent Breakthrough
+
+Yori has reached a major milestone: it can now **semantically include and orchestrate code written in any programming language** inside a single compilation pipeline. In practice, this means a Yori program can include a Python file (even using libraries like NumPy), express intent in natural language, and be compiled into a **native C executable** that runs successfully — without containers, manual FFI, or handwritten glue code. This demonstrates that Yori is not bound to any single language or runtime, but operates as a **universal, intent-driven semantic compiler**, capable of deciding *how* and *where* code should execute based purely on human intent.
+
+In a general sense, you can compile any text file as source and include any library in the source file from any language, provided you give the path after the INCLUDE flag
+
+>yori input.extension -o output.extension 
+
 # Yori Compiler
 
 The **Yori Compiler** is a meta-compilation tool designed to bridge the gap between high-level human intent and machine execution. Its mission is to make programming accessible to everyone by allowing software to be built using natural language blueprints.
 
 ---
 
-## 🚀 The Vision
+##  The Vision
 Programming has traditionally required years of study to master syntax and memory management. **Yori** changes this paradigm by turning the developer into an **Architect**. You provide the "What," and the Yori Engine—powered by local and cloud-based AI—determines the "How," generating, verifying, and self-correcting code in **over 20 programming languages** until it produces a working result.
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
 * **Universal Polyglot Support**: Generate and validate code in 20+ languages including **C++, Python, Rust, Go, TypeScript, Zig, Java, C#, and Bash**.
 * **Natural Language to Code**: Compile `.yori` files containing descriptive logic directly into source code or executables.
@@ -25,7 +33,7 @@ Programming has traditionally required years of study to master syntax and memor
 
 ---
 
-## 🛠️ Technical Setup
+## Technical Setup
 
 ### Prerequisites
 1.  **Yori Core**: The `yori.exe` executable.
@@ -65,26 +73,6 @@ Other Flags
 -o <name>: Specifies output filename.
 -u: Update Mode. Reads existing code and modifies it based on new instructions.
 -local / -cloud: Switch AI provider.
-
-Examples1. The Classic (C++) PowerShellyori game.yori -o game.exe
-Yori detects .exe, asks for clarification if needed, generates C++, and compiles it.
-2. The Web Backend (TypeScript)PowerShell> yori server.yori -ts
-Yori generates server.ts and validates typing using tsc.3. The Data Script (Python)PowerShellyori scraper.yori -py
-Yori generates scraper.py and checks syntax.4. Interactive Mode (No flag)PowerShellyori app.yori -o my_app
-Yori will pause and ask: Plaintext[?] Ambiguous output. Please select target language:
-   1. C++ (cpp)      2. Python (py)      3. Rust (rust)
-   4. Go (go)        5. Zig (zig)        6. Swift (swift)
-   ...
-> Selection:
- Quick Start TutorialStep 1: Create a Blueprint (hello.yori)YAMLPROGRAM: UniversalHello
-
-// Create a function that calculates the Fibonacci sequence up to N.
-// Ask the user for a number.
-// Print the sequence.
-
-Step 2: Compile to Rust
-PowerShell>.\yori.exe hello.yori -rs
-Watch Yori think, generate Rust code, and use rustc to verify it works.Step 3: RunPowerShell.\hello.exe
 
  FAQ
  1. Do I need to install all 20 languages?
