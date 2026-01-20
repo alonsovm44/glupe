@@ -1,0 +1,9 @@
+
+INCLUDE x.py
+IMPORT x.py
+
+// Create processor with data [1,2,3,4,5]
+// Normalize the data
+// Print result
+
+END program
