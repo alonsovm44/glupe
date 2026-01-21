@@ -85,6 +85,36 @@ The **Yori Compiler** is a meta-compilation tool designed to bridge the gap betw
 Programming has traditionally required years of study to master syntax and memory management. **Yori** changes this paradigm by turning the developer into an **Architect**. You provide the "What," and the Yori Engine—powered by local and cloud-based AI—determines the "How," generating, verifying, and self-correcting code in **over 20 programming languages** until it produces a working result.
 
 ---
+##  What Yori IS NOT
+
+To manage expectations regarding traditional compiler theory and define the tool's scope, it is important to clarify what Yori is not:
+
+-Not a Traditional Deterministic Compiler:
+
+-Unlike GCC, Clang, or Rustc, Yori does not rely on a hand-written lexer, parser, Abstract Syntax Tree (AST), or formal grammar rules to translate code.
+
+-What it is instead: It is an Agentic Build System that leverages Large Language Models (LLMs) to interpret intent and transpile mixed-syntax code into a high-performance target language (like C++).
+
+-Not 100% Deterministic (but can do incremental development with the -u flag):
+
+Due to the probabilistic nature of AI, compiling the same source file twice might result in slightly different underlying C++ implementations (though functionally identical).
+
+Mitigation: Yori employs caching mechanisms and strict prompting to stabilize output, but it does not guarantee bit-for-bit binary reproducibility across builds.
+
+Not "Just a ChatGPT Wrapper":
+
+While it uses AI for code generation, Yori adds a critical layer of Systems Engineering:
+
+1. Context Awareness: Handles multi-file imports and dependencies.
+
+2. Self-Healing: Automatically feeds compiler errors back into the system to fix bugs.
+
+3. Fail-Fast Safety: Detects missing libraries/headers before wasting resources.
+
+4. Toolchain Abstraction: Manages the invocation of native compilers (g++, rustc, etc.) transparently.
+
+### Summary:
+ Yori is a Software 2.0 tool. If you need absolute formal verification and clock-cycle precision, use a traditional compiler. If you want to prototype complex ideas in seconds using natural language and mixed logic or your own language, use Yori.
 
 ##  Key Features
 
