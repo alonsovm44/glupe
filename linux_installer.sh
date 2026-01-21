@@ -1,9 +1,9 @@
 #!/bin/bash
 # Yori Compiler Installer for Linux
-# Version 4.5
+# Version 4.5.1
+#i do not guarrantee that this thing works, if it does not work, i'd accept help pls
 
 set -e  # Exit on error
-
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
