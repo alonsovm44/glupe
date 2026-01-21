@@ -74,6 +74,40 @@ Other Flags
 -u: Update Mode. Reads existing code and modifies it based on new instructions.
 -local / -cloud: Switch AI provider.
 
+## UNIVERSAL IMPORTS
+
+Yori files support universal imports using IMPORT: keyword. Example:
+
+````a.cpp
+int function1(int x){
+    return x + 6;
+}
+
+````````b.py
+def function2(x):
+    return x + 7
+````
+````example.yori
+IMPORT: a.cpp //for function1()
+IMPORT: b.py // for function2()
+
+INT x=1
+PRINT(function1(x))
+PRINT(function2(y))
+
+```` 
+````Result
+>yori example.yori -o myapp.exe -cpp -cloud 
+>7
+>8
+````
+## UNIVERSAL LINKING
+Yori now supports universal file compilation (4.5) like so
+````
+>yori a.cpp b.py c.cs d.js e.acn -o myapp.exe -c -cloud 
+//you could also transpile multiple files into a single file
+>yori a.py b.py c.py -o d.c -cloud
+````
  FAQ
  1. Do I need to install all 20 languages?
  A: No. If you try to build a Rust app but don't have rustc, Yori will alert you and ask if you want to proceed in "Blind Mode" (generate code without validation).
