@@ -6,6 +6,9 @@
      - AI Error Memory
      - Configurable Toolchains
      - Update Mode (-u) for iterative dev
+     - Fail-Fast on Missing Dependencies
+     - AI Dependency Hinter (Interactive)
+     - Pre-Flight Dependency Check (New! - Saves Tokens)
 */
 
 #include <iostream>
@@ -80,7 +83,7 @@ struct LangProfile {
 map<string, LangProfile> LANG_DB = {
     {"cpp",  {"cpp", "C++", ".cpp", "g++ --version", "g++ -std=c++17", true}},
     {"c",    {"c",   "C",   ".c",   "gcc --version", "gcc", true}},
-    {"rust", {"rust","Rust",".rs",  "rustc --version", "rustc", true}}, // rustc output handling varies
+    {"rust", {"rust","Rust",".rs",  "rustc --version", "rustc", true}}, 
     {"go",   {"go",  "Go",  ".go",  "go version", "go build", true}},
     {"py",   {"py",  "Python", ".py", "python --version", "python -m py_compile", false}},
     {"js",   {"js",  "JavaScript", ".js", "node --version", "node -c", false}},
@@ -122,14 +125,26 @@ string getExt(string fname) {
     return (lastindex == string::npos) ? "" : fname.substr(lastindex); 
 }
 
+// Check if error is related to missing files/libs (Fail Fast Strategy)
+bool isFatalError(const string& errMsg) {
+    string lowerErr = errMsg;
+    transform(lowerErr.begin(), lowerErr.end(), lowerErr.begin(), ::tolower);
+    
+    if (lowerErr.find("fatal error") != string::npos) return true;
+    if (lowerErr.find("no such file") != string::npos) return true;
+    if (lowerErr.find("file not found") != string::npos) return true;
+    if (lowerErr.find("cannot open source file") != string::npos) return true;
+    if (lowerErr.find("module not found") != string::npos) return true;
+    if (lowerErr.find("importerror") != string::npos) return true; 
+    
+    return false;
+}
+
 // --- CONFIG & TOOLCHAIN OVERRIDES ---
 bool loadConfig(string mode) {
     string configPath = "config.json";
-    // (Logic to find config relative to exe omitted for brevity, assumes CWD or Env)
-    
     ifstream f(configPath);
     if (!f.is_open()) {
-        // Fallback defaults if no config
         if(mode == "local") API_URL = "http://localhost:11434/api/generate";
         return true; 
     }
@@ -143,8 +158,6 @@ bool loadConfig(string mode) {
             MODEL_ID = profile.value("model_id", "gemini-pro");
             if (mode == "local") API_URL = profile.value("api_url", "http://localhost:11434/api/generate");
         }
-
-        // Feature: Custom Toolchains via Config
         if (j.contains("toolchains")) {
             for (auto& [key, val] : j["toolchains"].items()) {
                 if (LANG_DB.count(key)) {
@@ -158,8 +171,7 @@ bool loadConfig(string mode) {
     } catch (...) { return false; }
 }
 
-// --- PREPROCESSOR (Improved v4.5) ---
-// Returns: Processed content with explicit markers for the AI
+// --- PREPROCESSOR ---
 string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     stringstream ss(code);
     string line;
@@ -167,14 +179,12 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     
     while (getline(ss, line)) {
         string cleanLine = line;
-        // Trim leading spaces
         size_t first = cleanLine.find_first_not_of(" \t\r\n");
         if (first == string::npos) { processed += line + "\n"; continue; }
         cleanLine.erase(0, first);
         
         if (cleanLine.rfind("IMPORT:", 0) == 0) {
             string fname = cleanLine.substr(7);
-            // Quote removal logic
             size_t q1 = fname.find_first_of("\"'");
             size_t q2 = fname.find_last_of("\"'");
             if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
@@ -189,8 +199,6 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
             try {
                 if (fs::exists(path)) {
                     string absPath = fs::canonical(path).string();
-                    
-                    // Cycle detection
                     bool cycle = false;
                     for(const auto& s : stack) if(s == absPath) cycle = true;
                     
@@ -204,17 +212,15 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
                             stack.push_back(absPath);
                             string nested = resolveImports(content, path.parent_path(), stack);
                             stack.pop_back();
-                            
-                            // IMPROVEMENT: Explicit AI Context Markers
                             string ext = path.extension().string();
                             processed += "\n// >>>>>> START MODULE: " + fname + " (" + ext + ") >>>>>>\n";
                             processed += nested;
                             processed += "\n// <<<<<< END MODULE: " + fname + " <<<<<<\n";
-                            
                             log("INFO", "Imported module: " + fname);
                         }
                     }
                 } else {
+                    // Mark as potential system/missing import for pre-check
                     processed += "// [WARN] IMPORT NOT FOUND: " + fname + "\n";
                 }
             } catch (...) { processed += "// [ERROR] PATH EXCEPTION\n"; }
@@ -228,7 +234,6 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
 // --- AI CORE ---
 string callAI(string prompt) {
     string response;
-    // Retry mechanism for API failures (Network/RateLimit) - distinct from Compiler Error Retries
     for(int i=0; i<3; i++) {
         json body; string url;
         if (PROVIDER == "local") { 
@@ -242,7 +247,6 @@ string callAI(string prompt) {
         file << body.dump(-1, ' ', false, json::error_handler_t::replace); 
         file.close();
         
-        // Silent curl unless verbose
         string cmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @request_temp.json \"" + url + "\"";
         CmdResult res = execCmd(cmd);
         response = res.output;
@@ -262,24 +266,119 @@ string extractCode(string jsonResponse) {
     try {
         json j = json::parse(jsonResponse);
         string raw = "";
-        
-        // Handle Google / Ollama differences
         if (j.contains("error")) return "ERROR: " + j["error"].dump();
         if (PROVIDER == "local") { if (j.contains("response")) raw = j["response"]; } 
         else { if (j.contains("candidates")) raw = j["candidates"][0]["content"]["parts"][0]["text"]; }
         
-        // Markdown extraction
         size_t start = raw.find("```"); 
-        if (start == string::npos) return raw; // Fallback: return raw text if no code block
-        
+        if (start == string::npos) return raw; 
         size_t end_line = raw.find('\n', start); 
         size_t end_block = raw.rfind("```");
-        
         if (end_line != string::npos && end_block != string::npos && end_block > end_line) {
             return raw.substr(end_line + 1, end_block - end_line - 1);
         }
         return raw;
     } catch (...) { return "JSON_PARSE_ERROR"; }
+}
+
+void explainFatalError(const string& errorMsg) {
+    cout << "\n[YORI ASSISTANT] ANALYZING fatal error..." << endl;
+    string prompt = "ROLE: Helpful Tech Support.\nTASK: Fix missing file error.\nERROR: " + errorMsg.substr(0, 500) + "\nOUTPUT: Short advice.";
+    string advice = callAI(prompt);
+    try {
+        json j = json::parse(advice);
+        if (j.contains("candidates")) advice = j["candidates"][0]["content"]["parts"][0]["text"];
+        else if (j.contains("response")) advice = j["response"];
+    } catch(...) {}
+    cout << "> Proposed solution: " << advice << endl;
+}
+
+// --- PRE-FLIGHT DEPENDENCY CHECKER --- //so it does not compile broken code and waste tokens
+
+// Scans code for potential dependencies (includes, missing imports)
+set<string> extractDependencies(const string& code) {
+    set<string> deps;
+    stringstream ss(code);
+    string line;
+    while(getline(ss, line)) {
+        // Check for missing local imports identified by preprocessor
+        size_t warnPos = line.find("// [WARN] IMPORT NOT FOUND: ");
+        if (warnPos != string::npos) {
+            deps.insert(line.substr(warnPos + 28)); // 28 = len of prefix
+        }
+        
+        // Check for manual C/C++ includes
+        size_t incPos = line.find("#include");
+        if (incPos != string::npos) {
+            size_t startQuote = line.find_first_of("\"<", incPos);
+            size_t endQuote = line.find_first_of("\">", startQuote + 1);
+            if (startQuote != string::npos && endQuote != string::npos) {
+                deps.insert(line.substr(startQuote + 1, endQuote - startQuote - 1));
+            }
+        }
+    }
+    return deps;
+}
+
+bool preFlightCheck(const set<string>& deps) {
+    if (deps.empty()) return true;
+    
+    // Only verify for compiled languages where header check is standard
+    if (CURRENT_LANG.id != "cpp" && CURRENT_LANG.id != "c") return true; 
+
+    cout << "[CHECK] Verifying dependencies locally..." << endl;
+    string tempCheck = "temp_dep_check" + CURRENT_LANG.extension;
+    ofstream out(tempCheck);
+    
+    // Create a minimal dummy file that just imports the headers
+    if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c") {
+        for(const auto& d : deps) {
+            // Determine if it needs quotes or angle brackets based on content, defaulting to quotes if unsure
+            // But simpler: just try to include it.
+            if (d.find(".h") != string::npos || d.find("/") != string::npos) out << "#include \"" << d << "\"\n";
+            else out << "#include <" << d << ">\n"; 
+        }
+        out << "int main() { return 0; }\n";
+    }
+    out.close();
+    
+    // Compile-only flag (-c) to avoid linker errors, we just want to check headers
+    string cmd = CURRENT_LANG.buildCmd + " -c \"" + tempCheck + "\""; // -c works for gcc/clang
+    if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c") {
+        // cmd is constructed correctly above
+    } else {
+        // Fallback for others if we implement them later
+        cmd = CURRENT_LANG.buildCmd + " \"" + tempCheck + "\"";
+    }
+
+    CmdResult res = execCmd(cmd);
+    
+    // Cleanup
+    fs::remove(tempCheck);
+    if (fs::exists(stripExt(tempCheck) + ".o")) fs::remove(stripExt(tempCheck) + ".o");
+    if (fs::exists(stripExt(tempCheck) + ".obj")) fs::remove(stripExt(tempCheck) + ".obj");
+
+    if (res.exitCode != 0) {
+        cout << "   [!] Missing Dependency Detected!" << endl;
+        // Identify which one failed from output
+        for(const auto& d : deps) {
+            if (res.output.find(d) != string::npos) {
+                cout << "       -> " << d << " not found." << endl;
+            }
+        }
+        // Use assistant to explain
+        if (isFatalError(res.output)) {
+             cout << "   [?] Analyze fatal error with AI? [y/N]: ";
+             char ans; cin >> ans;
+             if (ans == 'y' || ans == 'Y') explainFatalError(res.output);
+        } else {
+             cout << "   [ERROR LOG]:\n" << res.output.substr(0, 300) << endl;
+        }
+        return false;
+    }
+    
+    cout << "   [OK] Dependencies verified." << endl;
+    return true;
 }
 
 void selectLanguage() {
@@ -297,18 +396,17 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v4.5 (Multi-File)\nUsage: yori file1 file2 ... [-o output] [-cloud/-local] [-u]" << endl;
+        cout << "YORI v4.5 (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
         return 0;
     }
 
-    vector<string> inputFiles; // v4.5: Multiple inputs
+    vector<string> inputFiles; 
     string outputName = "";
     string mode = "local"; 
     bool explicitLang = false;
     bool dryRun = false;
-    bool updateMode = false; // FLAG: Update existing source
+    bool updateMode = false; 
 
-    // Argument Parsing
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
         if (arg == "-o" && i+1 < argc) { outputName = argv[i+1]; i++; }
@@ -322,17 +420,16 @@ int main(int argc, char* argv[]) {
             if (LANG_DB.count(langKey)) { CURRENT_LANG = LANG_DB[langKey]; explicitLang = true; }
         }
         else {
-            inputFiles.push_back(arg); // Collect source files
+            inputFiles.push_back(arg); 
         }
     }
 
     if (inputFiles.empty()) { cerr << "No input files." << endl; return 1; }
     if (!loadConfig(mode)) return 1;
 
-    // Detect Lang & Output Name
     if (!explicitLang) {
         if (outputName.empty()) {
-             CURRENT_LANG = LANG_DB["cpp"]; // Default to C++ if unknown
+             CURRENT_LANG = LANG_DB["cpp"]; 
         } else {
             string ext = getExt(outputName);
             for (auto const& [key, val] : LANG_DB) {
@@ -344,13 +441,12 @@ int main(int argc, char* argv[]) {
 
     if (outputName.empty()) outputName = stripExt(inputFiles[0]) + CURRENT_LANG.extension;
     
-    // Validate Toolchain
     cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
     if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
         cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
     } else cout << "   [OK] Ready." << endl;
 
-    // --- AGGREGATE SOURCES (v4.5) ---
+    // --- AGGREGATE SOURCES ---
     string aggregatedContext = "";
     vector<string> stack;
     
@@ -368,10 +464,31 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // --- LOAD EXISTING CODE (Update Mode) ---
+    // --- CACHE SYSTEM ---
+    size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n"));
+    string cacheFile = ".yori_build.cache"; 
+
+    if (!updateMode && !dryRun && fs::exists(cacheFile) && fs::exists(outputName)) {
+        ifstream cFile(cacheFile);
+        size_t storedHash;
+        if (cFile >> storedHash && storedHash == currentHash) {
+            cout << "[CACHE] No changes detected. Using existing build." << endl;
+            log("INFO", "Cache hit.");
+            return 0;
+        }
+    }
+
+    // --- PRE-FLIGHT CHECK (New v4.5 Feature) ---
+    // Extract potential dependencies from source warnings or manual includes
+    set<string> potentialDeps = extractDependencies(aggregatedContext);
+    if (!preFlightCheck(potentialDeps)) {
+        log("FATAL", "Pre-flight check failed.");
+        return 1; // Abort before AI generation to save tokens
+    }
+
+    // --- LOAD EXISTING CODE ---
     string existingCode = "";
     if (updateMode) {
-        // Construct the expected source path (e.g., if output is app.exe, look for app.cpp)
         string srcPath = stripExt(outputName) + CURRENT_LANG.extension;
         if (fs::exists(srcPath)) {
             ifstream old(srcPath);
@@ -388,7 +505,7 @@ int main(int argc, char* argv[]) {
     // --- COMPILATION LOOP ---
     string tempSrc = "temp_build" + CURRENT_LANG.extension;
     string tempBin = "temp_build.exe"; 
-    string errorHistory = ""; // v4.5: Error Memory
+    string errorHistory = ""; 
     
     int passes = MAX_RETRIES;
     
@@ -397,28 +514,24 @@ int main(int argc, char* argv[]) {
         
         stringstream prompt;
         prompt << "ROLE: Expert " << CURRENT_LANG.name << " compiler/transpiler.\n";
+        prompt << "STRICT RULES:\n";
+        prompt << "1. DO NOT SIMULATE or MOCK missing libraries. If a library is imported, MUST include the actual header.\n";
+        prompt << "2. If a dependency is missing, let the compiler fail.\n";
         
         if (updateMode && !existingCode.empty()) {
-            // MODE A: UPDATE
-            prompt << "TASK: UPDATE the existing code based on the new input logic.\n";
-            prompt << "CONTEXT: You have an existing codebase and new logic/files to integrate.\n";
-            prompt << "REQUIREMENT: Modify [OLD CODE] to include features/fixes from [NEW INPUTS]. Output the FULL updated code.\n";
+            prompt << "TASK: UPDATE existing code.\n";
             prompt << "\n--- [OLD CODE] ---\n" << existingCode << "\n--- [END OLD CODE] ---\n";
             prompt << "\n--- [NEW INPUTS] ---\n" << aggregatedContext << "\n--- [END NEW INPUTS] ---\n";
         } else {
-            // MODE B: NEW BUILD
-            prompt << "TASK: Create a SINGLE, COMPLETE, RUNNABLE " << CURRENT_LANG.name << " file.\n";
-            prompt << "CONTEXT: The following is a collection of source files (possibly mixed languages/pseudo-code).\n";
-            prompt << "REQUIREMENT: Merge logic, resolve imports, implement main(), and output valid code only.\n";
+            prompt << "TASK: Create SINGLE RUNNABLE " << CURRENT_LANG.name << " file.\n";
             prompt << "\n--- INPUT SOURCES ---\n" << aggregatedContext << "\n--- END SOURCES ---\n";
         }
         
         if (!errorHistory.empty()) {
-            prompt << "\n[!] PREVIOUS ERRORS (Do not repeat these mistakes):\n" << errorHistory << "\n";
-            prompt << "Fix the code based on these compiler errors.\n";
+            prompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
         }
         
-        prompt << "\nOUTPUT: Only the " << CURRENT_LANG.name << " code block.";
+        prompt << "\nOUTPUT: Only code.";
 
         string response = callAI(prompt.str());
         string code = extractCode(response);
@@ -427,16 +540,14 @@ int main(int argc, char* argv[]) {
 
         ofstream out(tempSrc); out << code; out.close();
 
-        // Build
         cout << "   Verifying..." << endl;
         string valCmd = CURRENT_LANG.buildCmd + " \"" + tempSrc + "\"";
-        if (CURRENT_LANG.producesBinary) valCmd += " -o \"" + tempBin + "\""; // Safe quoting
+        if (CURRENT_LANG.producesBinary) valCmd += " -o \"" + tempBin + "\""; 
         
         CmdResult build = execCmd(valCmd);
         
         if (build.exitCode == 0) {
             cout << "\nBUILD SUCCESSFUL: " << outputName << endl;
-            
             if (CURRENT_LANG.producesBinary) {
                 fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
                 cout << "   [Binary]: " << outputName << endl;
@@ -446,14 +557,26 @@ int main(int argc, char* argv[]) {
                 cout << "   [Script]: " << outputName << endl;
             }
             fs::remove(tempSrc);
+
+            ofstream cFile(cacheFile);
+            cFile << currentHash;
             return 0;
         } else {
-            // Compilation Failed
             string err = build.output;
             cout << "   [!] Error (Line " << gen << "): " << err.substr(0, 50) << "..." << endl;
             log("FAIL", "Pass " + to_string(gen) + " failed.");
-            
-            // v4.5: Add to error memory for next prompt
+
+            if (isFatalError(err)) {
+                cerr << "\n[FATAL ERROR] Missing dependency/file detected. Aborting." << endl;
+                cerr << "Details: " << err.substr(0, 200) << "..." << endl;
+                
+                cout << "   [?] Analyze fatal error with AI? [y/N]: ";
+                char ans; cin >> ans;
+                if (ans == 'y' || ans == 'Y') explainFatalError(err);
+                
+                log("FATAL", "Aborted due to missing dependencies.");
+                break; 
+            }
             errorHistory += "\n--- Error Pass " + to_string(gen) + " ---\n" + err;
         }
     }
