@@ -101,6 +101,15 @@ PRINT(function2(y))
 >7
 >8
 ````
+Yori follows a You-provide-first philosophy, it won't make libraries from scratch, be sure to provide them if possible. Yori can handle this
+````
+INCLUDE: raylib.h
+INCLUDE: mypy.py
+
+//program logic
+
+````
+Yori behaves better with All-in-one libraries
 ## UNIVERSAL LINKING
 Yori now supports universal file compilation (4.5) like so
 ````
