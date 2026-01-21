@@ -91,7 +91,21 @@ map<string, LangProfile> LANG_DB = {
     {"js",   {"js",  "JavaScript", ".js", "node --version", "node -c", false}},
     {"ts",   {"ts",  "TypeScript", ".ts", "tsc --version", "tsc --noEmit", false}},
     {"cs",   {"cs",  "C#",  ".cs",  "dotnet --version", "dotnet build", true}},
-    {"java", {"java","Java",".java","javac -version", "javac", false}}
+    {"java", {"java","Java",".java","javac -version", "javac", false}},
+    {"php",  {"php", "PHP", ".php", "php -v", "php -l", false}},
+    {"rb",   {"rb",  "Ruby", ".rb", "ruby -v", "ruby -c", false}},
+    {"lua",  {"lua", "Lua", ".lua", "lua -v", "luac -p", false}},
+    {"pl",   {"pl",  "Perl", ".pl", "perl -v", "perl -c", false}},
+    {"sh",   {"sh",  "Bash", ".sh", "bash --version", "bash -n", false}},
+    {"swift",{"swift","Swift",".swift","swift --version", "swiftc", true}},
+    {"kt",   {"kt",  "Kotlin", ".kt", "kotlinc -version", "kotlinc", false}},
+    {"scala",{"scala","Scala",".scala","scala -version", "scalac", false}},
+    {"hs",   {"hs",  "Haskell", ".hs", "ghc --version", "ghc", true}},
+    {"jl",   {"jl",  "Julia", ".jl", "julia --version", "julia", false}},
+    {"dart", {"dart","Dart",".dart","dart --version", "dart compile exe", true}},
+    {"zig",  {"zig", "Zig", ".zig", "zig version", "zig build-exe", true}},
+    {"nim",  {"nim", "Nim", ".nim", "nim --version", "nim c", true}},
+    {"r",    {"r",   "R",   ".r",   "R --version", "Rscript", false}}
 };
 
 LangProfile CURRENT_LANG; 
