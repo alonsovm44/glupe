@@ -1,0 +1,106 @@
+# ========================================
+# SIMULACIÓN: Línea de Ensamble de Laptops
+# Empresa: TechMex Manufacturing
+# Objetivo: Identificar cuellos de botella
+# ========================================
+
+RECURSOS:
+    estacion_motherboard: 
+        capacidad = 1
+        tiempo_proceso = NORMAL(20, 3) segundos
+        costo_operacion = 15 USD/hora
+        
+    estacion_ram:
+        capacidad = 1
+        tiempo_proceso = NORMAL(15, 2) segundos
+        costo_operacion = 15 USD/hora
+        
+    estacion_disco:
+        capacidad = 1
+        tiempo_proceso = NORMAL(25, 5) segundos
+        costo_operacion = 15 USD/hora
+        falla_cada = 480 minutos
+        tiempo_reparacion = NORMAL(30, 5) minutos
+        
+    estacion_carcasa:
+        capacidad = 2
+        tiempo_proceso = NORMAL(30, 4) segundos
+        costo_operacion = 12 USD/hora
+        
+    estacion_pruebas:
+        capacidad = 1
+        tiempo_proceso = NORMAL(60, 10) segundos
+        costo_operacion = 20 USD/hora
+        tasa_defectos = 0.05
+        
+    buffer_intermedio:
+        capacidad = 50 unidades
+
+PROCESO ensamble_laptop:
+    
+    ETAPA 1_instalacion_placa:
+        USAR estacion_motherboard
+        TIEMPO = estacion_motherboard.tiempo_proceso
+        AL_COMPLETAR:
+            MOVER_A buffer_intermedio
+    
+    ETAPA 2_instalacion_memoria:
+        ESPERAR_EN buffer_intermedio
+        USAR estacion_ram
+        TIEMPO = estacion_ram.tiempo_proceso
+        
+    ETAPA 3_instalacion_almacenamiento:
+        USAR estacion_disco
+        TIEMPO = estacion_disco.tiempo_proceso
+        SI estacion_disco.en_falla:
+            ESPERAR_REPARACION
+            
+    ETAPA 4_cerrar_equipo:
+        USAR estacion_carcasa
+        TIEMPO = estacion_carcasa.tiempo_proceso
+        
+    ETAPA 5_control_calidad:
+        USAR estacion_pruebas
+        TIEMPO = estacion_pruebas.tiempo_proceso
+        SI falla_prueba:
+            ENVIAR_A reproceso
+            REGISTRAR defecto
+        SINO:
+            PRODUCTO_TERMINADO
+            REGISTRAR unidad_ok
+
+LLEGADAS:
+    patron = CONSTANTE
+    tasa = 1 laptop cada 45 segundos
+    total = 500 unidades
+
+CONFIGURACION_SIMULACION:
+    tiempo_simulacion = 8 horas
+    replicas = 10
+    semilla_aleatoria = 42
+    warmup = 30 minutos
+
+METRICAS_OBJETIVO:
+    - throughput_por_hora
+    - utilizacion_por_estacion
+    - tiempo_ciclo_promedio
+    - WIP_maximo
+    - WIP_promedio
+    - costo_total_operacion
+    - tasa_defectos_real
+    - tiempo_espera_por_etapa
+
+ANALISIS:
+    identificar_cuello_botella
+    calcular_capacidad_teorica
+    sugerir_mejoras
+    
+REPORTAR:
+    formato = TABLA + GRAFICAS
+    incluir = resumen_ejecutivo
+    exportar_a = "resultados_simulacion.pdf"
+
+OPTIMIZACION (opcional):
+    VARIABLE estacion_carcasa.capacidad RANGO [1, 5]
+    OBJETIVO maximizar(throughput_por_hora)
+    RESTRICCION costo_total_operacion < 1000 USD
