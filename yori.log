@@ -180,3 +180,170 @@
 --- SESSION START (v4.7.1): 2026-01-22 04:27:27 ---
 
 --- SESSION START (v4.7.1): 2026-01-22 04:27:35 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:29:53 ---
+
+--- SESSION START (v4.7.1): 2026-01-22 04:31:09 ---
+
+--- SESSION START (v4.8.0): 2026-01-22 04:34:20 ---
+
+--- SESSION START (v4.8.0): 2026-01-22 04:34:57 ---
+
+--- SESSION START (v4.8.0): 2026-01-22 04:37:09 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:40:16 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:40:32 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:41:05 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:41:22 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:41:53 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:44:23 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:44:45 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:45:42 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:45:56 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:46:40 ---
+[04:46:42] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:43] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:43] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:44] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:44] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:46] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:46] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:47] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:47] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:48] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:48] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:50] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:50] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:51] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+[04:46:51] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonet is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:47:03 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:47:06 ---
+[04:47:06] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:07] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:07] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:08] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:08] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:09] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:09] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:10] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:10] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:11] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:11] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+[04:47:12] [API_FAIL] ERROR: {"code":400,"message":"claude-3.5-sonnet is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:47:45 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:47:48 ---
+[04:47:50] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+[04:47:51] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+[04:47:52] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+[04:47:52] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+[04:47:53] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+[04:47:53] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+[04:47:54] [API_FAIL] ERROR: {"code":402,"message":"This request requires more credits, or fewer max_tokens. You requested up to 16384 tokens, but can only afford 4000. To increase, visit https://openrouter.ai/settings/credits and upgrade to a paid account","metadata":{"provider_name":null}}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:48:23 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:48:24 ---
+[04:48:25] [API_FAIL] ERROR: {"code":400,"message":"mistral-large is not a valid model ID"}
+[04:48:25] [API_FAIL] ERROR: {"code":400,"message":"mistral-large is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:48:43 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:48:45 ---
+[04:48:47] [API_FAIL] ERROR: {"code":400,"message":"llama-3.1-405b is not a valid model ID"}
+[04:48:47] [API_FAIL] ERROR: {"code":400,"message":"llama-3.1-405b is not a valid model ID"}
+[04:48:47] [API_FAIL] ERROR: {"code":400,"message":"llama-3.1-405b is not a valid model ID"}
+[04:48:48] [API_FAIL] ERROR: {"code":400,"message":"llama-3.1-405b is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:49:02 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:49:04 ---
+[04:49:04] [API_FAIL] ERROR: {"code":400,"message":"gemini-1.5-pro is not a valid model ID"}
+[04:49:05] [API_FAIL] ERROR: {"code":400,"message":"gemini-1.5-pro is not a valid model ID"}
+[04:49:05] [API_FAIL] ERROR: {"code":400,"message":"gemini-1.5-pro is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:49:28 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:49:31 ---
+[04:49:31] [API_FAIL] ERROR: {"code":400,"message":"gemini-2.5-pro is not a valid model ID"}
+[04:49:33] [API_FAIL] ERROR: {"code":400,"message":"gemini-2.5-pro is not a valid model ID"}
+[04:49:33] [API_FAIL] ERROR: {"code":400,"message":"gemini-2.5-pro is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:49:54 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:49:56 ---
+[04:49:57] [API_FAIL] ERROR: {"code":400,"message":"grok-2 is not a valid model ID"}
+[04:49:57] [API_FAIL] ERROR: {"code":400,"message":"grok-2 is not a valid model ID"}
+
+--- SESSION START (v4.8.1): 2026-01-22 04:50:28 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:50:33 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:50:37 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:50:39 ---
+[04:50:41] [FAIL] Pass 1 failed.
+[04:50:45] [FAIL] Pass 2 failed.
+[04:50:46] [FAIL] Pass 3 failed.
+[04:50:47] [FAIL] Pass 4 failed.
+[04:50:47] [FAIL] Pass 5 failed.
+[04:50:48] [FAIL] Pass 6 failed.
+[04:50:50] [FAIL] Pass 7 failed.
+[04:50:52] [FAIL] Pass 8 failed.
+[04:50:53] [FAIL] Pass 9 failed.
+[04:50:55] [FAIL] Pass 10 failed.
+[04:50:55] [FAIL] Pass 11 failed.
+[04:50:56] [FAIL] Pass 12 failed.
+
+--- SESSION START (v4.8.1): 2026-01-22 04:52:20 ---
+
+--- SESSION START (v4.8.1): 2026-01-22 04:52:22 ---
+[04:52:23] [FAIL] Pass 1 failed.
+[04:52:24] [FAIL] Pass 2 failed.
+[04:52:25] [FAIL] Pass 3 failed.
+
+--- SESSION START (v4.9.0): 2026-01-22 04:55:26 ---
+[04:55:27] [API_FAIL] ERROR: JSON Parsing Failed. Response was: <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"/><link rel="stylesheet" href="/_next/static/css/cda3af1...
+[04:55:28] [API_FAIL] ERROR: JSON Parsing Failed. Response was: <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"/><link rel="stylesheet" href="/_next/static/css/cda3af1...
+[04:55:29] [API_FAIL] ERROR: JSON Parsing Failed. Response was: <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"/><link rel="stylesheet" href="/_next/static/css/cda3af1...
+
+--- SESSION START (v4.9.0): 2026-01-22 04:55:46 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 04:55:48 ---
+[04:55:48] [API_FAIL] ERROR: JSON Parsing Failed. Response was: <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"/><link rel="stylesheet" href="/_next/static/css/cda3af1...
+[04:55:49] [API_FAIL] ERROR: JSON Parsing Failed. Response was: <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"/><link rel="stylesheet" href="/_next/static/css/cda3af1...
+[04:55:50] [API_FAIL] ERROR: JSON Parsing Failed. Response was: <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1"/><link rel="stylesheet" href="/_next/static/css/cda3af1...
+
+--- SESSION START (v4.9.0): 2026-01-22 04:57:14 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 04:57:25 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 04:57:43 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 04:58:01 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 04:58:30 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 04:59:33 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 05:01:00 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 05:01:05 ---
+
+--- SESSION START (v4.9.0): 2026-01-22 05:01:09 ---
+[05:01:10] [API_FAIL] ERROR: Empty response from API
+[05:01:11] [API_FAIL] ERROR: Empty response from API
+[05:01:12] [API_FAIL] ERROR: Empty response from API
+[05:01:12] [API_FAIL] ERROR: Empty response from API
