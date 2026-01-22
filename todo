@@ -26,4 +26,37 @@ The preprocessor looks for those files and pastes them in the file calling those
 	>yori source.txt -o myapp.exe main.cpp graphics.cpp mylib.cpp graphics.hpp mylib.hpp -cloud -cpp
 	
 -change query prompt from "expert c++ engineer" to "expert programmer"
-for 4.6 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+for 5.0 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+1. yori recognizes when user wants to use it for transpilation,
+>yori mysource.x -o mytarget.y -local -y (currently this makes a binary file with extension .y, we want it to be a text file)
+>tree shaking
+
+2.Si falla provider primario → intenta secundario automáticamente
+Load balancing entre múltiples API keys
+Cost optimization (usa modelo más barato para tareas simples)
+
+3. Build Profiles
+bashyori build --profile production  # optimizado, sin debug
+yori build --profile debug       # símbolos, validaciones extra
+yori build --profile quick       # compilación rápida, menos checks
+ 
+ Developer Experience
+4. Interactive Repair Mode
+yori fix main.cpp --interactive
+# AI sugiere 3 opciones de fix, usuario elige
+
+5. Dependency Resolver Mejorado
+
+Auto-download de headers comunes (via vcpkg/conan integration)
+Sugerencias: "¿Instalar nlohmann/json automáticamente?"
+Detección de versiones incompatibles
+
+6. Project Templates Expandidos
+bashyori init --template web-server-cpp
+yori init --template cli-tool-rust
+yori init --template data-pipeline-python
+
+7. Explain Mode
+bashyori explain output.cpp
+# AI documenta cada función/clase generada, genera un el mismo archivo pero con comentarios

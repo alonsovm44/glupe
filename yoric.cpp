@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v4.9 (Robust Error Handling + Debug Mode)
+/* YORI COMPILER (yori.exe) - v4.9.1 (Source Export Fix + Robust Error Handling)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS]
    Features: 
      - Multi-file ingestion
@@ -12,6 +12,7 @@
      - CLI Config Management
      - Modular Provider System (Groq, DeepSeek, OpenAI)
      - Auto-Discovery of Local Ollama Models
+     - Smart Binary vs Source Output Detection (New!)
 */
 
 #include <iostream>
@@ -56,7 +57,7 @@ string MODEL_ID = "";
 string API_URL = "";
 const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "4.9.0"; 
+const string CURRENT_VERSION = "4.9.1"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -597,6 +598,8 @@ int main(int argc, char* argv[]) {
     bool explicitLang = false;
     bool dryRun = false;
     bool updateMode = false; 
+    bool keepSource = false;
+    bool runOutput = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -606,6 +609,8 @@ int main(int argc, char* argv[]) {
         else if (arg == "-dry-run") dryRun = true;
         else if (arg == "-verbose") VERBOSE_MODE = true;
         else if (arg == "-u" || arg == "--update") updateMode = true;
+        else if (arg == "-k" || arg == "--keep") keepSource = true;
+        else if (arg == "-run" || arg == "--run") runOutput = true;
         else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
@@ -656,6 +661,9 @@ int main(int argc, char* argv[]) {
             if (!explicitLang) selectLanguage();
         }
     }
+
+    // Update mode implies keeping source to maintain the loop
+    if (updateMode) keepSource = true;
 
     if (outputName.empty()) outputName = stripExt(inputFiles[0]) + CURRENT_LANG.extension;
     
@@ -759,16 +767,27 @@ int main(int argc, char* argv[]) {
             std::error_code ec;
             bool saveSuccess = false;
 
+            // NEW: Detect if output extension matches source extension
+            bool saveAsSource = (getExt(outputName) == CURRENT_LANG.extension);
+
             for(int i=0; i<5; i++) {
                 try {
                     if (fs::exists(outputName)) fs::remove(outputName);
-                    if (CURRENT_LANG.producesBinary) {
+                    
+                    if (CURRENT_LANG.producesBinary && !saveAsSource) {
                         fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
                         cout << "   [Binary]: " << outputName << endl;
+                        if (keepSource) {
+                            string srcName = stripExt(outputName) + CURRENT_LANG.extension;
+                            fs::copy_file(tempSrc, srcName, fs::copy_options::overwrite_existing);
+                            cout << "   [Source]: " << srcName << endl;
+                        }
                         fs::remove(tempBin);
                     } else {
                         fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
-                        cout << "   [Script]: " << outputName << endl;
+                        cout << "   [Source]: " << outputName << endl;
+                        // Clean up verification binary if it exists
+                        if (CURRENT_LANG.producesBinary && fs::exists(tempBin)) fs::remove(tempBin);
                     }
                     saveSuccess = true;
                     break;
@@ -786,6 +805,23 @@ int main(int argc, char* argv[]) {
             
             if (fs::exists(tempSrc)) fs::remove(tempSrc, ec);
             ofstream cFile(cacheFile); cFile << currentHash;
+
+            if (runOutput) {
+                cout << "\n[RUN] Executing " << outputName << "..." << endl;
+                string cmd = outputName;
+                if (!CURRENT_LANG.producesBinary) {
+                    string interpreter = CURRENT_LANG.buildCmd.substr(0, CURRENT_LANG.buildCmd.find(' '));
+                    cmd = interpreter + " \"" + outputName + "\"";
+                } else {
+                    #ifndef _WIN32
+                    if (outputName.find('/') == string::npos) cmd = "./" + outputName;
+                    fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
+                    #endif
+                    cmd = "\"" + cmd + "\"";
+                }
+                system(cmd.c_str());
+            }
+
             return 0;
         } else {
             string err = build.output;
