@@ -1,0 +1,126 @@
+
+--- SESSION START (v4.5): 2026-01-22 03:09:00 ---
+
+--- SESSION START (v4.5.1): 2026-01-22 03:09:00 ---
+[03:09:24] [WARN] API 429 Rate Limit. Backoff...
+[03:09:30] [WARN] API 429 Rate Limit. Backoff...
+[03:09:41] [WARN] API 429 Rate Limit. Backoff...
+
+--- SESSION START (v4.5): 2026-01-22 03:10:42 ---
+
+--- SESSION START (v4.5.1): 2026-01-22 03:10:42 ---
+[03:10:46] [WARN] API 429 Rate Limit. Backoff...
+[03:10:52] [WARN] API 429 Rate Limit. Backoff...
+
+--- SESSION START (v4.5): 2026-01-22 03:35:36 ---
+
+--- SESSION START (v4.5.1): 2026-01-22 03:35:36 ---
+[03:35:38] [WARN] API 429 Rate Limit. Backoff...
+[03:35:43] [WARN] API 429 Rate Limit. Backoff...
+
+--- SESSION START (v4.6.0): 2026-01-22 03:40:16 ---
+
+--- SESSION START (v4.5): 2026-01-22 03:41:28 ---
+
+--- SESSION START (v4.5.1): 2026-01-22 03:41:28 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:41:49 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:42:18 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:42:51 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:43:04 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:43:09 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:45:41 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:45:44 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:46:39 ---
+[03:46:41] [WARN] API 429 Rate Limit. Backoff...
+[03:46:47] [WARN] API 429 Rate Limit. Backoff...
+[03:46:57] [WARN] API 429 Rate Limit. Backoff...
+[03:47:12] [API_FAIL] ERROR: {"code":429,"details":[{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaDimensions":{"location":"global","model":"gemini-2.5-pro"},"quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests"},{"quotaDimensions":{"location":"global","model":"gemini-2.5-pro"},"quotaId":"GenerateRequestsPerMinutePerProjectPerModel-FreeTier","quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests"},{"quotaDimensions":{"location":"global","model":"gemini-2.5-pro"},"quotaId":"GenerateContentInputTokensPerModelPerMinute-FreeTier","quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"},{"quotaDimensions":{"location":"global","model":"gemini-2.5-pro"},"quotaId":"GenerateContentInputTokensPerModelPerDay-FreeTier","quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"4s"}],"message":"You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.5-pro\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.5-pro\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.5-pro\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.5-pro\nPlease retry in 4.735090048s.","status":"RESOURCE_EXHAUSTED"}
+[03:47:13] [WARN] API 429 Rate Limit. Backoff...
+[03:47:19] [WARN] API 429 Rate Limit. Backoff...
+[03:47:29] [API_FAIL] ERROR: {"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key expired. Please renew the API key."}],"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT"}
+[03:47:30] [API_FAIL] ERROR: {"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key expired. Please renew the API key."}],"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT"}
+[03:47:31] [WARN] API 429 Rate Limit. Backoff...
+[03:47:36] [API_FAIL] ERROR: {"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key expired. Please renew the API key."}],"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT"}
+[03:47:37] [API_FAIL] ERROR: {"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key expired. Please renew the API key."}],"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT"}
+[03:47:38] [WARN] API 429 Rate Limit. Backoff...
+
+--- SESSION START (v4.6.0): 2026-01-22 03:49:11 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:49:13 ---
+[03:49:14] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:15] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:15] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:16] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:17] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:17] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:18] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:18] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:19] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:20] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:20] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:21] [API_FAIL] ERROR: {"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key expired. Please renew the API key."}],"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT"}
+[03:49:21] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:22] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:49:23] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+
+--- SESSION START (v4.6.0): 2026-01-22 03:50:18 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:50:22 ---
+[03:50:22] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:23] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:24] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:24] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:25] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:25] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:26] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:26] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:27] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:28] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:28] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:29] [API_FAIL] ERROR: {"code":400,"details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"},"reason":"API_KEY_INVALID"},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key expired. Please renew the API key."}],"message":"API key expired. Please renew the API key.","status":"INVALID_ARGUMENT"}
+[03:50:29] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:30] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:30] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+
+--- SESSION START (v4.6.0): 2026-01-22 03:50:51 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:50:55 ---
+[03:50:56] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:57] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:57] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:58] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:59] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:50:59] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-1.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+
+--- SESSION START (v4.6.0): 2026-01-22 03:51:08 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:51:10 ---
+[03:51:11] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:11] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:12] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:13] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:13] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:14] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:14] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:15] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:16] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+
+--- SESSION START (v4.6.0): 2026-01-22 03:51:25 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:51:27 ---
+[03:51:27] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+[03:51:28] [API_FAIL] ERROR: {"code":404,"message":"models/gemini-3.0-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}
+
+--- SESSION START (v4.6.0): 2026-01-22 03:51:38 ---
+
+--- SESSION START (v4.6.0): 2026-01-22 03:51:40 ---
+[03:51:41] [WARN] API 429 Rate Limit. Backoff...
+[03:51:47] [WARN] API 429 Rate Limit. Backoff...
