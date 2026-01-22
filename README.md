@@ -1,13 +1,19 @@
+# Yori is best meant for
+- Coding professors
+- Gamedev indie (multilingual builds and prototypes fast)
+- Data scientists (C perf + Python ML → 1 exe)
+- Juniors (understand without pain)
+
 ## Quick Install
 Quick Install Commands
 Linux/macOS
-bashcurl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash
+<curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash>
 Or with wget:
-bashwget -qO- https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash
+<wget -qO- https://raw.githubusercontent.com/alonsovm44/yori/master/install.sh | bash>
 Windows (PowerShell)
-powershellirm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex
+<irm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex>
 Or with shorter URL (if you setup a domain):
-powershellirm yori.dev/install.ps1 | iex
+<irm yori.dev/install.ps1 | iex>
 ## Installation
 
 ### Quick Install (Recommended)
