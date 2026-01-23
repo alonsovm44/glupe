@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v4.9.1 (Source Export Fix + Robust Error Handling)
+/* YORI COMPILER (yori.exe) - v4.9.3 (Explain Command with Multi-Language Support)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS]
    Features: 
      - Multi-file ingestion
@@ -12,7 +12,9 @@
      - CLI Config Management
      - Modular Provider System (Groq, DeepSeek, OpenAI)
      - Auto-Discovery of Local Ollama Models
-     - Smart Binary vs Source Output Detection (New!)
+     - Smart Binary vs Source Output Detection
+     - Explain Command (Auto-Documentation with Language Support)
+     - Fix Command (Natural Language Repair)
 */
 
 #include <iostream>
@@ -57,7 +59,7 @@ string MODEL_ID = "";
 string API_URL = "";
 const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "4.9.1"; 
+const string CURRENT_VERSION = "4.9.3"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -82,108 +84,38 @@ void log(string level, string message) {
 
 // --- UTILS DECLARATION ---
 struct CmdResult { string output; int exitCode; };
-CmdResult execCmd(string cmd);
 
-// --- CONFIG MANAGEMENT ---
-void updateConfigFile(string key, string value) {
-    string configPath = "config.json";
-    json j;
+CmdResult execCmd(string cmd) {
+    array<char, 128> buffer; string result; 
+    string full_cmd = cmd + " 2>&1"; 
     
-    if (fs::exists(configPath)) {
-        ifstream i(configPath);
-        if (i.is_open()) { try { i >> j; } catch(...) {} }
-    }
-    
-    if (!j.contains("cloud")) j["cloud"] = json::object();
-    if (!j.contains("local")) j["local"] = json::object();
-
-    if (key == "api-key") {
-        j["cloud"]["api_key"] = value;
-        cout << "[CONFIG] Updated cloud.api_key." << endl;
-    } else if (key == "model-cloud") {
-         j["cloud"]["model_id"] = value;
-         cout << "[CONFIG] Updated cloud.model_id to " << value << endl;
-    } else if (key == "model-local") {
-         j["local"]["model_id"] = value;
-         cout << "[CONFIG] Updated local.model_id to " << value << endl;
-    } else if (key == "url-local") {
-         j["local"]["api_url"] = value;
-         cout << "[CONFIG] Updated local.api_url to " << value << endl;
-    } else if (key == "url-cloud") { 
-         j["cloud"]["api_url"] = value;
-         cout << "[CONFIG] Updated cloud.api_url to " << value << endl;
-    } else if (key == "cloud-protocol") { 
-         if (value != "google" && value != "openai") {
-             cout << "[ERROR] Protocol must be 'google' or 'openai'." << endl; return;
-         }
-         j["cloud"]["protocol"] = value;
-         cout << "[CONFIG] Updated cloud.protocol to " << value << endl;
-    } else {
-        cout << "[ERROR] Unknown config key." << endl;
-        return;
-    }
-
-    ofstream o(configPath);
-    o << j.dump(4);
-    cout << "[SUCCESS] Saved to " << configPath << endl;
+    FILE* pipe = _popen(full_cmd.c_str(), "r");
+    if (!pipe) return {"EXEC_FAIL", -1};
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) result += buffer.data();
+    int code = _pclose(pipe);
+    return {result, code};
 }
 
-// --- NEW: OLLAMA DISCOVERY ---
-void selectOllamaModel() {
-    cout << "[INFO] Scanning for local Ollama models..." << endl;
-    string url = "http://localhost:11434/api/tags";
-    
-    string configPath = "config.json";
-    if (fs::exists(configPath)) {
-        try {
-            ifstream i(configPath); json j; i >> j;
-            if (j.contains("local") && j["local"].contains("api_url")) {
-                string currentUrl = j["local"]["api_url"];
-                size_t pos = currentUrl.find("/api/");
-                if (pos != string::npos) url = currentUrl.substr(0, pos) + "/api/tags";
-            }
-        } catch(...) {}
-    }
-
-    string cmd = "curl -s \"" + url + "\"";
-    CmdResult res = execCmd(cmd);
-
-    if (res.exitCode != 0 || res.output.empty()) {
-        cout << "[ERROR] Could not connect to Ollama at " << url << endl;
-        cout << "Make sure Ollama is running." << endl;
-        return;
-    }
-
-    try {
-        json j = json::parse(res.output);
-        if (!j.contains("models")) { cout << "[ERROR] Unexpected response format." << endl; return; }
-
-        vector<string> models;
-        cout << "\n--- Installed Local Models ---\n";
-        int idx = 1;
-        for (auto& m : j["models"]) {
-            string name = m["name"];
-            models.push_back(name);
-            cout << idx++ << ". " << name << endl;
-        }
-
-        if (models.empty()) { cout << "[WARN] No models found." << endl; return; }
-
-        cout << "\nSelect model number (or 0 to cancel): ";
-        int choice;
-        if (cin >> choice && choice > 0 && choice <= models.size()) {
-            updateConfigFile("model-local", models[choice-1]);
-        } 
-    } catch (...) { cout << "[ERROR] JSON Parsing failed." << endl; }
+string stripExt(string fname) {
+    size_t lastindex = fname.find_last_of("."); 
+    return (lastindex == string::npos) ? fname : fname.substr(0, lastindex); 
 }
 
-void openApiKeyPage() {
-    cout << "[INFO] Opening Google AI Studio..." << endl;
-    #ifdef _WIN32
-    system("start https://aistudio.google.com/app/apikey");
-    #else
-    system("xdg-open https://aistudio.google.com/app/apikey");
-    #endif
+string getExt(string fname) {
+    size_t lastindex = fname.find_last_of("."); 
+    return (lastindex == string::npos) ? "" : fname.substr(lastindex); 
+}
+
+bool isFatalError(const string& errMsg) {
+    string lowerErr = errMsg;
+    transform(lowerErr.begin(), lowerErr.end(), lowerErr.begin(), ::tolower);
+    if (lowerErr.find("fatal error") != string::npos) return true;
+    if (lowerErr.find("no such file") != string::npos) return true;
+    if (lowerErr.find("file not found") != string::npos) return true;
+    if (lowerErr.find("cannot open source file") != string::npos) return true;
+    if (lowerErr.find("module not found") != string::npos) return true;
+    if (lowerErr.find("importerror") != string::npos) return true; 
+    return false;
 }
 
 // --- LANGUAGE SYSTEM ---
@@ -219,46 +151,6 @@ map<string, LangProfile> LANG_DB = {
 };
 
 LangProfile CURRENT_LANG; 
-
-// --- UTILS IMPLEMENTATION ---
-#ifdef _WIN32
-#else
-    #define _popen popen
-    #define _pclose pclose
-#endif
-
-CmdResult execCmd(string cmd) {
-    array<char, 128> buffer; string result; 
-    string full_cmd = cmd + " 2>&1"; 
-    
-    FILE* pipe = _popen(full_cmd.c_str(), "r");
-    if (!pipe) return {"EXEC_FAIL", -1};
-    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) result += buffer.data();
-    int code = _pclose(pipe);
-    return {result, code};
-}
-
-string stripExt(string fname) {
-    size_t lastindex = fname.find_last_of("."); 
-    return (lastindex == string::npos) ? fname : fname.substr(0, lastindex); 
-}
-
-string getExt(string fname) {
-    size_t lastindex = fname.find_last_of("."); 
-    return (lastindex == string::npos) ? "" : fname.substr(lastindex); 
-}
-
-bool isFatalError(const string& errMsg) {
-    string lowerErr = errMsg;
-    transform(lowerErr.begin(), lowerErr.end(), lowerErr.begin(), ::tolower);
-    if (lowerErr.find("fatal error") != string::npos) return true;
-    if (lowerErr.find("no such file") != string::npos) return true;
-    if (lowerErr.find("file not found") != string::npos) return true;
-    if (lowerErr.find("cannot open source file") != string::npos) return true;
-    if (lowerErr.find("module not found") != string::npos) return true;
-    if (lowerErr.find("importerror") != string::npos) return true; 
-    return false;
-}
 
 // --- CONFIG & TOOLCHAIN OVERRIDES ---
 bool loadConfig(string mode) {
@@ -307,61 +199,6 @@ bool loadConfig(string mode) {
     } catch (...) { return false; }
 }
 
-// --- PREPROCESSOR ---
-string resolveImports(string code, fs::path basePath, vector<string>& stack) {
-    stringstream ss(code);
-    string line;
-    string processed;
-    
-    while (getline(ss, line)) {
-        string cleanLine = line;
-        size_t first = cleanLine.find_first_not_of(" \t\r\n");
-        if (first == string::npos) { processed += line + "\n"; continue; }
-        cleanLine.erase(0, first);
-        
-        if (cleanLine.rfind("IMPORT:", 0) == 0) {
-            string fname = cleanLine.substr(7);
-            size_t q1 = fname.find_first_of("\"'");
-            size_t q2 = fname.find_last_of("\"'");
-            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
-            else {
-                fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
-                size_t last = fname.find_last_not_of(" \t\r\n\"'");
-                if (last != string::npos) fname.erase(last + 1);
-            }
-            fs::path path = basePath / fname;
-            try {
-                if (fs::exists(path)) {
-                    string absPath = fs::canonical(path).string();
-                    bool cycle = false;
-                    for(const auto& s : stack) if(s == absPath) cycle = true;
-                    if (cycle) {
-                        processed += "// [ERROR] CYCLIC IMPORT DETECTED: " + fname + "\n";
-                    } else {
-                        ifstream imp(path);
-                        if (imp.is_open()) {
-                            string content((istreambuf_iterator<char>(imp)), istreambuf_iterator<char>());
-                            stack.push_back(absPath);
-                            string nested = resolveImports(content, path.parent_path(), stack);
-                            stack.pop_back();
-                            string ext = path.extension().string();
-                            processed += "\n// >>>>>> START MODULE: " + fname + " (" + ext + ") >>>>>>\n";
-                            processed += nested;
-                            processed += "\n// <<<<<< END MODULE: " + fname + " <<<<<<\n";
-                            log("INFO", "Imported module: " + fname);
-                        }
-                    }
-                } else {
-                    processed += "// [WARN] IMPORT NOT FOUND: " + fname + "\n";
-                }
-            } catch (...) { processed += "// [ERROR] PATH EXCEPTION\n"; }
-        } else {
-            processed += line + "\n";
-        }
-    }
-    return processed;
-}
-
 // --- AI CORE ---
 string callAI(string prompt) {
     string response;
@@ -400,7 +237,6 @@ string callAI(string prompt) {
         
         if (VERBOSE_MODE) cout << "\n[DEBUG] Raw Response: " << response << endl;
 
-        // Common HTTP errors check
         if (response.find("401 Unauthorized") != string::npos) return "ERROR: 401 Unauthorized (Check API Key)";
         if (response.find("404 Not Found") != string::npos) return "ERROR: 404 Not Found (Check URL)";
 
@@ -464,11 +300,173 @@ void explainFatalError(const string& errorMsg) {
     cout << "\n[YORI ASSISTANT] ANALYZING fatal error..." << endl;
     string prompt = "ROLE: Helpful Tech Support.\nTASK: Fix missing file error.\nERROR: " + errorMsg.substr(0, 500) + "\nOUTPUT: Short advice.";
     string advice = callAI(prompt);
-    // ... existing logic ...
+    
+    try {
+        json j = json::parse(advice);
+        if (j.contains("candidates")) advice = j["candidates"][0]["content"]["parts"][0]["text"];
+        else if (j.contains("response")) advice = j["response"];
+        else if (j.contains("choices")) advice = j["choices"][0]["message"]["content"];
+    } catch(...) {}
     cout << "> Proposed solution: " << advice << endl;
 }
 
-// ... (extractDependencies, preFlightCheck, selectLanguage remain same) ...
+// --- CONFIG COMMANDS ---
+void updateConfigFile(string key, string value) {
+    string configPath = "config.json";
+    json j;
+    
+    if (fs::exists(configPath)) {
+        ifstream i(configPath);
+        if (i.is_open()) { try { i >> j; } catch(...) {} }
+    }
+    
+    if (!j.contains("cloud")) j["cloud"] = json::object();
+    if (!j.contains("local")) j["local"] = json::object();
+
+    if (key == "api-key") {
+        j["cloud"]["api_key"] = value;
+        cout << "[CONFIG] Updated cloud.api_key." << endl;
+    } else if (key == "model-cloud") {
+         j["cloud"]["model_id"] = value;
+         cout << "[CONFIG] Updated cloud.model_id to " << value << endl;
+    } else if (key == "model-local") {
+         j["local"]["model_id"] = value;
+         cout << "[CONFIG] Updated local.model_id to " << value << endl;
+    } else if (key == "url-local") {
+         j["local"]["api_url"] = value;
+         cout << "[CONFIG] Updated local.api_url to " << value << endl;
+    } else if (key == "url-cloud") { 
+         j["cloud"]["api_url"] = value;
+         cout << "[CONFIG] Updated cloud.api_url to " << value << endl;
+    } else if (key == "cloud-protocol") { 
+         if (value != "google" && value != "openai") {
+             cout << "[ERROR] Protocol must be 'google' or 'openai'." << endl; return;
+         }
+         j["cloud"]["protocol"] = value;
+         cout << "[CONFIG] Updated cloud.protocol to " << value << endl;
+    } else {
+        cout << "[ERROR] Unknown config key." << endl;
+        return;
+    }
+
+    ofstream o(configPath);
+    o << j.dump(4);
+    cout << "[SUCCESS] Saved to " << configPath << endl;
+}
+
+void selectOllamaModel() {
+    cout << "[INFO] Scanning for local Ollama models..." << endl;
+    string url = "http://localhost:11434/api/tags";
+    
+    string configPath = "config.json";
+    if (fs::exists(configPath)) {
+        try {
+            ifstream i(configPath); json j; i >> j;
+            if (j.contains("local") && j["local"].contains("api_url")) {
+                string currentUrl = j["local"]["api_url"];
+                size_t pos = currentUrl.find("/api/");
+                if (pos != string::npos) url = currentUrl.substr(0, pos) + "/api/tags";
+            }
+        } catch(...) {}
+    }
+
+    string cmd = "curl -s \"" + url + "\"";
+    CmdResult res = execCmd(cmd);
+
+    if (res.exitCode != 0 || res.output.empty()) {
+        cout << "[ERROR] Could not connect to Ollama at " << url << endl;
+        cout << "Make sure Ollama is running." << endl;
+        return;
+    }
+
+    try {
+        json j = json::parse(res.output);
+        if (!j.contains("models")) { cout << "[ERROR] Unexpected response format." << endl; return; }
+
+        vector<string> models;
+        cout << "\n--- Installed Local Models ---\n";
+        int idx = 1;
+        for (auto& m : j["models"]) {
+            string name = m["name"];
+            models.push_back(name);
+            cout << idx++ << ". " << name << endl;
+        }
+
+        if (models.empty()) { cout << "[WARN] No models found." << endl; return; }
+
+        cout << "\nSelect model number (or 0 to cancel): ";
+        int choice;
+        if (cin >> choice && choice > 0 && choice <= models.size()) {
+            updateConfigFile("model-local", models[choice-1]);
+        } 
+    } catch (...) { cout << "[ERROR] JSON Parsing failed." << endl; }
+}
+
+void openApiKeyPage() {
+    cout << "[INFO] Opening Google AI Studio..." << endl;
+    #ifdef _WIN32
+    system("start https://aistudio.google.com/app/apikey");
+    #else
+    system("xdg-open https://aistudio.google.com/app/apikey");
+    #endif
+}
+
+// --- PREPROCESSOR ---
+string resolveImports(string code, fs::path basePath, vector<string>& stack) {
+    stringstream ss(code);
+    string line;
+    string processed;
+    
+    while (getline(ss, line)) {
+        string cleanLine = line;
+        size_t first = cleanLine.find_first_not_of(" \t\r\n");
+        if (first == string::npos) { processed += line + "\n"; continue; }
+        cleanLine.erase(0, first);
+        
+        if (cleanLine.rfind("IMPORT:", 0) == 0) {
+            string fname = cleanLine.substr(7);
+            size_t q1 = fname.find_first_of("\"'");
+            size_t q2 = fname.find_last_of("\"'");
+            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
+            else {
+                fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
+                size_t last = fname.find_last_not_of(" \t\r\n\"'");
+                if (last != string::npos) fname.erase(last + 1);
+            }
+            fs::path path = basePath / fname;
+            try {
+                if (fs::exists(path)) {
+                    string absPath = fs::canonical(path).string();
+                    bool cycle = false;
+                    for(const auto& s : stack) if(s == absPath) cycle = true;
+                    if (cycle) {
+                        processed += "// [ERROR] CYCLIC IMPORT DETECTED: " + fname + "\n";
+                        log("ERROR", "Circular import: " + fname);
+                    } else {
+                        ifstream imp(path);
+                        if (imp.is_open()) {
+                            string content((istreambuf_iterator<char>(imp)), istreambuf_iterator<char>());
+                            stack.push_back(absPath);
+                            string nested = resolveImports(content, path.parent_path(), stack);
+                            stack.pop_back();
+                            string ext = path.extension().string();
+                            processed += "\n// >>>>>> START MODULE: " + fname + " (" + ext + ") >>>>>>\n";
+                            processed += nested;
+                            processed += "\n// <<<<<< END MODULE: " + fname + " <<<<<<\n";
+                            log("INFO", "Imported module: " + fname);
+                        }
+                    }
+                } else {
+                    processed += "// [WARN] IMPORT NOT FOUND: " + fname + "\n";
+                }
+            } catch (...) { processed += "// [ERROR] PATH EXCEPTION\n"; }
+        } else {
+            processed += line + "\n";
+        }
+    }
+    return processed;
+}
+
 set<string> extractDependencies(const string& code) {
     set<string> deps;
     stringstream ss(code);
@@ -550,14 +548,17 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " \nUsage: yori file1 ... [-o output] [-cloud/-local] [-u] [-t]" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
+        cout << "  explain <file> [lg] : Generate commented documentation\n";
         return 0;
     }
 
     // --- COMMAND MODE HANDLING ---
     string cmd = argv[1];
+    
+    // CONFIG COMMAND
     if (cmd == "config") {
         if (argc < 3) {
             cout << "Usage: yori config <key> <value>\n";
@@ -567,30 +568,30 @@ int main(int argc, char* argv[]) {
             cout << "  cloud-protocol  : Set protocol ('openai', 'google', 'ollama')\n";
             cout << "  model-cloud     : Set Cloud Model ID\n";
             cout << "  url-cloud       : Set Cloud API URL\n";
-            cout << "  url-local       : Set Local API URL\n";
             cout << "  model-local     : Set Local Model ID\n";
+            cout << "  url-local       : Set Local API URL\n";
             return 1;
         }
-        
         string key = argv[2];
-        
         if (key == "model-local" && argc == 3) {
             selectOllamaModel();
             return 0;
         }
-
         if (argc < 4) {
              cout << "[ERROR] Missing value for key: " << key << endl;
              return 1;
         }
-
         updateConfigFile(key, argv[3]);
         return 0;
     }
+    
+    // UTILS COMMANDS
     if (cmd == "get-key" || cmd == "new-key") {
         openApiKeyPage();
         return 0;
     }
+
+    // FIX COMMAND
     if (cmd == "fix") {
         if (argc < 4) {
             cout << "Usage: yori fix <file> \"instruction\" [-cloud/-local]" << endl;
@@ -647,17 +648,77 @@ int main(int argc, char* argv[]) {
         cout << "[SUCCESS] File updated: " << targetFile << endl;
         return 0;
     }
-    // -----------------------------
 
+    // EXPLAIN COMMAND (Modified with Language Support)
+    if (cmd == "explain") {
+        if (argc < 3) {
+            cout << "Usage: yori explain <file> [-cloud/-local] [language]" << endl;
+            return 1;
+        }
+        string targetFile = argv[2];
+        string mode = "local"; 
+        string language = "English"; // Default
+
+        for(int i=3; i<argc; i++) {
+            string arg = argv[i];
+            if (arg == "-cloud") mode = "cloud";
+            else if (arg == "-local") mode = "local";
+            else language = arg;
+        }
+
+        if (!loadConfig(mode)) return 1;
+
+        if (!fs::exists(targetFile)) {
+            cout << "[ERROR] File not found: " << targetFile << endl;
+            return 1;
+        }
+
+        cout << "[EXPLAIN] Reading " << targetFile << "..." << endl;
+        ifstream f(targetFile);
+        string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+        f.close();
+
+        cout << "[AI] Generating documentation in " << language << " (" << mode << ")..." << endl;
+        stringstream prompt;
+        prompt << "TASK: Add high-quality technical documentation comments to the provided code in " << language << ".\n";
+        prompt << "STRICT RULES:\n";
+        prompt << "1. RETURN THE FULL SOURCE CODE exactly as provided but with added comments.\n";
+        prompt << "2. DO NOT simplify the code. DO NOT replace it with examples like 'Hello World'.\n";
+        prompt << "3. Use the language's standard comment syntax.\n";
+        prompt << "4. Document functions, logic blocks, and variables.\n";
+        prompt << "5. Ensure all comments are written in " << language << ".\n";
+        prompt << "6. Return ONLY the code in a markdown block.\n\n";
+        prompt << "CODE TO DOCUMENT:\n" << content;
+
+        string response = callAI(prompt.str());
+        string docCode = extractCode(response);
+
+        if (docCode.find("ERROR:") == 0) {
+            cout << "   [!] API Error: " << docCode.substr(6) << endl;
+            return 1;
+        }
+
+        string ext = getExt(targetFile);
+        string docFile = stripExt(targetFile) + "_doc" + ext;
+        
+        ofstream out(docFile);
+        out << docCode;
+        out.close();
+        
+        cout << "[SUCCESS] Documentation generated: " << docFile << endl;
+        return 0;
+    }
+
+    // --- STANDARD COMPILATION LOGIC ---
     vector<string> inputFiles; 
     string outputName = "";
     string mode = "local"; 
     bool explicitLang = false;
     bool dryRun = false;
     bool updateMode = false; 
-    bool keepSource = false;
     bool runOutput = false;
-    bool transpilationMode = false;
+    bool keepSource = false;
+    bool transpileMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -667,9 +728,9 @@ int main(int argc, char* argv[]) {
         else if (arg == "-dry-run") dryRun = true;
         else if (arg == "-verbose") VERBOSE_MODE = true;
         else if (arg == "-u" || arg == "--update") updateMode = true;
-        else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-run" || arg == "--run") runOutput = true;
-        else if (arg == "-t" || arg == "--transpile") transpilationMode = true;
+        else if (arg == "-k" || arg == "--keep") keepSource = true;
+        else if (arg == "-t" || arg == "--transpile") transpileMode = true;
         else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
@@ -685,16 +746,21 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         else if (arg == "--init") {
-            // ... init logic ...
-            cout << "[INIT] Created project template." << endl;
+            cout << "[INIT] Creating project template..." << endl;
+            if (!fs::exists("hello.yori")) {
+                ofstream f("hello.yori");
+                f << "// Welcome to Yori!\nPRINT(\"Hello, World!\")\n";
+                f.close();
+            }
+            if (!fs::exists("config.json")) {
+                ofstream f("config.json");
+                f << "{\n    \"local\": {\n        \"model_id\": \"qwen2.5-coder:3b\",\n        \"api_url\": \"http://localhost:11434/api/generate\"\n    },\n    \"cloud\": {\n        \"protocol\": \"openai\",\n        \"api_key\": \"YOUR_KEY\",\n        \"model_id\": \"llama3-70b-8192\",\n        \"api_url\": \"https://api.groq.com/openai/v1/chat/completions\"\n    }\n}\n";
+                f.close();
+            }
             return 0;
         }
         else if (arg == "--help" || arg == "-h") {
-            cout << "YORI Compiler v" << CURRENT_VERSION << "\n";
-            cout << "Usage: yori <source_files> [options]\n\n";
-            cout << "Commands:\n";
-            cout << "  config model-local  Scan and select installed Ollama models\n";
-            cout << "  config <key> <val>  Manually update config\n\n";
+            // Already handled at start, just redundancy check
             return 0;
         }
         else if (arg[0] == '-') {
@@ -720,9 +786,6 @@ int main(int argc, char* argv[]) {
             if (!explicitLang) selectLanguage();
         }
     }
-
-    // Update mode implies keeping source to maintain the loop
-    if (updateMode) keepSource = true;
 
     if (outputName.empty()) outputName = stripExt(inputFiles[0]) + CURRENT_LANG.extension;
     
@@ -756,6 +819,14 @@ int main(int argc, char* argv[]) {
         size_t storedHash;
         if (cFile >> storedHash && storedHash == currentHash) {
             cout << "[CACHE] No changes detected. Using existing build." << endl;
+            if (runOutput) {
+                // ... same run logic as below ...
+                #ifdef _WIN32
+                system(outputName.c_str());
+                #else
+                string cmd = "./" + outputName; system(cmd.c_str());
+                #endif
+            }
             return 0;
         }
     }
@@ -826,9 +897,8 @@ int main(int argc, char* argv[]) {
             std::error_code ec;
             bool saveSuccess = false;
 
-            // NEW: Detect if output extension matches source extension
-            bool saveAsSource = (getExt(outputName) == CURRENT_LANG.extension);
-            if (transpilationMode) saveAsSource = true;
+            // Smart Output Logic
+            bool saveAsSource = (getExt(outputName) == CURRENT_LANG.extension) || transpileMode;
 
             for(int i=0; i<5; i++) {
                 try {
@@ -837,16 +907,16 @@ int main(int argc, char* argv[]) {
                     if (CURRENT_LANG.producesBinary && !saveAsSource) {
                         fs::copy_file(tempBin, outputName, fs::copy_options::overwrite_existing);
                         cout << "   [Binary]: " << outputName << endl;
+                        
                         if (keepSource) {
-                            string srcName = stripExt(outputName) + CURRENT_LANG.extension;
-                            fs::copy_file(tempSrc, srcName, fs::copy_options::overwrite_existing);
-                            cout << "   [Source]: " << srcName << endl;
+                            string sName = stripExt(outputName) + CURRENT_LANG.extension;
+                            fs::copy_file(tempSrc, sName, fs::copy_options::overwrite_existing);
+                            cout << "   [Source Kept]: " << sName << endl;
                         }
                         fs::remove(tempBin);
                     } else {
                         fs::copy_file(tempSrc, outputName, fs::copy_options::overwrite_existing);
                         cout << "   [Source]: " << outputName << endl;
-                        // Clean up verification binary if it exists
                         if (CURRENT_LANG.producesBinary && fs::exists(tempBin)) fs::remove(tempBin);
                     }
                     saveSuccess = true;
@@ -863,11 +933,11 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             
-            if (fs::exists(tempSrc)) fs::remove(tempSrc, ec);
+            if (fs::exists(tempSrc) && !keepSource) fs::remove(tempSrc, ec);
             ofstream cFile(cacheFile); cFile << currentHash;
 
             if (runOutput) {
-                cout << "\n[RUN] Executing " << outputName << "..." << endl;
+                cout << "\n[RUN] Executing..." << endl;
                 string cmd = outputName;
                 if (!CURRENT_LANG.producesBinary) {
                     string interpreter = CURRENT_LANG.buildCmd.substr(0, CURRENT_LANG.buildCmd.find(' '));
