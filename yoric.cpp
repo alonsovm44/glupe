@@ -550,7 +550,7 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " \nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " \nUsage: yori file1 ... [-o output] [-cloud/-local] [-u] [-t]" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         return 0;
@@ -657,6 +657,7 @@ int main(int argc, char* argv[]) {
     bool updateMode = false; 
     bool keepSource = false;
     bool runOutput = false;
+    bool transpilationMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -668,6 +669,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-u" || arg == "--update") updateMode = true;
         else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-run" || arg == "--run") runOutput = true;
+        else if (arg == "-t" || arg == "--transpile") transpilationMode = true;
         else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
@@ -826,6 +828,7 @@ int main(int argc, char* argv[]) {
 
             // NEW: Detect if output extension matches source extension
             bool saveAsSource = (getExt(outputName) == CURRENT_LANG.extension);
+            if (transpilationMode) saveAsSource = true;
 
             for(int i=0; i<5; i++) {
                 try {
