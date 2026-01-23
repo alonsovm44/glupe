@@ -550,8 +550,9 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
+        cout << "YORI v" << CURRENT_VERSION << " \nUsage: yori file1 ... [-o output] [-cloud/-local] [-u]" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
+        cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         return 0;
     }
 
@@ -566,8 +567,8 @@ int main(int argc, char* argv[]) {
             cout << "  cloud-protocol  : Set protocol ('openai', 'google', 'ollama')\n";
             cout << "  model-cloud     : Set Cloud Model ID\n";
             cout << "  url-cloud       : Set Cloud API URL\n";
-            cout << "  model-local     : Set Local Model ID\n";
             cout << "  url-local       : Set Local API URL\n";
+            cout << "  model-local     : Set Local Model ID\n";
             return 1;
         }
         
@@ -588,6 +589,62 @@ int main(int argc, char* argv[]) {
     }
     if (cmd == "get-key" || cmd == "new-key") {
         openApiKeyPage();
+        return 0;
+    }
+    if (cmd == "fix") {
+        if (argc < 4) {
+            cout << "Usage: yori fix <file> \"instruction\" [-cloud/-local]" << endl;
+            return 1;
+        }
+        string targetFile = argv[2];
+        string instruction = argv[3];
+        string mode = "local"; 
+
+        for(int i=4; i<argc; i++) {
+            string arg = argv[i];
+            if (arg == "-cloud") mode = "cloud";
+            else if (arg == "-local") mode = "local";
+        }
+
+        if (!loadConfig(mode)) return 1;
+
+        if (!fs::exists(targetFile)) {
+            cout << "[ERROR] File not found: " << targetFile << endl;
+            return 1;
+        }
+
+        cout << "[FIX] Reading " << targetFile << "..." << endl;
+        ifstream f(targetFile);
+        string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+        f.close();
+
+        string ext = getExt(targetFile);
+        string langName = "Code";
+        for(auto const& [key, val] : LANG_DB) {
+            if(val.extension == ext) { langName = val.name; break; }
+        }
+
+        cout << "[AI] Applying fix (" << mode << ")..." << endl;
+        stringstream prompt;
+        prompt << "ROLE: Expert " << langName << " developer.\n";
+        prompt << "TASK: Fix the code based on the instruction.\n";
+        prompt << "INSTRUCTION: " << instruction << "\n";
+        prompt << "CODE:\n" << content << "\n";
+        prompt << "OUTPUT: Return ONLY the fixed code. No markdown. No explanations.";
+
+        string response = callAI(prompt.str());
+        string fixedCode = extractCode(response);
+
+        if (fixedCode.find("ERROR:") == 0) {
+            cout << "   [!] API Error: " << fixedCode.substr(6) << endl;
+            return 1;
+        }
+
+        ofstream out(targetFile);
+        out << fixedCode;
+        out.close();
+        
+        cout << "[SUCCESS] File updated: " << targetFile << endl;
         return 0;
     }
     // -----------------------------

@@ -13,7 +13,10 @@ All notable changes in Yori are documented here
 3. users can now configure endpoint AI provider (i endorse OpenRouter)
 4. users can change ai protocol between google and openai
 5. google's and openai's endpoints are hardcoded since they are the most common, other endpoints must be entered manually
-6. readded the -k flag, it is enabled by default on -u mode so executable and source
+6. readded the -k flag, it is enabled by default on -u mode so executable and source are synchronized
+7. Added "fix" command it works like this
+    >yori fix "file.ext" "description of the wanted fixes" [-local | -cloud] 
+    the command replaces the old file with a new version
 
 
 [v4.5.1] 2026-01-20
