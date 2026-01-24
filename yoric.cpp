@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.1.0 (Full Semantic Guard)
+/* YORI COMPILER (yori.exe) - v5.2.0 (Full Semantic Guard + SOS Support)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
    Features: 
      - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
@@ -15,6 +15,7 @@
      - Explain Command (Auto-Documentation with Language Support)
      - Fix Command (Natural Language Repair)
      - Diff Command (Semantic Change Analysis)
+     - SOS Command (Quick AI Tech Support)
      - Custom Instruction Injection (*Prefix)
 */
 
@@ -60,7 +61,7 @@ string MODEL_ID = "";
 string API_URL = "";
 const int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
-const string CURRENT_VERSION = "5.1.0"; 
+const string CURRENT_VERSION = "5.2.0"; 
 
 // --- LOGGER SYSTEM ---
 ofstream logFile;
@@ -222,8 +223,6 @@ string callAI(string prompt) {
         body["model"] = MODEL_ID;
         
         // [FIX] Handle APIFreeLLM divergence 
-        // User reports "Missing required parameter: message" with /api/v1/chat endpoint.
-        // This implies a non-standard OpenAI structure. Trying simple string parameter.
         if (API_URL.find("apifreellm.com") != string::npos) {
             body["message"] = prompt; 
         } else {
@@ -256,7 +255,6 @@ string callAI(string prompt) {
         if (response.find("401 Unauthorized") != string::npos) return "ERROR: 401 Unauthorized (Check API Key)";
         if (response.find("404 Not Found") != string::npos) return "ERROR: 404 Not Found (Check URL)";
 
-        // DEBUG: Print body on specific API error to help diagnosis
         if (response.find("Missing required parameter") != string::npos) {
              cout << "\n[DEBUG] API rejected payload. Sending: " << body.dump() << endl;
         }
@@ -574,6 +572,7 @@ int main(int argc, char* argv[]) {
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
+        cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         return 0;
     }
 
@@ -668,6 +667,66 @@ int main(int argc, char* argv[]) {
         out.close();
         
         cout << "[SUCCESS] File updated: " << targetFile << endl;
+        return 0;
+    }
+
+    // SOS COMMAND (NEW)
+    if (cmd == "sos") {
+        if (argc < 3) {
+            cout << "Usage: yori sos [language] [-cloud/-local] \"error or problem description\"" << endl;
+            return 1;
+        }
+
+        string language = "General Programming";
+        string query = "";
+        string mode = "local";
+
+        // Parse arguments flexibly
+        for (int i = 2; i < argc; i++) {
+            string arg = argv[i];
+            if (arg == "-cloud") mode = "cloud";
+            else if (arg == "-local") mode = "local";
+            else if (i == argc - 1) query = arg; // Assume last arg is query if not flag
+            else language = arg; // Assume intermediate arg is language
+        }
+
+        if (query.empty()) {
+            cout << "[ERROR] Please provide a problem description or error message." << endl;
+            return 1;
+        }
+
+        if (!loadConfig(mode)) return 1;
+
+        cout << "[SOS] Consulting AI (" << mode << ") about " << language << "..." << endl;
+        
+        stringstream prompt;
+        prompt << "ROLE: Senior Software Architect & Technical Lead.\n";
+        prompt << "TASK: Provide a clear, concise, and accurate solution for the user's problem.\n";
+        prompt << "CONTEXT/LANGUAGE: " << language << "\n";
+        prompt << "USER PROBLEM: " << query << "\n";
+        prompt << "OUTPUT: Markdown formatted response. Be helpful and direct. Provide code snippets if necessary.";
+
+        string response = callAI(prompt.str());
+        
+        // Manual JSON parsing to get full text (not just code blocks)
+        string answer = response;
+        try {
+            json j = json::parse(response);
+            if (j.contains("choices") && !j["choices"].empty()) {
+                 if (j["choices"][0].contains("message")) answer = j["choices"][0]["message"]["content"];
+                 else if (j["choices"][0].contains("text")) answer = j["choices"][0]["text"];
+            }
+            else if (j.contains("candidates") && !j["candidates"].empty()) {
+                 answer = j["candidates"][0]["content"]["parts"][0]["text"];
+            }
+            else if (j.contains("response")) answer = j["response"];
+        } catch(...) {
+            // If parsing fails, use raw response (might be raw text from some endpoints)
+        }
+
+        cout << "\n--- YORI SOS REPLY ---\n";
+        cout << answer << endl;
+        cout << "----------------------\n";
         return 0;
     }
 
