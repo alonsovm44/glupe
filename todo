@@ -23,7 +23,7 @@ The preprocessor looks for those files and pastes them in the file calling those
 		
 -change query prompt from "expert c++ engineer" to "expert programmer"
 
-# for 5.0 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+# for 5.x vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 1. yori recognizes when user wants to use it for transpilation,
 >yori mysource.x -o mytarget.y -local -y  (currently this makes a binary file with extension .y, we want it to be a text file)
@@ -37,7 +37,7 @@ Load balancing entre múltiples API keys
 Cost optimization (usa modelo más barato para tareas simples)
 
 3. Build Profiles
-bashyori build --profile production  # optimizado, sin debug
+yori build --profile production  # optimizado, sin debug
 yori build --profile debug       # símbolos, validaciones extra
 yori build --profile quick       # compilación rápida, menos checks
  
@@ -67,3 +67,5 @@ yori diff <fileA.ext> <fileB.ext>
 
 9. yori config max-tries <number> 
 ^^ configura cuantas retries maximo acepta el sistema
+
+10. yori sos [language] [-local | -cloud] "error or problem description"
