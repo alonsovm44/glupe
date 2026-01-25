@@ -237,4 +237,4 @@ yori myscript.py -o myapp_boost.exe -cpp -cloud
  2. Can I use this for interpreted languages?
  A: Yes. For languages like Python or JS, Yori uses the interpreter (like node -c) to check for syntax errors before saving the file.
  3. Is the generated code safe?
- A: Treat it like code from StackOverflow. Review it before running it in production.
+ A: Treat it like code from StackOverflow. Review it before running it in production...
