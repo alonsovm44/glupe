@@ -424,9 +424,9 @@ void selectOllamaModel() {
 void openApiKeyPage() {
     cout << "[INFO] Opening Google AI Studio..." << endl;
     #ifdef _WIN32
-    system("start https://aistudio.google.com/app/apikey");
+    system("start https://apifreellm.com/en/api-access");
     #else
-    system("xdg-open https://aistudio.google.com/app/apikey");
+    system("xdg-open https://apifreellm.com/en/api-access");
     #endif
 }
 
