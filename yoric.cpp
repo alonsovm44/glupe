@@ -373,6 +373,40 @@ void updateConfigFile(string key, string value) {
     cout << "[SUCCESS] Saved to " << configPath << endl;
 }
 
+void showConfig() {
+    string configPath = "config.json";
+    if (!fs::exists(configPath)) {
+        cout << "[WARN] No config.json found." << endl;
+        return;
+    }
+    try {
+        ifstream i(configPath); json j; i >> j;
+        cout << "\n--- YORI CONFIGURATION ---\n";
+        
+        if (j.contains("cloud")) {
+            cout << "[CLOUD]\n";
+            auto& c = j["cloud"];
+            if (c.contains("protocol")) cout << "  Protocol : " << c["protocol"].get<string>() << endl;
+            if (c.contains("model_id")) cout << "  Model    : " << c["model_id"].get<string>() << endl;
+            if (c.contains("api_url"))  cout << "  URL      : " << c["api_url"].get<string>() << endl;
+            if (c.contains("api_key")) {
+                string k = c["api_key"].get<string>();
+                if (k.length() > 6) k = k.substr(0, 3) + "..." + k.substr(k.length()-3);
+                else if (!k.empty()) k = "***";
+                cout << "  API Key  : " << k << endl;
+            }
+        }
+        
+        if (j.contains("local")) {
+            cout << "\n[LOCAL]\n";
+            auto& l = j["local"];
+            if (l.contains("model_id")) cout << "  Model    : " << l["model_id"].get<string>() << endl;
+            if (l.contains("api_url"))  cout << "  URL      : " << l["api_url"].get<string>() << endl;
+        }
+        cout << "--------------------------\n";
+    } catch (...) { cout << "[ERROR] Corrupt or invalid config file." << endl; }
+}
+
 void selectOllamaModel() {
     cout << "[INFO] Scanning for local Ollama models..." << endl;
     string url = "http://localhost:11434/api/tags";
@@ -422,7 +456,7 @@ void selectOllamaModel() {
 }
 
 void openApiKeyPage() {
-    cout << "[INFO] Opening Google AI Studio..." << endl;
+    cout << "[INFO] Opening ApiFreeLlm.com..." << endl;
     #ifdef _WIN32
     system("start https://apifreellm.com/en/api-access");
     #else
@@ -583,6 +617,7 @@ int main(int argc, char* argv[]) {
     if (cmd == "config") {
         if (argc < 3) {
             cout << "Usage: yori config <key> <value>\n";
+            cout << "       yori config see\n";
             cout << "       yori config model-local (Interactive selection)\n\n";
             cout << "Keys:\n";
             cout << "  api-key         : Set Cloud API Key\n";
@@ -594,6 +629,10 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         string key = argv[2];
+        if (key == "see") {
+            showConfig();
+            return 0;
+        }
         if (key == "model-local" && argc == 3) {
             selectOllamaModel();
             return 0;
