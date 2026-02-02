@@ -1,14 +1,70 @@
 # Yori Compiler
 
-The **Yori Compiler** is a meta-compilation tool designed to bridge the gap between high-level human intent and machine execution. Its mission is to make programming accessible to everyone by allowing software to be built using natural language blueprints. It can also produce 3D object files from pseudocode or plain text description as well as vector images, such as graphs.
+The compiler that fixes your code before you even see the error.
 
+## Why use Yori?
+
+Most compilers just complain when you make a mistake. Yori solves it.
+
+Yori is an AI-native compiler wrapper that bridges the gap between high-level logic and native machine code. It allows you to write in Python, pseudo-code, or your own DSL and compiles it into high-performance binaries (C++, Rust, Go, etc.) seamlessly (provided you give the necessary libraries).
 ---
+
+## You should use Yori if
+1. You want to prototype fast: Describe features in your own DSL or pseudocode and Yori does the heavy lifting for you.
+2. You hate debugging syntax errors: Yori captures compiler errors, understands them, fixes the source code, and recompiles automatically.
+3. You value privacy: Full support for Local LLMs (Ollama) means your code never has to leave your machine.
+4. You need performance: Write in "Python-like" logic, but get a compiled C++ or Rust binary out.
+
+## Key Features
+
+- Semantic Transpilation & Compilation
+
+Yori doesn't just translate syntax; it translates intent. You can feed it a .py file but ask for a C++ binary. Yori ensures the logic is ported using native libraries (no Python.h hacks), creating standalone executables.
+
+- Autohealing toolchain
+
+1. Yori runs in a loop with your system's compiler (GCC, Rustc, Go, etc.).
+2. Yori generates code.
+3. Yori attempts to compile.
+If it fails: Yori reads the error log, understands why it failed (missing semi-colon? wrong library?), patches the code, and tries again.
+
+- Model Agnostic
+1. Local: Auto-detects your installed Ollama models (Llama 3, Qwen, DeepSeek). Zero cost, full privacy.
+2. Cloud: Native integration with Groq, OpenAI, and Google Gemini for when you need maximum reasoning power.
+
+## Utilities
+
+Yori includes quality of life utilities for programmers. No more diving into StackOverflow for hours
+
+1. `yori fix file.cpp "fix segfault at line 203`-> applies semantic fixes
+2. `yori explain file.rs` Makes a copy of the file commented and documented for you
+3. `yori diff fileA.cpp fileB.cpp` Explains semantic changes, not just the diffs
+4. `yori sos "help me fix this error...` instant AI techsupport
 
 ## Manual install (Windows)
 1. Go to Releases and download the latest release, unzip and run the [installer.ps1]
 2. To run the script right-click → Run with PowerShell
 3. Follow prompts (Ollama, model, compiler auto-setup)
+---
+## Build Yori yourself
 
+```Bash
+g++ yoric.cpp -o yori -std=c++17 
+
+Move to path (Linux/Mac)
+sudo my yori /usr/local/bin/
+```
+# Configuration
+Yori works out the box but you can config it as you see fit
+```bash
+yori config model-local 
+```
+Cloud Setup
+```bash
+yori config cloud-protocol google # or openai
+yori config api-key "YOUR_API_KEY"
+yori condig model-cloud "gemini-1.5-flash"
+```
 
 ##  The Vision
 Programming has traditionally required years of study to master syntax and memory management. Yori aims to lower the entry barrier of software engineering so a broader audience can access computational resources for their professional fields.  
@@ -130,77 +186,21 @@ While it uses AI for code generation, Yori adds a critical layer of Systems Engi
 ### Summary:
  Yori is a Software 2.0 tool. If you need absolute formal verification and clock-cycle precision, use a traditional compiler. If you want to prototype complex ideas in seconds using natural language and mixed logic or your own language, use Yori.
 
-##  Key Features
-
-* **Universal Polyglot Support**: Generate and validate code in 20+ languages including **C++, Python, Rust, Go, TypeScript, Zig, Java, C#, and Bash**.
-* **Natural Language to Code**: Compile `.yori` files containing descriptive logic directly into source code or executables.
-* **Self-Healing Toolchain**:
-    * **Compiled Languages** (C++, Go, Rust): Yori captures compiler errors and "evolves" the source code until it compiles.
-    * **Interpreted Languages** (Python, JS, Ruby): Yori validates syntax and static typing before saving the file.
-* **Hybrid AI Core**:
-    * **Cloud Mode**: Uses Google Gemini (e.g., `gemini-1.5-flash`) for high-speed generation.
-    * **Local Mode**: Uses Ollama (e.g., `qwen2.5-coder`) for private, offline development.
-* **Interactive Mode**: If the output format is ambiguous (e.g., just `-o app`), Yori launches an interactive menu to let you select the target language.
-* **Modular Architecture (`IMPORT:`)**: Build complex software by splitting logic into multiple `.yori` files.
-* **Zero-Dependency Design**: The compiler uses system-level tools (like `curl`, `g++`, `node`) already present on your machine.
-
----
-
-## Technical Setup
-
-### Prerequisites
-1.  **Yori Core**: The `yori.exe` executable.
-2.  **Ollama (Optional)**: Required for Local Mode (`ollama pull qwen2.5-coder:3b`).
-3.  **Language Toolchains**: Yori uses the tools you already have.
-    * For C++: `g++`
-    * For Python: `python`
-    * For Node: `node`
-    * For Rust: `rustc`
-    * *(If a tool is missing, Yori will warn you and offer to generate code in "Blind Mode".)*
-
-### Configuration (`config.json`)
-
- Usage
- Command Syntax
- PowerShell> yori <file.yori> [-o output_name] [LANGUAGE_FLAG] [-u] [-local | -cloud]
-Language Flags (The Polyglot System)
-Yori auto-detects the language from the output extension (e.g., -o app.py), but you can force specific languages with flags:FlagLanguageTool Used-cppC++g++
--py     Python
--ts     TypeScripttsc-
--rs     Rustrustc
--go     Gogo
--js     JavaScript
--zig    Zigzig
--cs     C#.net
--sh     Bash
--ps1    PowerShell pwsh...
--java   Java
--rb    Ruby 
--php    PHP
--lua    Lua 
--r      R 
--jl    Juli 
--hs   Haskell.
-
-Other Flags
--o <name>: Specifies output filename.
--u: Update Mode. Reads existing code and modifies it based on new instructions.
--local / -cloud: Switch AI provider.
 
 ## UNIVERSAL IMPORTS
 
 Yori files support universal imports using IMPORT: keyword. Example:
 
-````a.cpp
+````cpp
 int function1(int x){
     return x + 6;
 }
 ````
-````b.py
+````py
 def function2(x):
     return x + 7
 ````
-````example.yori
+````yori
 IMPORT: a.cpp //for function1()
 IMPORT: b.py // for function2()
 
@@ -209,8 +209,8 @@ PRINT(function1(x))
 PRINT(function2(y))
 
 ```` 
-````Result
->yori example.yori -o myapp.exe -cpp -cloud 
+````bash
+yori example.yori -o myapp.exe -cpp -cloud 
 >7
 >8
 ````
@@ -239,10 +239,3 @@ if you have a python script (or any script) that needs a performance boost just 
 ````Or
 yori myscript.py -o myapp_boost.exe -cpp -cloud
 ````
- FAQ
- 1. Do I need to install all 20 languages?
- A: No. If you try to build a Rust app but don't have rustc, Yori will alert you and ask if you want to proceed in "Blind Mode" (generate code without validation).
- 2. Can I use this for interpreted languages?
- A: Yes. For languages like Python or JS, Yori uses the interpreter (like node -c) to check for syntax errors before saving the file.
- 3. Is the generated code safe?
- A: Treat it like code from StackOverflow. Review it before running it in production...
