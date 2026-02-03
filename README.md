@@ -89,6 +89,17 @@ Programming has traditionally required years of study to master syntax and memor
 
 ---
 
+## Other Use cases
+
+1. The "Zero-Syntax" Prototyping Pipeline
+The Problem: High-performance languages like C++ or Rust have steep learning curves and strict syntax that slows down initial prototyping. Developers often choose Python for speed, only to face performance bottlenecks later. The Yori Solution: Developers can write their logic in high-level pseudo-code or Python-like syntax and use Yori to transpile it into native, optimized C++ code. Yori ensures the output doesn't rely on "hacks" (like wrapping Python headers), but instead creates pure, idiomatic systems code ready for production. Value: Reduces "Time-to-Binary" for complex systems from days to minutes.
+
+2. Autonomous CI/CD Error Resolution
+The Problem: In automated build environments (Continuous Integration), a single missing semicolon or a deprecated library call can break a pipeline, requiring a human developer to stop their work, find the error, and push a fix. The Yori Solution: Yori can be integrated into the build toolchain as a "Self-Healing Agent." When a compilation fails, Yori captures the error log, analyzes the source code, applies a semantic patch, and attempts to recompile. If successful, it presents the developer with a suggested pull request already containing the fix. Value: Drastically reduces downtime in development pipelines and automates trivial debugging.
+
+3. Privacy-First Legacy Modernization
+The Problem: Many enterprises have legacy codebases (old C or Fortran) that need to be modernized or documented, but they cannot upload this sensitive intellectual property to cloud-based AIs (like ChatGPT or Claude) due to strict compliance rules. The Yori Solution: Because Yori supports Local LLMs via Ollama, it can run entirely offline on a secure company server. It can ingest old source files, explain their logic, detect potential security vulnerabilities, and transpile them into modern languages (like Rust) without a single line of code ever leaving the internal network. Value: Provides AI-accelerated modernization while maintaining 100% data sovereignty and security.
+
 ## Quick Install
 Quick Install Commands
 Linux/macOS
@@ -120,22 +131,6 @@ irm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex
 3. Run the installer:
    - Windows: `install.bat`
    - Linux: `./install.sh`
-
-### Build from Source
-```bash
-git clone https://github.com/alonsovm44/yori
-cd yori
-g++ -std=c++17 yoric.cpp -o bin/yori
-./bin/yori --version
-```
-
----
-
-## System Requirements
-
-- **OS**: Windows 10+, Linux (Ubuntu 20.04+, Fedora 33+, Arch)
-- **Compiler**: g++ with C++17 support
-- **Optional**: Ollama (for local AI mode)
 
 ---
 

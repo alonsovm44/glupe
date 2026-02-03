@@ -1,4 +1,0 @@
-LOGO{
-    A logo for a new generation code compiler
-    a red dot in the middle
-}
