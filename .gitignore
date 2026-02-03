@@ -3,7 +3,7 @@
 *.dll
 *.o
 *.obj
-
+*.txt
 # -- tempoal ---
 temp_build.cpp
 request_temp.json
