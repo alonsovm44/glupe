@@ -1273,6 +1273,28 @@ int main(int argc, char* argv[]) {
                  ofstream out(outputName); out << code; out.close();
                  cout << "   [INFO] Remaining content saved to: " << outputName << endl;
             }
+
+            // [INTELLIGENT BUILD] Auto-detect and run generated build scripts
+            if (runOutput) {
+                if (fs::exists("Makefile")) {
+                    cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
+                    system("make");
+                } else if (fs::exists("CMakeLists.txt")) {
+                    cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
+                    if (!fs::exists("build")) fs::create_directory("build");
+                    system("cd build && cmake .. && cmake --build .");
+                } else if (fs::exists("build.sh")) {
+                    cout << "[MAKE] build.sh detected. Executing..." << endl;
+                    #ifndef _WIN32
+                    system("chmod +x build.sh && ./build.sh");
+                    #else
+                    system("bash build.sh");
+                    #endif
+                } else if (fs::exists("build.bat")) {
+                    cout << "[MAKE] build.bat detected. Executing..." << endl;
+                    system("build.bat");
+                }
+            }
             return 0;
         }
 
