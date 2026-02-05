@@ -14,6 +14,7 @@ config.json
 # ---  IDE ---
 .vscode/
 .idea/
+__pycache__/
 
 *.tsx
 SUGGESTIONS.md

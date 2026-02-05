@@ -7,6 +7,11 @@ All notable changes in Yori are documented here
 -tree shaking
 -simple IR
 
+[5.5] 2026-04-02
+1. Added -make flag to yori
+    It scans the yori text file looking for exports, it makes the directories and files indicated by the export keyword
+    
+
 [5.3] 2026-01-31 Don Bosco's day
 1. added -3D command to support making of 3D files from gen.ai, currently supported files are
     -obj
