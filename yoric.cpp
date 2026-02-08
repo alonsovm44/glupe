@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.6.2 (Full Semantic Guard + SOS Support)
+/* YORI COMPILER (yori.exe) - v5.6.3 (Full Semantic Guard + SOS Support)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
    Features: 
      - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
@@ -69,7 +69,7 @@ string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
-const string CURRENT_VERSION = "5.6.2";
+const string CURRENT_VERSION = "5.6.3";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
