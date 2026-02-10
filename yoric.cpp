@@ -1,4 +1,4 @@
-/* YORI COMPILER (yori.exe) - v5.7.0 (Full Semantic Guard + SOS Support)
+/* YORI COMPILER (yori.exe) - v5.7.1 (Full Semantic Guard + SOS Support)
    Usage: yori source1.ext source2.ext [-o output] [-u] [FLAGS] "*Custom instructions..."
    Features: 
      - Semantic Transpilation (Bans wrappers like Python.h or system("node"))
@@ -69,7 +69,7 @@ string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
-const string CURRENT_VERSION = "5.7.0";
+const string CURRENT_VERSION = "5.7.1";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -1349,16 +1349,39 @@ int main(int argc, char* argv[]) {
                 prompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
                 prompt << "OUTPUT: Return ONLY the valid code/content for " << item.filename << ". No markdown blocks if possible.";
                 
-                string response = callAI(prompt.str());
-                string code = extractCode(response);
-                
-                if (code.find("ERROR:") == 0) {
-                    cout << "   [!] API Error: " << code << endl;
-                } else {
-                    ofstream out(item.filename); out << code; out.close();
-                    cout << "      -> Saved." << endl;
-                    projectContext += "\n// --- FILE: " + item.filename + " ---\n" + code + "\n";
+                string code;
+                bool success = false;
+                int retries = 0;
+
+                while (retries < MAX_RETRIES) {
+                    string response = callAI(prompt.str());
+                    code = extractCode(response);
+                    
+                    if (code.find("ERROR:") == 0) {
+                        cout << "   [!] API Error (Attempt " << (retries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl;
+                        
+                        int waitTime = 5 * (retries + 1);
+                        if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) {
+                            cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                        } else {
+                            cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                        }
+                        std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                        retries++;
+                    } else {
+                        success = true;
+                        break;
+                    }
                 }
+
+                if (!success) {
+                    cout << "[FATAL] Failed to generate " << item.filename << " after " << MAX_RETRIES << " attempts. Aborting series." << endl;
+                    return 1;
+                }
+
+                ofstream out(item.filename); out << code; out.close();
+                cout << "      -> Saved." << endl;
+                projectContext += "\n// --- FILE: " + item.filename + " ---\n" + code + "\n";
             }
             cout << "[SERIES] All tasks completed." << endl;
             return 0;
