@@ -6,6 +6,7 @@ All notable changes in Yori are documented here
 - (work in progress)
 -tree shaking
 -simple IR
+
 [5.7.1]
 1. Fixed bug were if api errors ocurred in `-series` mode it would interrupr file generation and skip them, ruining the project.
 
@@ -51,6 +52,7 @@ attempts to compile it directly so it saves tokens, it only sends the code to th
 
 1. Added sos command to ask model help based on a prompt 
     >yori sos [language] [-local | -cloud] "prompt"
+
 [v4.9.1] 2026-01-22
 
 ### Added
