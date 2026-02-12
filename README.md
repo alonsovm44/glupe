@@ -65,17 +65,13 @@ Yori parses the export blocks and creates the requested project files, copying t
 6. Model-agnostic (local and cloud models supported via ollama)
 
 Additional utility commands: 
-1. fix
-Adds deltas to your file based in a text instruction
+1. `fix`. Adds deltas to your file based in a text instruction
 usage `yori fix project.c "fix segfault in line 1023" -local`
-2. explain 
-It makes a copy of your file thoroughly commented anad explaining what the code does. Good for onboarding.
+2. `explain`. It makes a copy of your file thoroughly commented anad explaining what the code does. Good for onboarding.
 usage `yori explain main.cpp -cloud english`
-3. diff 
-used to make a semantic diff markdown report
+3. `diff`, used to make a semantic diff markdown report
 used like this `yori diff version1.py version2.py -cloud` 
-4. sos
-Custom techsupport in your terminal.
+4. `sos`. Custom techsupport in your terminal.
 used like this `yori sos english -local "problem or error description"`
 
 ## Why use Yori?
