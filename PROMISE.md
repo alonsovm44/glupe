@@ -3,7 +3,7 @@
 Yori will ALWAYS be:
 1. 100% free (no "pro" tier, no "enterprise" upsell)
 2. 100% local-first (no cloud dependency)
-3. 100% open source (AGPL v3, auditable)
+3. 100% open source (MIT License, auditable, forkeable)
 
 This is not a business strategy. It's a promise.
 
