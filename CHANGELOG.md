@@ -3,6 +3,7 @@
 
 Added:
 
+- changed named of program from yori to glupe
 - added clean cache cmd to clear cache folder
 - added .yori.lock file to save container hashes
 - added yori_cache folder and cached containers

@@ -1,6 +1,6 @@
-/* YORI COMPILER (yori.exe) - v5.7.2*/
+/* GLUPE COMPILER ( formerly yori.exe) - v5.7.2*/
 
-// build with this: g++ yoric.cpp -o yori -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
+// build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -60,7 +60,7 @@ GenMode CURRENT_MODE = GenMode::CODE;
 ofstream logFile;
 
 void initLogger() {
-    logFile.open("yori.log", ios::app); 
+    logFile.open("glupe.log", ios::app); 
     if (logFile.is_open()) {
         auto t = time(nullptr);
         auto tm = *localtime(&t);
@@ -354,7 +354,7 @@ string extractCode(string jsonResponse) {
 }
 
 void explainFatalError(const string& errorMsg) {
-    cout << "\n[YORI ASSISTANT] ANALYZING fatal error..." << endl;
+    cout << "\n[GLUPE ASSISTANT] ANALYZING fatal error..." << endl;
     string prompt = "ROLE: Helpful Tech Support.\nTASK: Fix missing file error.\nERROR: " + errorMsg.substr(0, 500) + "\nOUTPUT: Short advice.";
     string advice = callAI(prompt);
     
@@ -429,7 +429,7 @@ void showConfig() {
     }
     try {
         ifstream i(configPath); json j; i >> j;
-        cout << "\n--- YORI CONFIGURATION ---\n";
+        cout << "\n--- GLUPE CONFIGURATION ---\n";
         
         if (j.contains("max_retries")) cout << "  Max Retries: " << j["max_retries"] << endl;
         else cout << "  Max Retries: 15 (Default)" << endl;
@@ -572,8 +572,8 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
 }
 
 // [NEW] Cache System Constants
-const string CACHE_DIR = "yori_cache";
-const string LOCK_FILE = ".yori.lock";
+const string CACHE_DIR = "glupe_cache";
+const string LOCK_FILE = ".glupe.lock";
 
 struct Container {
     string id;
@@ -686,9 +686,9 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
                     string content = getCachedContent(id);
                     if (!content.empty()) {
                         cout << "   [SKIP] Keeping container: " << id << endl;
-                        result += "\n// YORI_BLOCK_START: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_START: " + id + "\n";
                         result += content; 
-                        result += "\n// YORI_BLOCK_END: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_END: " + id + "\n";
                         cacheHit = true;
                     } else {
                         cout << "   [WARN] Cache missing for skipped container: " << id << ". Regenerating." << endl;
@@ -702,9 +702,9 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
                     if (!content.empty()) {
                         cout << "   [CACHE] Using cached container: " << id << endl;
                         // [FIX] Wrap cached content in markers so AI preserves it
-                        result += "\n// YORI_BLOCK_START: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_START: " + id + "\n";
                         result += content; 
-                        result += "\n// YORI_BLOCK_END: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_END: " + id + "\n";
                         cacheHit = true;
                     }
                     }
@@ -713,9 +713,9 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
 
             if (!cacheHit) {
                 // Wrap in markers for AI to fill and us to extract later
-                result += "\n// YORI_BLOCK_START: " + id + "\n";
+                result += "\n// GLUPE_BLOCK_START: " + id + "\n";
                 result += prompt; // The prompt for the AI
-                result += "\n// YORI_BLOCK_END: " + id + "\n";
+                result += "\n// GLUPE_BLOCK_END: " + id + "\n";
                 
                 // Update lock data (will be saved after successful generation)
                 LOCK_DATA["containers"][id]["hash"] = currentHash;
@@ -738,7 +738,7 @@ string updateCacheFromOutput(string code) {
     size_t pos = 0;
     
     while (pos < code.length()) {
-        size_t start = code.find("// YORI_BLOCK_START: ", pos);
+        size_t start = code.find("// GLUPE_BLOCK_START: ", pos);
         if (start == string::npos) {
             cleanCode += code.substr(pos);
             break;
@@ -755,7 +755,7 @@ string updateCacheFromOutput(string code) {
         id.erase(0, id.find_first_not_of(" \t\r"));
         id.erase(id.find_last_not_of(" \t\r") + 1);
 
-        size_t blockEnd = code.find("// YORI_BLOCK_END: " + id, idEnd);
+        size_t blockEnd = code.find("// GLUPE_BLOCK_END: " + id, idEnd);
         if (blockEnd == string::npos) {
             // Marker broken by AI, just keep going
             cleanCode += code.substr(start); 
@@ -1133,7 +1133,7 @@ int main(int argc, char* argv[]) {
     initLogger(); 
 
     if (argc < 2) {
-        cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-3d/-img] [-u] \"*Custom Instructions\"" << endl;
+        cout << "GLUPE v" << CURRENT_VERSION << " (Multi-File)\nUsage: glupe file1 ... [-o output] [-cloud/-local] [-3d/-img] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
         cout << "  clean cache        : Clear semantic cache\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
@@ -1149,9 +1149,9 @@ int main(int argc, char* argv[]) {
     // CONFIG COMMAND
     if (cmd == "config") {
         if (argc < 3) {
-            cout << "Usage: yori config <key> <value>\n";
-            cout << "       yori config see\n";
-            cout << "       yori config model-local (Interactive selection)\n\n";
+            cout << "Usage: glupe config <key> <value>\n";
+            cout << "       glupe config see\n";
+            cout << "       glupe config model-local (Interactive selection)\n\n";
             cout << "Keys:\n";
             cout << "  api-key         : Set Cloud API Key\n";
             cout << "  max-retries     : Set Max Retries (Default: 15)\n";
@@ -1193,7 +1193,7 @@ int main(int argc, char* argv[]) {
              }
              return 0;
         }
-        cout << "Usage: yori clean cache" << endl;
+        cout << "Usage: glupe clean cache" << endl;
         return 1;
     }
     
@@ -1206,7 +1206,7 @@ int main(int argc, char* argv[]) {
     // FIX COMMAND
     if (cmd == "fix") {
         if (argc < 4) {
-            cout << "Usage: yori fix <file> \"instruction\" [-cloud/-local]" << endl;
+            cout << "Usage: glupe fix <file> \"instruction\" [-cloud/-local]" << endl;
             return 1;
         }
         string targetFile = argv[2];
@@ -1264,7 +1264,7 @@ int main(int argc, char* argv[]) {
     // SOS COMMAND (NEW)
     if (cmd == "sos") {
         if (argc < 3) {
-            cout << "Usage: yori sos [language] [-cloud/-local] \"error or problem description\"" << endl;
+            cout << "Usage: glupe sos [language] [-cloud/-local] \"error or problem description\"" << endl;
             return 1;
         }
 
@@ -1315,7 +1315,7 @@ int main(int argc, char* argv[]) {
             // If parsing fails, use raw response (might be raw text from some endpoints)
         }
 
-        cout << "\n--- YORI SOS REPLY ---\n";
+        cout << "\n--- GLUPE SOS REPLY ---\n";
         cout << answer << endl;
         cout << "----------------------\n";
         return 0;
@@ -1324,7 +1324,7 @@ int main(int argc, char* argv[]) {
     // EXPLAIN COMMAND (Modified with Language Support)
     if (cmd == "explain") {
         if (argc < 3) {
-            cout << "Usage: yori explain <file> [-cloud/-local] [language]" << endl;
+            cout << "Usage: glupe explain <file> [-cloud/-local] [language]" << endl;
             return 1;
         }
         string targetFile = argv[2];
@@ -1384,7 +1384,7 @@ int main(int argc, char* argv[]) {
     // DIFF COMMAND
     if (cmd == "diff") {
         if (argc < 4) {
-            cout << "Usage: yori diff <fileA> <fileB> [-cloud/-local] [language]" << endl;
+            cout << "Usage: glupe diff <fileA> <fileB> [-cloud/-local] [language]" << endl;
             return 1;
         }
         string fileA = argv[2];
@@ -1476,11 +1476,11 @@ int main(int argc, char* argv[]) {
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
-        else if (arg == "--version") { cout << "Yori Compiler v" << CURRENT_VERSION << endl; return 0; }
+        else if (arg == "--version") { cout << "Glupe Compiler v" << CURRENT_VERSION << endl; return 0; }
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
             try {
-                if (fs::exists(".yori_build.cache")) fs::remove(".yori_build.cache");
+                if (fs::exists(".glupe_build.cache")) fs::remove(".glupe_build.cache");
                 for (const auto& entry : fs::directory_iterator(fs::current_path())) {
                     if (entry.is_regular_file()) {
                         string fname = entry.path().filename().string();
@@ -1492,9 +1492,9 @@ int main(int argc, char* argv[]) {
         }
         else if (arg == "--init") {
             cout << "[INIT] Creating project template..." << endl;
-            if (!fs::exists("hello.yori")) {
-                ofstream f("hello.yori");
-                f << "// Welcome to Yori!\nPRINT(\"Hello, World!\")\n";
+            if (!fs::exists("hello.glp")) {
+                ofstream f("hello.glp");
+                f << "// Welcome to Glupe!\nPRINT(\"Hello, World!\")\n";
                 f.close();
             }
             if (!fs::exists("config.json")) {
@@ -1637,7 +1637,7 @@ int main(int argc, char* argv[]) {
     initCache();
 
     size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
-    string cacheFile = ".yori_build.cache"; 
+    string cacheFile = ".glupe_build.cache"; 
 
     if (!updateMode && !dryRun && fs::exists(cacheFile) && fs::exists(outputName)) {
         ifstream cFile(cacheFile);
@@ -1686,7 +1686,7 @@ int main(int argc, char* argv[]) {
                 prompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
                 prompt << "RULES:\n";
                 prompt << "1. Implement the full logic. No placeholders.\n";
-                prompt << "2. IMPORTANT: If you see '// YORI_BLOCK_START: id', IMPLEMENT the logic between it and '// YORI_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
+                prompt << "2. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
                 prompt << "OUTPUT: Return ONLY the valid code/content for " << item.filename << ". No markdown blocks if possible.";
                 
                 string code;
@@ -1837,7 +1837,7 @@ int main(int argc, char* argv[]) {
                     prompt << "4. NO wrappers (Python.h/system()). Native implementation only.\n";
                 }
                 prompt << "5. Process '$${ instructions }$$' templates by implementing the logic.\n";
-                prompt << "6. IMPORTANT: If you see '// YORI_BLOCK_START: id', IMPLEMENT the logic between it and '// YORI_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
+                prompt << "6. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
                 prompt << "6. Output ONLY the EXPORT blocks. No conversation.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
@@ -1850,7 +1850,7 @@ int main(int argc, char* argv[]) {
                 if (!CURRENT_LANG.buildCmd.empty()) {
                     prompt << "4. Include a 'main' entry point.\n";
                 }
-                prompt << "5. IMPORTANT: If you see '// YORI_BLOCK_START: id', IMPLEMENT the logic between it and '// YORI_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
+                prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
                 prompt << "5. No external language headers.\n";
             }
         } else if (CURRENT_MODE == GenMode::MODEL_3D) {
@@ -1890,7 +1890,7 @@ int main(int argc, char* argv[]) {
                 cout << "   [!] API Error (Attempt " << (apiRetries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl; 
                 log("API_FAIL", code); 
                 if (code.find("JSON Parsing Failed") != string::npos) {
-                     cout << "       (Hint: Check 'yori config cloud-protocol'. Current: " << PROTOCOL << ", Provider URL: " << API_URL << ")" << endl;
+                     cout << "       (Hint: Check 'glupe config cloud-protocol'. Current: " << PROTOCOL << ", Provider URL: " << API_URL << ")" << endl;
                 }
                 
                 int waitTime = 5 * (apiRetries + 1);
