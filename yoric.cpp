@@ -117,6 +117,14 @@ bool isFatalError(const string& errMsg) {
     return false;
 }
 
+// [NEW] Helper for ETA formatting
+string formatDuration(long long seconds) {
+    if (seconds < 60) return to_string(seconds) + "s";
+    long long min = seconds / 60;
+    long long sec = seconds % 60;
+    return to_string(min) + "m " + to_string(sec) + "s";
+}
+
 // --- LANGUAGE SYSTEM ---
 struct LangProfile {
     string id; string name; string extension;  
@@ -561,6 +569,215 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     return processed;
 }
 
+// [NEW] Cache System Constants
+const string CACHE_DIR = "yori_cache";
+const string LOCK_FILE = ".yori.lock";
+
+struct Container {
+    string id;
+    string prompt;
+    string hash;
+    bool isCached = false;
+};
+
+json LOCK_DATA;
+
+void initCache() {
+    if (!fs::exists(CACHE_DIR)) fs::create_directory(CACHE_DIR);
+    if (fs::exists(LOCK_FILE)) {
+        try {
+            ifstream f(LOCK_FILE);
+            LOCK_DATA = json::parse(f);
+        } catch(...) { LOCK_DATA = json::object(); }
+    } else {
+        LOCK_DATA = json::object();
+        LOCK_DATA["containers"] = json::object();
+    }
+}
+
+void saveCache() {
+    ofstream f(LOCK_FILE);
+    f << LOCK_DATA.dump(4);
+}
+
+string getContainerHash(const string& prompt) {
+    hash<string> hasher;
+    return to_string(hasher(prompt));
+}
+
+string getCachedContent(const string& id) {
+    string path = CACHE_DIR + "/" + id + ".txt";
+    if (fs::exists(path)) {
+        ifstream f(path);
+        return string((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+    }
+    return "";
+}
+
+void setCachedContent(const string& id, const string& content) {
+    string path = CACHE_DIR + "/" + id + ".txt";
+    ofstream f(path);
+    f << content;
+}
+
+// [NEW] Pre-process input to handle containers and caching
+string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets) {
+    string result;
+    size_t pos = 0;
+    
+    while (pos < code.length()) {
+        size_t start = code.find("$$", pos);
+        if (start == string::npos) {
+            result += code.substr(pos);
+            break;
+        }
+
+        // Check named $$ "id" {
+        bool isNamed = false;
+        string id;
+        size_t contentStart = 0;
+        size_t scan = start + 2;
+        
+        while(scan < code.length() && isspace(code[scan])) scan++;
+        if (scan < code.length() && (code[scan] == '"' || code[scan] == '\'')) {
+            char q = code[scan];
+            size_t endQ = code.find(q, scan + 1);
+            if (endQ != string::npos) {
+                id = code.substr(scan + 1, endQ - scan - 1);
+                size_t brace = endQ + 1;
+                while(brace < code.length() && isspace(code[brace])) brace++;
+                if (brace < code.length() && code[brace] == '{') {
+                    isNamed = true;
+                    contentStart = brace + 1;
+                }
+            }
+        }
+
+        if (isNamed) {
+            // Find end of container
+            size_t end = code.find("}$$", contentStart);
+            if (end == string::npos) {
+                // Malformed, just append and continue
+                result += code.substr(pos, start - pos + 2);
+                pos = start + 2;
+                continue;
+            }
+
+            string prompt = code.substr(contentStart, end - contentStart);
+            string currentHash = getContainerHash(prompt);
+            
+            result += code.substr(pos, start - pos); // Append text before container
+
+            bool cacheHit = false;
+            
+            // Check if we should skip this container (Selective Update)
+            bool skipUpdate = false;
+            if (useCache && !updateTargets.empty()) {
+                bool isTarget = false;
+                for(const auto& t : updateTargets) if(t == id) isTarget = true;
+                if (!isTarget) skipUpdate = true;
+            }
+
+            if (useCache && (skipUpdate || LOCK_DATA["containers"].contains(id))) {
+                // If skipping, ignore hash check and try to load cache immediately
+                if (skipUpdate) {
+                    string content = getCachedContent(id);
+                    if (!content.empty()) {
+                        cout << "   [SKIP] Keeping container: " << id << endl;
+                        result += "\n// YORI_BLOCK_START: " + id + "\n";
+                        result += content; 
+                        result += "\n// YORI_BLOCK_END: " + id + "\n";
+                        cacheHit = true;
+                    } else {
+                        cout << "   [WARN] Cache missing for skipped container: " << id << ". Regenerating." << endl;
+                    }
+                }
+                // Standard check: hash comparison
+                else if (LOCK_DATA["containers"].contains(id)) {
+                string storedHash = LOCK_DATA["containers"][id]["hash"];
+                if (storedHash == currentHash) {
+                    string content = getCachedContent(id);
+                    if (!content.empty()) {
+                        cout << "   [CACHE] Using cached container: " << id << endl;
+                        // [FIX] Wrap cached content in markers so AI preserves it
+                        result += "\n// YORI_BLOCK_START: " + id + "\n";
+                        result += content; 
+                        result += "\n// YORI_BLOCK_END: " + id + "\n";
+                        cacheHit = true;
+                    }
+                    }
+                }
+            }
+
+            if (!cacheHit) {
+                // Wrap in markers for AI to fill and us to extract later
+                result += "\n// YORI_BLOCK_START: " + id + "\n";
+                result += prompt; // The prompt for the AI
+                result += "\n// YORI_BLOCK_END: " + id + "\n";
+                
+                // Update lock data (will be saved after successful generation)
+                LOCK_DATA["containers"][id]["hash"] = currentHash;
+                LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
+            }
+
+            pos = end + 3; // Skip }$$
+        } else {
+            // Anonymous or malformed, keep as is (or handle anonymous logic)
+            result += code.substr(pos, start - pos + 2);
+            pos = start + 2;
+        }
+    }
+    return result;
+}
+
+// [NEW] Post-process AI output to update cache
+string updateCacheFromOutput(string code) {
+    string cleanCode;
+    size_t pos = 0;
+    
+    while (pos < code.length()) {
+        size_t start = code.find("// YORI_BLOCK_START: ", pos);
+        if (start == string::npos) {
+            cleanCode += code.substr(pos);
+            break;
+        }
+        
+        cleanCode += code.substr(pos, start - pos); // Keep text before marker
+        
+        size_t idStart = start + 21;
+        size_t idEnd = code.find('\n', idStart);
+        if (idEnd == string::npos) break; // Should not happen
+        
+        string id = code.substr(idStart, idEnd - idStart);
+        // Trim id
+        id.erase(0, id.find_first_not_of(" \t\r"));
+        id.erase(id.find_last_not_of(" \t\r") + 1);
+
+        size_t blockEnd = code.find("// YORI_BLOCK_END: " + id, idEnd);
+        if (blockEnd == string::npos) {
+            // Marker broken by AI, just keep going
+            cleanCode += code.substr(start); 
+            break;
+        }
+
+        // Extract content
+        string content = code.substr(idEnd + 1, blockEnd - (idEnd + 1));
+        
+        // Save to cache
+        setCachedContent(id, content);
+        cout << "   [CACHE] Updated container: " << id << endl;
+
+        cleanCode += content; // Keep content in final file
+        
+        // Skip end marker
+        size_t markerEnd = code.find('\n', blockEnd);
+        pos = (markerEnd == string::npos) ? code.length() : markerEnd + 1;
+    }
+    
+    saveCache();
+    return cleanCode;
+}
+
 // [NEW] Helper to strip AI templates ($${...}$$) from code lines
 string stripTemplates(const string& line, bool& insideTemplate) {
     string result;
@@ -577,20 +794,53 @@ string stripTemplates(const string& line, bool& insideTemplate) {
     }
 
     while (pos < line.length()) {
-        size_t start = line.find("$${", pos);
+        size_t start = line.find("$$", pos);
         if (start == string::npos) {
             result += line.substr(pos);
             break;
         }
-        if (start > pos) {
-            result += line.substr(pos, start - pos);
+        
+        bool isContainer = false;
+        size_t contentStart = 0;
+
+        // Check anonymous $${
+        if (start + 2 < line.length() && line[start+2] == '{') {
+            isContainer = true;
+            contentStart = start + 3;
+        } 
+        // Check named $$ "id" {
+        else {
+            size_t scan = start + 2;
+            while(scan < line.length() && isspace(line[scan])) scan++;
+            if (scan < line.length() && (line[scan] == '"' || line[scan] == '\'')) {
+                char quote = line[scan];
+                size_t endQuote = line.find(quote, scan + 1);
+                if (endQuote != string::npos) {
+                    size_t brace = endQuote + 1;
+                    while(brace < line.length() && isspace(line[brace])) brace++;
+                    if (brace < line.length() && line[brace] == '{') {
+                        isContainer = true;
+                        contentStart = brace + 1;
+                    }
+                }
+            }
         }
-        size_t end = line.find("}$$", start + 3);
-        if (end == string::npos) {
-            insideTemplate = true;
-            break;
+
+        if (isContainer) {
+            if (start > pos) {
+                result += line.substr(pos, start - pos);
+            }
+            size_t end = line.find("}$$", contentStart);
+            if (end == string::npos) {
+                insideTemplate = true;
+                break;
+            }
+            pos = end + 3;
+        } else {
+            // Not a container, keep $$
+            result += line.substr(pos, start - pos + 2);
+            pos = start + 2;
         }
-        pos = end + 3;
     }
     return result;
 }
@@ -643,6 +893,41 @@ vector<BlueprintEntry> parseBlueprint(const string& fullContext) {
     }
     if (inBlock && !current.filename.empty()) entries.push_back(current);
     return entries;
+}
+
+// [NEW] Validate container names and detect collisions
+bool validateContainers(const string& code) {
+    set<string> ids;
+    size_t pos = 0;
+    while ((pos = code.find("$$", pos)) != string::npos) {
+        // Check anonymous $${ (skip)
+        if (pos + 2 < code.length() && code[pos+2] == '{') {
+            pos += 3; continue;
+        }
+        // Check named $$ "id" {
+        size_t scan = pos + 2;
+        while(scan < code.length() && isspace(code[scan])) scan++;
+        if (scan < code.length() && (code[scan] == '"' || code[scan] == '\'')) {
+            char q = code[scan];
+            size_t endQ = code.find(q, scan + 1);
+            if (endQ != string::npos) {
+                string id = code.substr(scan + 1, endQ - scan - 1);
+                size_t brace = endQ + 1;
+                while(brace < code.length() && isspace(code[brace])) brace++;
+                if (brace < code.length() && code[brace] == '{') {
+                    if (ids.count(id)) {
+                        cerr << "[ERROR] Duplicate container ID found: \"" << id << "\"" << endl;
+                        return false;
+                    }
+                    ids.insert(id);
+                    pos = brace + 1;
+                    continue;
+                }
+            }
+        }
+        pos += 2;
+    }
+    return true;
 }
 
 // --- EXPORT SYSTEM ---
@@ -848,6 +1133,7 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         cout << "YORI v" << CURRENT_VERSION << " (Multi-File)\nUsage: yori file1 ... [-o output] [-cloud/-local] [-3d/-img] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
+        cout << "  clean cache        : Clear semantic cache\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
@@ -889,6 +1175,24 @@ int main(int argc, char* argv[]) {
         }
         updateConfigFile(key, argv[3]);
         return 0;
+    }
+
+    // CLEAN COMMAND
+    if (cmd == "clean") {
+        if (argc >= 3 && string(argv[2]) == "cache") {
+             cout << "[CLEAN] Removing cache directory (" << CACHE_DIR << ")..." << endl;
+             try {
+                 if (fs::exists(CACHE_DIR)) fs::remove_all(CACHE_DIR);
+                 if (fs::exists(LOCK_FILE)) fs::remove(LOCK_FILE);
+                 cout << "[SUCCESS] Cache cleaned." << endl;
+             } catch (const fs::filesystem_error& e) {
+                 cerr << "[ERROR] Failed to clean cache: " << e.what() << endl;
+                 return 1;
+             }
+             return 0;
+        }
+        cout << "Usage: yori clean cache" << endl;
+        return 1;
     }
     
     // UTILS COMMANDS
@@ -1139,7 +1443,9 @@ int main(int argc, char* argv[]) {
     }
 
     // --- STANDARD COMPILATION LOGIC ---
-    vector<string> inputFiles; 
+    vector<string> positionalArgs;
+    vector<string> inputFiles;
+    vector<string> updateTargets;
     string outputName = "";
     string mode = "local"; 
     string customInstructions = ""; 
@@ -1211,8 +1517,19 @@ int main(int argc, char* argv[]) {
                 customInstructions = arg.substr(1);
                 cout << "[INFO] Custom instructions detected." << endl;
             } else {
-                inputFiles.push_back(arg); 
+                positionalArgs.push_back(arg); 
             }
+        }
+    }
+
+    // [FIX] Separate input files from update targets
+    for(const auto& arg : positionalArgs) {
+        if (fs::exists(arg)) {
+            inputFiles.push_back(arg);
+        } else if (updateMode) {
+            updateTargets.push_back(arg);
+        } else {
+            inputFiles.push_back(arg); // Let validation fail later
         }
     }
 
@@ -1273,6 +1590,13 @@ int main(int argc, char* argv[]) {
     string aggregatedContext = "";
     vector<string> stack;
     
+    // [FIX] Store processed files to export them only after validation
+    struct InputData {
+        string content;
+        fs::path path;
+    };
+    vector<InputData> loadedInputs;
+
     for (const auto& file : inputFiles) {
         fs::path p(file);
         if (fs::exists(p)) {
@@ -1287,7 +1611,8 @@ int main(int argc, char* argv[]) {
                 makeMode = true;
             }
 
-            processExports(resolved, p.parent_path());
+            // [MOVED] processExports call moved after validation
+            loadedInputs.push_back({resolved, p.parent_path()});
 
             aggregatedContext += "\n// --- START FILE: " + file + " ---\n";
             aggregatedContext += resolved;
@@ -1297,6 +1622,17 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+
+    // [NEW] Validate containers globally before processing
+    if (!validateContainers(aggregatedContext)) return 1;
+
+    // [FIX] Now it is safe to write initial exports (if any)
+    for (const auto& data : loadedInputs) {
+        processExports(data.content, data.path);
+    }
+
+    // [NEW] Initialize Cache
+    initCache();
 
     size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
     string cacheFile = ".yori_build.cache"; 
@@ -1320,6 +1656,10 @@ int main(int argc, char* argv[]) {
     set<string> potentialDeps = extractDependencies(aggregatedContext);
     if (!preFlightCheck(potentialDeps)) return 1;
 
+    // [NEW] Process Containers (Cache Check & Injection)
+    // If updateMode is true, we try to use cache.
+    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets);
+
     // [SERIES MODE] Sequential Generation
     if (seriesMode) {
         cout << "[SERIES] Parsing blueprint for sequential generation..." << endl;
@@ -1329,15 +1669,22 @@ int main(int argc, char* argv[]) {
             cout << "[WARN] No EXPORT blocks found for series mode." << endl;
         } else {
             string projectContext = "";
-            int idx = 1;
+            int currentItem = 0;
+            int totalItems = blueprint.size();
+            auto seriesStart = std::chrono::high_resolution_clock::now();
+
             for (const auto& item : blueprint) {
-                cout << "   [" << idx++ << "/" << blueprint.size() << "] Generating " << item.filename << "..." << endl;
+                currentItem++;
+                cout << "   [" << currentItem << "/" << totalItems << "] Generating " << item.filename << "..." << endl;
                 
                 stringstream prompt;
                 prompt << "ROLE: " << (CURRENT_MODE == GenMode::CODE ? "Software Architect" : "Asset Generator") << ".\n";
                 prompt << "TASK: Implement the file '" << item.filename << "'.\n";
                 prompt << "CONTEXT:\n" << projectContext << "\n";
                 prompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
+                prompt << "RULES:\n";
+                prompt << "1. Implement the full logic. No placeholders.\n";
+                prompt << "2. IMPORTANT: If you see '// YORI_BLOCK_START: id', IMPLEMENT the logic between it and '// YORI_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
                 prompt << "OUTPUT: Return ONLY the valid code/content for " << item.filename << ". No markdown blocks if possible.";
                 
                 string code;
@@ -1370,8 +1717,18 @@ int main(int argc, char* argv[]) {
                     return 1;
                 }
 
+                // [NEW] Update Cache from AI Output (Series Mode)
+                code = updateCacheFromOutput(code);
+
                 ofstream out(item.filename); out << code; out.close();
-                cout << "      -> Saved." << endl;
+                
+                // [NEW] Calculate and display ETA
+                auto now = std::chrono::high_resolution_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - seriesStart).count();
+                double avg = (double)elapsed / currentItem;
+                long long eta = (long long)(avg * (totalItems - currentItem));
+                
+                cout << "      -> Saved. (ETA: " << formatDuration(eta) << ")" << endl;
                 projectContext += "\n// --- FILE: " + item.filename + " ---\n" + code + "\n";
             }
             cout << "[SERIES] All tasks completed." << endl;
@@ -1469,13 +1826,16 @@ int main(int argc, char* argv[]) {
         if (CURRENT_MODE == GenMode::CODE) {
             if (makeMode) {
                 prompt << "ROLE: Software Architect.\n";
-                prompt << "TASK: Structure and implement the project files.\n";
+                prompt << "TASK: Structure and implement the project files for a " << CURRENT_LANG.name << " project.\n";
                 prompt << "RULES:\n";
                 prompt << "1. Use 'EXPORT: \"filename\"' ... 'EXPORT: END' for every file.\n";
-                prompt << "2. Implement full logic using standard libraries. No placeholders.\n";
+                prompt << "2. Implement full logic/content. No placeholders.\n";
                 prompt << "3. Include build scripts (Makefile/CMakeLists.txt) if needed.\n";
-                prompt << "4. NO wrappers (Python.h/system()). Native implementation only.\n";
+                if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c") {
+                    prompt << "4. NO wrappers (Python.h/system()). Native implementation only.\n";
+                }
                 prompt << "5. Process '$${ instructions }$$' templates by implementing the logic.\n";
+                prompt << "6. IMPORTANT: If you see '// YORI_BLOCK_START: id', IMPLEMENT the logic between it and '// YORI_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
                 prompt << "6. Output ONLY the EXPORT blocks. No conversation.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
@@ -1488,6 +1848,7 @@ int main(int argc, char* argv[]) {
                 if (!CURRENT_LANG.buildCmd.empty()) {
                     prompt << "4. Include a 'main' entry point.\n";
                 }
+                prompt << "5. IMPORTANT: If you see '// YORI_BLOCK_START: id', IMPLEMENT the logic between it and '// YORI_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
                 prompt << "5. No external language headers.\n";
             }
         } else if (CURRENT_MODE == GenMode::MODEL_3D) {
@@ -1526,6 +1887,9 @@ int main(int argc, char* argv[]) {
             }
             continue; 
         }
+
+        // [NEW] Update Cache from AI Output
+        code = updateCacheFromOutput(code);
 
         // [MAKE 2.0] Process exports in AI output (Generate files dynamically)
         code = processExports(code, fs::current_path());

@@ -13,7 +13,7 @@ request_temp.json
 critics_and_improvement/
 # --- config and Secrets  ---
 config.json
-
+build.bat
 # ---  IDE ---
 .vscode/
 .idea/
@@ -23,3 +23,5 @@ __pycache__/
 SUGGESTIONS.md
 *.html
 version.txt
+yori_cache
+.yori.lock

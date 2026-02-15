@@ -9,9 +9,9 @@ If you could help me getting this donde I would appreciate it much
 
 1. preFlightcheck works for any language not just hardcoded c & c++ (lines 768+) [done for python, pending for the rest]
 
-2. Treeshaking, at least functional
+2. Treeshaking, at least functional [pending]
 
-3. Estimated remaining time of compilation / production
+3. Estimated remaining time of compilation / production[[pending]]
 
 **IMPORTANT**: Add a yori_cache/ folder to store needed information
 Move .yori_build.cache to yori_cache/
@@ -49,6 +49,58 @@ It calculates the hash of the current prompt in "x-1".
 It compares it to the hash in .yori.lock.
 Match? Skip AI call. Copy existing code from cache or leave file untouched.
 Mismatch? Call AI, generate new code, update lock file.
+
+4.3 Comments in file output telling what container it is
+Example:
+EXPORT: "main.cpp"
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+using namespace std;
+
+int main() {
+    cout << "--- Start ---" << endl;
+
+    // Container 1: We will keep this one unchanged
+    $$ "block_stable" {
+        print "Stable Block: Running..."
+        simulate a heavy calculation by sleeping for 100ms
+    }$$
+
+    // Container 2: We will modify this one later
+    $$ "block_dynamic" {
+        print "Dynamic Block: Version 1"
+    }$$
+
+    cout << "--- End ---" << endl;
+    return 0;
+}
+EXPORT: END
+
+Output:
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+using namespace std;
+
+int main() {
+    cout << "--- Start ---" << endl;
+
+    // cont1{
+    cout << "Stable Block: Running..." << endl;
+    this_thread::sleep_for(chrono::milliseconds(100));
+    //}
+    
+    // cont2{
+        cout << "Dynamic Block: Version 1" << endl;
+    //}
+    cout << "--- End ---" << endl;
+    return 0;
+}
+
+4.5 In single file mode, when api errors appear the system skips one pass, we have to fix that so it does not skip a pass
 
 5. The Determinism Problem (Lines 1014-1037)
 ```cpp
@@ -101,6 +153,23 @@ for (const auto& item : blueprint) {
 }
 ```
 
+8. Wrapper detection for multiple languages, not just c++
+
+9. Container inheritance
+4. "Logic Inheritance" (The OOP of Intent)
+This is the most exciting engineering possibility.
+
+Scenario: You have a standard approach for logging across your company.
+Unlock: You define a "Base Container" logic (mentally or in a template): $$ "logging-base" { Log to JSON format with timestamp }$$.
+Implementation: In your specific project, you can have containers that "inherit" this behavior by referencing it or including it.
+cpp
+
+$$ "api-error-log" inherits "logging-base" {
+   Add error stack trace to the log.
+}$$     
+Result: You can change the base logging style in one place, and every child container in your entire project updates its implementation.
+
+
 
 ## For 6.0
 1.  AST w tree sitter (not really needed but cool for 6.0 onwards)
@@ -119,3 +188,16 @@ for (const auto& item : blueprint) {
 
 8. Yori publish. `yori publish "my_container_id.txt" user_name password` this uploads a container text file 
 to the user's profile DB. 
+
+9. FFI integration for imports
+
+10. Namespaces resolution for IMPORT directive
+```markdown
+IMPORT: "script.py" as spy
+FROM spy USE myfunc()
+COM=only uses myfunc()
+
+x=3
+
+PRINT(MYFUNC(x))
+```

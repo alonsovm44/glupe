@@ -1,11 +1,25 @@
-## v5.7.3 2026-02-14
+## v5.8 2026-02-14
+## Happy St. Valentine day (saint Valentine pray for us sinners)
 
 Added:
 
+- added clean cache cmd to clear cache folder
+- added .yori.lock file to save container hashes
+- added yori_cache folder and cached containers
+- added named containers to yori
 Removed:
 
 Improved/Fixed:
 
+## v5.7.3 2026-02-14
+
+Added:
+
+- added container names and colisions detection
+Removed:
+
+Improved/Fixed:
+- minor bug fixes
 
 ## [5.7.2]
 1. Improved readme
