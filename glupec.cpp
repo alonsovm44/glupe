@@ -1,4 +1,4 @@
-/* GLUPE COMPILER ( formerly yori.exe) - v5.7.2*/
+/* GLUPE COMPILER ( formerly yori.exe) - v5.8*/
 
 // build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
 #include <iostream>
@@ -624,6 +624,15 @@ void setCachedContent(const string& id, const string& content) {
 
 // [NEW] Pre-process input to handle containers and caching
 string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets) {
+    // [FUTURE v6.0] AST INTEGRATION POINT
+    // 1. Normalize: Replace $$...$$ with valid placeholders (e.g. comments or void calls)
+    // 2. Parse: auto tree = parser.parse_string(normalized_code);
+    // 3. Traverse: Find placeholder nodes in the AST.
+    // 4. Context: For each node, walk up to find enclosing function/class for prompt context.
+    // 5. Generate: Call LLM with AST-derived context.
+    // 6. Verify: Parse result, ensure tree structure outside container is identical.
+    // 7. Unparse: Convert modified AST back to string.
+    
     string result;
     size_t pos = 0;
     

@@ -16,93 +16,7 @@ If you could help me getting this donde I would appreciate it much
 **IMPORTANT**: Add a yori_cache/ folder to store needed information [DONE]
 Move .yori_build.cache to yori_cache/
 
-4. nameable containers like this [done]
-$${}$$ -> No name, disposable, like a lambda (if other containers are found without id, they do not collide)
-$$ "x-1"{}$$ -> container_id = "x-1"
-Yori warns when two containters have the same name, collision aborts making process.
-
-    4.1 command idea:
-    `yori project.txt -make -u` -> this updates the code outside containers the same way. It does not regenerate all containers, only those whose hash has changed. 
-
-        4.1.1 `yori project.txt -make -u "x-1" "x-2" [DONE]
-        this only changes containers with that name, and leaves the rest untouched.
-        PROBLEM WITH THIS APPROACH: if I modify container X and I only specify to modify container Y, When I run `-make -u "Y"` only Y updates and now the container and the implementation are out of sync
-        SOLUTION: use `-u` to update all 
-
-    4.2 Make a temporary .yori.lock file like this [DONE X ] 
-    {
-  "containers": {
-    "x-1": {
-      "hash": "a1b2c3d4...", // Hash of the Prompt text
-      "output_file": "utils.cpp",
-      "last_run": "2023-10-27T10:00:00Z"
-    },
-    "main-loop": {
-      "hash": "e5f6g7h8...",
-      "output_file": "main.cpp"
-    }
-  }
-}
-How it works:
-
-User runs yori -make -u.
-Yori reads the .yori file.
-It calculates the hash of the current prompt in "x-1".
-It compares it to the hash in .yori.lock.
-Match? Skip AI call. Copy existing code from cache or leave file untouched.
-Mismatch? Call AI, generate new code, update lock file.
-
-4.3 Comments in file output telling what container it is `this can be done by educating the user to wrap his containers in comments`
-Example:
-EXPORT: "main.cpp"
-#include <iostream>
-#include <thread>
-#include <chrono>
-
-using namespace std;
-
-int main() {
-    cout << "--- Start ---" << endl;
-
-    // Container 1: We will keep this one unchanged
-    $$ "block_stable" {
-        print "Stable Block: Running..."
-        simulate a heavy calculation by sleeping for 100ms
-    }$$
-
-    // Container 2: We will modify this one later
-    $$ "block_dynamic" {
-        print "Dynamic Block: Version 1"
-    }$$
-
-    cout << "--- End ---" << endl;
-    return 0;
-}
-EXPORT: END
-
-Output:
-#include <iostream>
-#include <thread>
-#include <chrono>
-
-using namespace std;
-
-int main() {
-    cout << "--- Start ---" << endl;
-
-    // cont1{
-    cout << "Stable Block: Running..." << endl;
-    this_thread::sleep_for(chrono::milliseconds(100));
-    //}
-    
-    // cont2{
-        cout << "Dynamic Block: Version 1" << endl;
-    //}
-    cout << "--- End ---" << endl;
-    return 0;
-}
-
-4.5 In single file mode, when api errors appear the system skips one pass, we have to fix that so it does not skip a pass
+4.5 In single file mode, when api errors appear the system skips one pass, we have to fix that so it does not skip a pass [DONE]
 
 5. The Determinism Problem (Lines 1014-1037)
 ```cpp
@@ -172,13 +86,22 @@ $$ "api-error-log" inherits "logging-base" {
 Result: You can change the base logging style in one place, and every child container in your entire project updates its implementation.
 
 Named containers: DONE.
+- Abstract containers: Next.
 - Inheritance 
-- Abstracts: Next.
-- Then YoriHub.
 
+- Then YoriHub (last).
 
 ## For 6.0
-1.  AST w tree sitter (not really needed but cool for 6.0 onwards)
+1.  AST w tree sitter (Hard Isolation)
+    - [ ] Integrate tree-sitter C library
+    - [ ] Implement language-agnostic placeholder replacement (normalize `$${}` to `/*ID*/`)
+    - [ ] Implement AST diffing algorithm to verify "Host Code" immutability
+    - [ ] Implement "Smart Context": Send only relevant scope (Enclosing Class/Function) to LLM
+
+2.  Smart Dependency Management (True Treeshaking)
+    - [ ] Use AST to detect symbols used in generated code
+    - [ ] Check imports/includes in AST root
+    - [ ] Inject missing dependencies automatically
 
 3. Project memory
 

@@ -841,6 +841,25 @@ This moves Semantic Containers closer to **Biological Metaphors.**
 
 It turns Yori into a **Genetic Programming Environment.**
 
+### 11.1 AST-Based Compilation (Hard Isolation)
+
+The next major architectural shift (v6.0) involves moving from string-based processing to Abstract Syntax Tree (AST) manipulation using tools like Tree-sitter.
+
+**The Logic Flow:**
+1. **Normalization**: Pre-process source files to convert semantic containers (`$${...}$$`) into valid syntax placeholders (e.g., `__glupe_container("id");`) so standard parsers can read them.
+2. **Context Walking**: Instead of sending the full file text to the LLM, walk the AST from the container node upwards. Capture the enclosing function signature, class definitions, and imports. This reduces token usage and focuses the LLM on relevant scope.
+3. **Structural Verification**:
+   - Parse the original file $\rightarrow$ $AST_{orig}$
+   - Parse the LLM output $\rightarrow$ $AST_{new}$
+   - **Invariant Check**: $AST_{orig} - Node_{container} \equiv AST_{new} - Node_{container}$
+   
+   This provides **Hard Isolation**. If the LLM accidentally modifies a function name or deletes a bracket outside the container, the AST comparison will fail, and the compiler will reject the change automatically.
+
+**Benefits:**
+- **Guaranteed Safety**: Impossible for AI to break surrounding architecture.
+- **Smart Imports**: Automatically detect used symbols in generated code and inject missing imports/includes at the top of the file.
+- **Syntax-Aware Formatting**: Generated code automatically adopts the indentation style of the parent tree.
+
 **3. Interactive refinement:**
 ```
 yori compile program.yori --interactive

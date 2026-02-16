@@ -2,7 +2,19 @@
 ## Overview
 A Semantic Container is a designated block within a source file that isolates natural language instructions from standard code syntax. It acts as a boundary, defining exactly where AI-generated logic is permitted to exist within a user-defined file structure.
 
-In Yori, this is implemented via the $${ ... }$$ syntax.
+In Glupe, this is implemented via the $${ ... }$$ syntax.
+` $${}$$` designates a lambda container, which has no name.
+` $$ "my_container"{ }$$` designates a named container.
+
+A Semantic Container has:
+
+- Global read access to surrounding code (context-aware)
+- Local write authority restricted to its own boundaries
+- Optional inheritance from parent containers
+- Deterministic regeneration via hash-based caching
+- Optional type awareness enforced by the host signature
+
+This transforms generative programming from unconstrained editing into structured compilation.
 
 ## The Problem: The "All-or-Nothing" Approach
 Standard AI code generation tools typically operate on two extremes:
@@ -55,7 +67,7 @@ With Semantic Containers, the scope of change is hardcoded. If you update the pr
 3. Separation of Intent and Syntax
 Standard code only describes how something is done. A Semantic Container preserves the why.
 
-Because the prompt remains in the source file (usually inside a .yori blueprint), the intent is preserved alongside the generated code. Future developers can read the prompt inside $${ ... }$$ to understand the original requirement before looking at the generated implementation.
+Because the prompt remains in the source file (usually inside a .glp blueprint), the intent is preserved alongside the generated code. Future developers can read the prompt inside $${ ... }$$ to understand the original requirement before looking at the generated implementation.
 
 4. Deterministic Interfaces
 In a multi-file project, Semantic Containers ensure that interfaces remain consistent.
@@ -65,7 +77,7 @@ If `file_a.cpp` calls a function defined in `file_b.cpp`, the developer manually
 ## The Workflow
 1. Define Structure: The developer writes the `EXPORT:` blocks and static code (headers, class structures, main loops).
 2. Place Containers: The developer inserts $${ prompt }$$ where implementation is needed.
-3. Orchestrate: Yori parses the file, sends the prompts to the Language Model, and inserts the returned code into the designated slots.
+3. Orchestrate: Glupe parses the file, sends the prompts to the Language Model, and inserts the returned code into the designated slots.
 4. Verify: The final source file is created, blending the developer's architecture with the AI's implementation.
 
 # Are SemCons a big deal?
@@ -97,8 +109,8 @@ This aligns perfectly with the direction software is heading (declarative infras
 
 It is a big deal because it provides Governance over AI.
 
-Without Yori: AI is a "Wild West" agent.
-With Yori: AI is a managed, sandboxed worker.
+Without Glupe: AI is a "Wild West" agent.
+With Glupe: AI is a managed, sandboxed worker.
 Just as Git allowed teams to collaborate safely, and Docker allowed apps to deploy safely, Semantic Containers allow AI to generate safely. It is a missing layer of the software stack.
 
 ## Summary
