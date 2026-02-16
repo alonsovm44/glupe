@@ -1,0 +1,16 @@
+EXPORT: "main.cpp"
+#include <iostream>
+
+// Define abstract container (no code generated here)
+$$ ABSTRACT "base_logic" {
+   all printed lines must end with "!"
+}$$
+
+int main() {
+    // Inherit from abstract container
+    $$ "impl" -> "base_logic" {
+        Print "Inside Implementation"
+    }$$
+    return 0;
+}
+EXPORT: END

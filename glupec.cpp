@@ -178,7 +178,9 @@ map<string, LangProfile> LANG_DB = {
     {"vb",   {"vb",  "VB.NET",  ".vb",  "dotnet --version", "dotnet build", true}},
     {"groovy",{"groovy","Groovy",".groovy","groovy -v", "groovyc", false}},
     {"tex",  {"tex", "LaTeX",   ".tex", "pdflatex --version", "pdflatex -interaction=nonstopmode", false}},
-    {"acn",  {"acn", "Acorn",   ".acn", "", "", false}}
+    {"acn",  {"acn", "Acorn",   ".acn", "", "", false}},
+    {"arduino", {"arduino", "Arduino (AVR)", ".ino", "arduino-cli version", "arduino-cli compile --fqbn arduino:avr:uno", true}},
+    {"esp32",   {"esp32",   "ESP32",          ".ino", "arduino-cli version", "arduino-cli compile --fqbn esp32:esp32:esp32", true}}
 };
 
 map<string, LangProfile> MODEL_DB = {
@@ -515,6 +517,32 @@ void openApiKeyPage() {
     #endif
 }
 
+// [NEW] Tree Shaking Logic
+string performTreeShaking(const string& code, const string& language) {
+    cout << "   [OPTIMIZE] Tree shaking (removing unused code)..." << endl;
+    stringstream prompt;
+    prompt << "ROLE: Senior Code Optimizer.\n";
+    prompt << "TASK: Analyze the following " << language << " code and remove UNUSED functions, variables, and imports.\n";
+    prompt << "RULES:\n";
+    prompt << "1. Keep the 'main' function (or entry point) and everything it uses (transitively).\n";
+    prompt << "2. Keep all 'EXPORT:' directives and file structures intact.\n";
+    prompt << "3. Remove dead code that is never called or referenced.\n";
+    prompt << "4. Do not change logic, only remove unused elements.\n";
+    prompt << "5. Return ONLY the cleaned code.\n";
+    prompt << "CODE:\n" << code << "\n";
+    
+    string response = callAI(prompt.str());
+    string cleaned = extractCode(response);
+
+    // [SAFETY] Verify that EXPORT directives were not lost during optimization
+    if (code.find("EXPORT:") != string::npos && cleaned.find("EXPORT:") == string::npos) {
+        cout << "   [WARN] Tree shaking corrupted file structure (lost EXPORTs). Reverting." << endl;
+        return code;
+    }
+
+    return (cleaned.find("ERROR:") == 0) ? code : cleaned; // Fallback if error
+}
+
 // --- PREPROCESSOR ---
 string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     stringstream ss(code);
@@ -634,6 +662,7 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
     // 7. Unparse: Convert modified AST back to string.
     
     string result;
+    map<string, string> containerPrompts; // [NEW] Store prompts for inheritance
     size_t pos = 0;
     
     while (pos < code.length()) {
@@ -645,17 +674,43 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
 
         // Check named $$ "id" {
         bool isNamed = false;
+        bool isAbstract = false; // [NEW] Track abstract status
         string id;
+        string parentId; // [NEW] Parent ID for inheritance
         size_t contentStart = 0;
         size_t scan = start + 2;
         
         while(scan < code.length() && isspace(code[scan])) scan++;
+        
+        // [NEW] Check for ABSTRACT keyword
+        if (scan + 8 <= code.length() && code.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == code.length() || isspace(code[scan+8]))) {
+            isAbstract = true;
+            scan += 8;
+            while(scan < code.length() && isspace(code[scan])) scan++;
+        }
+
         if (scan < code.length() && (code[scan] == '"' || code[scan] == '\'')) {
             char q = code[scan];
             size_t endQ = code.find(q, scan + 1);
             if (endQ != string::npos) {
                 id = code.substr(scan + 1, endQ - scan - 1);
                 size_t brace = endQ + 1;
+                
+                // [NEW] Check for inheritance ->
+                while(brace < code.length() && isspace(code[brace])) brace++;
+                if (brace + 1 < code.length() && code[brace] == '-' && code[brace+1] == '>') {
+                     size_t pScan = brace + 2;
+                     while(pScan < code.length() && isspace(code[pScan])) pScan++;
+                     if (pScan < code.length() && (code[pScan] == '"' || code[pScan] == '\'')) {
+                         char pq = code[pScan];
+                         size_t endPQ = code.find(pq, pScan + 1);
+                         if (endPQ != string::npos) {
+                             parentId = code.substr(pScan + 1, endPQ - pScan - 1);
+                             brace = endPQ + 1;
+                         }
+                     }
+                }
+
                 while(brace < code.length() && isspace(code[brace])) brace++;
                 if (brace < code.length() && code[brace] == '{') {
                     isNamed = true;
@@ -675,6 +730,29 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
             }
 
             string prompt = code.substr(contentStart, end - contentStart);
+            
+            // [NEW] Logic Inheritance
+            if (!parentId.empty()) {
+                if (containerPrompts.count(parentId)) {
+                    string parentLogic = containerPrompts[parentId];
+                    string childLogic = prompt;
+                    prompt = "INHERITED FROM " + parentId + ":\n" + parentLogic + "\n\nCHILD LOGIC:\n" + childLogic;
+                    cout << "   [INHERIT] Container '" << id << "' inherits from '" << parentId << "'" << endl;
+                } else {
+                    cout << "   [WARN] Parent container '" << parentId << "' not found (must be defined before use)." << endl;
+                }
+            }
+            containerPrompts[id] = prompt; // Store resolved prompt
+
+            // [NEW] Abstract Container Logic
+            if (isAbstract) {
+                cout << "   [ABSTRACT] Defined container: " << id << endl;
+                result += code.substr(pos, start - pos); // Append text before container
+                result += "// [ABSTRACT: " + id + "]\n"; // Placeholder comment (no code generation)
+                pos = end + 3;
+                continue;
+            }
+
             string currentHash = getContainerHash(prompt);
             
             result += code.substr(pos, start - pos); // Append text before container
@@ -823,11 +901,31 @@ string stripTemplates(const string& line, bool& insideTemplate) {
         else {
             size_t scan = start + 2;
             while(scan < line.length() && isspace(line[scan])) scan++;
+            
+            // [NEW] Skip ABSTRACT keyword in stripper
+            if (scan + 8 <= line.length() && line.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == line.length() || isspace(line[scan+8]))) {
+                scan += 8;
+                while(scan < line.length() && isspace(line[scan])) scan++;
+            }
+
             if (scan < line.length() && (line[scan] == '"' || line[scan] == '\'')) {
                 char quote = line[scan];
                 size_t endQuote = line.find(quote, scan + 1);
                 if (endQuote != string::npos) {
                     size_t brace = endQuote + 1;
+                    
+                    // [NEW] Skip inheritance syntax in stripper
+                    while(brace < line.length() && isspace(line[brace])) brace++;
+                    if (brace + 1 < line.length() && line[brace] == '-' && line[brace+1] == '>') {
+                         size_t pScan = brace + 2;
+                         while(pScan < line.length() && isspace(line[pScan])) pScan++;
+                         if (pScan < line.length() && (line[pScan] == '"' || line[pScan] == '\'')) {
+                             char pq = line[pScan];
+                             size_t endPQ = line.find(pq, pScan + 1);
+                             if (endPQ != string::npos) brace = endPQ + 1;
+                         }
+                    }
+
                     while(brace < line.length() && isspace(line[brace])) brace++;
                     if (brace < line.length() && line[brace] == '{') {
                         isContainer = true;
@@ -918,12 +1016,32 @@ bool validateContainers(const string& code) {
         // Check named $$ "id" {
         size_t scan = pos + 2;
         while(scan < code.length() && isspace(code[scan])) scan++;
+        
+        // [NEW] Skip ABSTRACT keyword in validator
+        if (scan + 8 <= code.length() && code.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == code.length() || isspace(code[scan+8]))) {
+            scan += 8;
+            while(scan < code.length() && isspace(code[scan])) scan++;
+        }
+
         if (scan < code.length() && (code[scan] == '"' || code[scan] == '\'')) {
             char q = code[scan];
             size_t endQ = code.find(q, scan + 1);
             if (endQ != string::npos) {
                 string id = code.substr(scan + 1, endQ - scan - 1);
                 size_t brace = endQ + 1;
+                
+                // [NEW] Skip inheritance syntax in validator
+                while(brace < code.length() && isspace(code[brace])) brace++;
+                if (brace + 1 < code.length() && code[brace] == '-' && code[brace+1] == '>') {
+                     size_t pScan = brace + 2;
+                     while(pScan < code.length() && isspace(code[pScan])) pScan++;
+                     if (pScan < code.length() && (code[pScan] == '"' || code[pScan] == '\'')) {
+                         char pq = code[pScan];
+                         size_t endPQ = code.find(pq, pScan + 1);
+                         if (endPQ != string::npos) brace = endPQ + 1;
+                     }
+                }
+
                 while(brace < code.length() && isspace(code[brace])) brace++;
                 if (brace < code.length() && code[brace] == '{') {
                     if (ids.count(id)) {
@@ -1842,7 +1960,7 @@ int main(int argc, char* argv[]) {
                 prompt << "1. Use 'EXPORT: \"filename\"' ... 'EXPORT: END' for every file.\n";
                 prompt << "2. Implement full logic/content. No placeholders.\n";
                 prompt << "3. Include build scripts (Makefile/CMakeLists.txt) if needed.\n";
-                if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c") {
+                if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "arduino" || CURRENT_LANG.id == "esp32") {
                     prompt << "4. NO wrappers (Python.h/system()). Native implementation only.\n";
                 }
                 prompt << "5. Process '$${ instructions }$$' templates by implementing the logic.\n";
@@ -1856,7 +1974,9 @@ int main(int argc, char* argv[]) {
                 prompt << "1. NO wrappers (<Python.h>, system()). Re-implement logic natively.\n";
                 prompt << "2. Use standard libraries (e.g. std::vector, std::map).\n";
                 prompt << "3. Output must be self-contained and runnable.\n";
-                if (!CURRENT_LANG.buildCmd.empty()) {
+                if (CURRENT_LANG.id == "arduino" || CURRENT_LANG.id == "esp32") {
+                    prompt << "4. Use 'setup()' and 'loop()' entry points. Do NOT include 'main()'.\n";
+                } else if (!CURRENT_LANG.buildCmd.empty()) {
                     prompt << "4. Include a 'main' entry point.\n";
                 }
                 prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
@@ -1923,6 +2043,11 @@ int main(int argc, char* argv[]) {
 
         // [NEW] Update Cache from AI Output
         code = updateCacheFromOutput(code);
+
+        // [NEW] Tree Shaking (Post-Cache, Pre-Export)
+        if (CURRENT_MODE == GenMode::CODE) {
+            code = performTreeShaking(code, CURRENT_LANG.name);
+        }
 
         // [MAKE 2.0] Process exports in AI output (Generate files dynamically)
         code = processExports(code, fs::current_path());

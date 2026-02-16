@@ -3,6 +3,10 @@
 
 Added:
 
+- added abstract containers
+- added container inheritance
+- added basic tree shaking, prompt based
+- added support for arduino and esp32
 - changed named of program from yori to glupe
 - added clean cache cmd to clear cache folder
 - added .yori.lock file to save container hashes
