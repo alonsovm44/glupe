@@ -9,7 +9,7 @@
 
 ## Abstract
 
-We present **Yori**, a practical meta-compiler protoype that enables developers to mix concrete code with natural language or high level pseudocode intent within the same source file. Using a simple delimiter syntax (`$${...}$$`), programmers can write hybrid programs where algorithmic details are specified in traditional code while boilerplate, utilities, or exploratory logic is expressed in natural language. Yori transpiles these semantic blocks to executable code across 30+ languages using Large Language Models (LLMs) as a backend, with multiple provider support (local Ollama, OpenAI, Google). 
+We present **Glupe**, a practical meta-compiler protoype that enables developers to mix concrete code with natural language or high level pseudocode intent within the same source file. Using a simple delimiter syntax (`$${...}$$`), programmers can write hybrid programs where algorithmic details are specified in traditional code while boilerplate, utilities, or exploratory logic is expressed in natural language. Glupe transpiles these semantic blocks to executable code across 30+ languages using Large Language Models (LLMs) as a backend, with multiple provider support (local Ollama, OpenAI, Google). 
 
 Key features include: (1) inline semantic blocks that preserve surrounding code context, (2) multi-file project generation via `EXPORT` directives, (3) iterative compilation with error feedback to improve LLM output reliability, (4) pattern detection to prevent common LLM failure modes (wrapper attempts, lazy translations), and (5) integrated developer tools (code repair, documentation generation, semantic diff analysis). 
 
@@ -17,8 +17,8 @@ Key features include: (1) inline semantic blocks that preserve surrounding code 
 
 ---
 ## The one liner
-Yori summarized in one sentance:
->Stop giving AI root access to your code. Yori isolates AI logic into semantic containers, so your manual code stays safe.
+Glupe summarized in one sentance:
+>Stop giving AI root access to your code. Glupe isolates AI logic into semantic containers, so your manual code stays safe.
 
 ## 1. Introduction
 
@@ -57,7 +57,7 @@ This enables:
 
 ### 1.2 Contributions
 
-This paper describes the design and implementation of Yori, a working meta-compiler supporting this paradigm. Our contributions are:
+This paper describes the design and implementation of Glupe, a working meta-compiler supporting this paradigm. Our contributions are:
 
 1. **Lightweight syntax convention** for embedding semantic blocks in source code
 2. **Multi-file orchestration** through `EXPORT` directives for project generation
@@ -109,11 +109,11 @@ Pipeline:
 7. OUTPUT: Save binary or source file
 ```
 
-**Key insight**: Unlike traditional compilers that reject incomplete programs, Yori treats semantic blocks as **compilation tasks** rather than syntax errors.
+**Key insight**: Unlike traditional compilers that reject incomplete programs, Glupe treats semantic blocks as **compilation tasks** rather than syntax errors.
 
 ### 2.3 Context Preservation
 
-When generating code for a semantic block, Yori provides the LLM with:
+When generating code for a semantic block, Glupe provides the LLM with:
 
 ```
 CONTEXT = {
@@ -143,7 +143,7 @@ The LLM sees `#include <algorithm>` and knows to use `std::sort`, `std::unique` 
 
 ### 2.4 Multi-File Projects: EXPORT Directives
 
-For multi-file projects, Yori introduces `EXPORT` blocks:
+For multi-file projects, Glupe introduces `EXPORT` blocks:
 
 ```
 EXPORT: "filename.ext"
@@ -189,11 +189,11 @@ The first two lines provide architectural context but don't appear in any output
 
 ## 3. Reliability Mechanisms
 
-LLMs are non-deterministic and prone to failures. Yori implements several mechanisms to improve reliability:
+LLMs are non-deterministic and prone to failures. Glupe implements several mechanisms to improve reliability:
 
 ### 3.1 Iterative Compilation with Error Feedback
 
-Rather than single-shot generation, Yori uses a **retry loop with accumulated error history**:
+Rather than single-shot generation, Glupe uses a **retry loop with accumulated error history**:
 
 ```
 error_history = ""
@@ -244,7 +244,7 @@ bool isFatalError(const string& compilerOutput) {
 }
 ```
 
-When detected, Yori annotates the error message:
+When detected, Glupe annotates the error message:
 ```
 "FATAL: You attempted to include python.h. STOP. 
 Rewrite using native C++ standard library only."
@@ -254,7 +254,7 @@ This **trains the LLM** through reinforcement to avoid lazy patterns.
 
 ### 3.3 Preflight Dependency Checking
 
-Before invoking the LLM, Yori extracts all dependencies (`#include`, `import`, etc.) and verifies they exist:
+Before invoking the LLM, Glupe extracts all dependencies (`#include`, `import`, etc.) and verifies they exist:
 
 ```cpp
 dependencies = extract_dependencies(code)
@@ -279,7 +279,7 @@ if (all_files_match_target_extension && no_semantic_blocks) {
 }
 ```
 
-This makes Yori a **drop-in replacement** for native compilers when no AI features are needed.
+This makes Glupe a **drop-in replacement** for native compilers when no AI features are needed.
 
 ---
 
@@ -287,7 +287,7 @@ This makes Yori a **drop-in replacement** for native compilers when no AI featur
 
 ### 4.1 Multi-Provider Support
 
-Yori abstracts LLM providers through a unified interface:
+Glupe abstracts LLM providers through a unified interface:
 
 ```cpp
 string callAI(string prompt) {
@@ -337,19 +337,19 @@ Configuration via `config.json`:
 ```
 Users can aquire a free API key through
 ```
-yori get-key
+glupe get-key
 ```
 This will open the browser in apifreellm.com website, where users can access to free API keys. 
 
 Users can switch providers with flags:
 ```bash
-yori hello.yori -local   # Use Ollama
-yori hello.yori -cloud   # Use configured cloud provider
+glupe hello.glp -local   # Use Ollama
+glupe hello.glp -cloud   # Use configured cloud provider
 ```
 
 ### 4.2 Rate Limiting and Backoff
 
-Cloud providers enforce rate limits. Yori implements exponential backoff:
+Cloud providers enforce rate limits. Glupe implements exponential backoff:
 
 ```cpp
 for (int attempt = 0; attempt < 3; attempt++) {
@@ -366,7 +366,7 @@ for (int attempt = 0; attempt < 3; attempt++) {
 
 ### 4.3 Response Parsing
 
-LLM responses vary by provider. Yori extracts code blocks:
+LLM responses vary by provider. Glupe extracts code blocks:
 
 ```cpp
 string extractCode(string jsonResponse) {
@@ -397,12 +397,12 @@ string extractCode(string jsonResponse) {
 
 ## 5. Developer Tools
 
-Beyond transpilation, Yori provides AI-powered development utilities:
+Beyond transpilation, Glupe provides AI-powered development utilities:
 
 ### 5.1 Code Repair
 
 ```bash
-yori fix myfile.cpp "change the sorting algorithm in line 644 to use quicksort"
+glupe fix myfile.cpp "change the sorting algorithm in line 644 to use quicksort"
 ```
 
 **Workflow:**
@@ -418,7 +418,7 @@ yori fix myfile.cpp "change the sorting algorithm in line 644 to use quicksort"
 ### 5.2 Interactive Help (SOS)
 
 ```bash
-yori sos english "error: no matching function for call to 'std::vector<int>::push'"
+glupe sos english "error: no matching function for call to 'std::vector<int>::push'"
 ```
 
 **Workflow:**
@@ -434,7 +434,7 @@ yori sos english "error: no matching function for call to 'std::vector<int>::pus
 ### 5.3 Documentation Generation
 
 ```bash
-yori explain myfile.cpp Spanish
+glupe explain myfile.cpp Spanish
 ```
 
 **Workflow:**
@@ -450,7 +450,7 @@ yori explain myfile.cpp Spanish
 ### 5.4 Semantic Diff Analysis
 
 ```bash
-yori diff version1.cpp version2.cpp
+glupe diff version1.cpp version2.cpp
 ```
 
 **Workflow:**
@@ -482,7 +482,7 @@ Function `calculate()` changed from iterative to recursive implementation.
 
 ### 6.1 Language Profile System
 
-Yori supports 30+ languages through a declarative profile database:
+Glupe supports 30+ languages through a declarative profile database:
 
 ```cpp
 struct LangProfile {
@@ -517,9 +517,9 @@ map<string, LangProfile> LANG_DB = {
 Same semantic description can target multiple languages:
 
 ```bash
-yori program.yori -cpp -o program.exe
-yori program.yori -py  -o program.py
-yori program.yori -rust -o program
+glupe program.Glupe -cpp -o program.exe
+glupe program.Glupe -py  -o program.py
+glupe program.Glupe -rust -o program
 ```
 
 **Use cases:**
@@ -529,11 +529,11 @@ yori program.yori -rust -o program
 
 ### 6.3 Context assimilation
 
-Yori supports this
+Glupe supports this
 ```
-yori script.py file.c scriptB.js -o app.exe -cpp 
+Glupe script.py file.c scriptB.js -o app.exe -cpp 
 ```
-Yori acts as a universal translator:
+Glupe acts as a universal translator:
 
 1. Read Phase: It reads script.py (Python), file.c (C), and scriptB.js (JavaScript).
 2. Context Extraction: It ignores the syntax differences and extracts the Logic and Intent (including any $${ ... }$$ blocks).
@@ -549,13 +549,13 @@ Output: It produces a single, unified native binary app.exe.
 
 ### 7.1 Import Resolution
 
-Yori supports modular semantic code through `IMPORT:` directives:
+Glupe supports modular semantic code through `IMPORT:` directives:
 
 ```
-IMPORT: "utils.yori"
+IMPORT: "utils.Glupe"
 
 int main() {
-    $${use the helper functions from utils.yori}$$
+    $${use the helper functions from utils.glp}$$
 }
 ```
 
@@ -563,10 +563,10 @@ int main() {
 - Recursive import resolution
 - Cycle detection
 - Contextual inclusion (imports are visible to LLM)
->note: as of version 5.8 Yori does not support tree shaking yet.
+>note: as of version 5.8 Glupe does not support tree shaking yet.
 ### 7.2 Template Stripping
 
-When exporting files, Yori strips semantic blocks from output:
+When exporting files, Glupe strips semantic blocks from output:
 
 ```cpp
 // Input (EXPORT block):
@@ -594,7 +594,7 @@ This ensures generated files contain only concrete code, not semantic placeholde
 
 ### 7.3 File Locking and Retry Logic
 
-On Windows, file locking can prevent immediate file replacement. Yori implements retry logic:
+On Windows, file locking can prevent immediate file replacement. Glupe implements retry logic:
 
 ```cpp
 for (int attempt = 0; attempt < 5; attempt++) {
@@ -611,14 +611,14 @@ for (int attempt = 0; attempt < 5; attempt++) {
 
 ### 7.4 Caching
 
-Yori hashes input content and skips recompilation if unchanged:
+Glupe hashes input content and skips recompilation if unchanged:
 
 ```cpp
 current_hash = hash(source_code + target_language + model_id);
 ```
-1. **Global Build Cache**: Yori hashes the aggregated input content and skips recompilation if the entire project context is unchanged.
-2. **Semantic Container Caching (v5.8)**: Named containers (`$$ "id" { ... }$$`) are hashed individually and tracked in a `.yori.lock` file. When running in update mode (`-u`), Yori compares the current prompt hash against the lockfile.
-   - **Match**: The cached implementation is injected from `yori_cache/`, bypassing the LLM.
+1. **Global Build Cache**: Glupe hashes the aggregated input content and skips recompilation if the entire project context is unchanged.
+2. **Semantic Container Caching (v5.8)**: Named containers (`$$ "id" { ... }$$`) are hashed individually and tracked in a `.Glupe.lock` file. When running in update mode (`-u`), Glupe compares the current prompt hash against the lockfile.
+   - **Match**: The cached implementation is injected from `glupe_cache/`, bypassing the LLM.
    - **Mismatch**: The block is regenerated.
    
 This enables **incremental builds**, allowing developers to "freeze" working logic while iterating on other parts of the system.
@@ -634,66 +634,51 @@ if (cached_hash == current_hash && output_exists) {
 - Target language change
 - Model ID change
 - Update mode flag (`-u`)
-- Explicit cache cleaning (`yori clean cache`)
+- Explicit cache cleaning (`glupe clean cache`)
 
 ---
 
-## 8. Problems that can become more accessible with LLMs and Yori
-Here is a list of problems and domains that are now solvable or significantly more accessible thanks to the Yori paradigm:
+## 8. Problems that can become more accessible with LLMs and Glupe
+Here is a list of problems and domains that are now solvable or significantly more accessible thanks to the Glupe paradigm:
 
-1. **The "Legacy Code" Crisis**
-Problem: Critical infrastructure (banks, government, airlines) runs on outdated languages (COBOL, Fortran) that few developers understand. Rewriting is prohibitively expensive and risky.
-
-> Yori Solution: Developers can describe the behavior of the legacy system in a high level DSL (Intent) and re-compile it into modern, safe languages like Rust or Go. It turns a "rewrite" into a "re-compilation."
-
-2. The "High-Performance Barrier" for Scientists
-Problem: Researchers (Physicists, Biologists, Economists) often prototype in Python because C++ is too difficult. However, Python is too slow for large-scale simulations, forcing them to wait days for results or hire expensive engineers.
-
-> Yori Solution: They write the simulation logic in readable DSL/Python syntax, and Yori compiles it to highly optimized C++ or CUDA (provided they have necessary dependencies installed), giving them instant speed without the syntax headache.
-
-3. The "Cross-Platform Porting" Cost
-Problem: Building an app for Windows, Linux, macOS, Android, and iOS requires maintaining 3-4 separate codebases (Swift, Kotlin, C++, Java).
-
->Yori Solution: Write the core logic once in .yori. Use container inheritance to define platform-specific UI adjustments. Compile to native binaries for every platform with a single command.
-
-4. The "Trust Gap" in Enterprise AI Adoption
+1. The "Trust Gap" in Enterprise AI Adoption
 Problem: CTOs want the productivity of AI, but they cannot risk the AI hallucinating security vulnerabilities or breaking architecture in production code.
 
-> Yori Solution: Semantic Containers act as a Firewall. The AI is strictly forbidden from touching the "Architecture" (manual code). It can only operate inside the logic containers, making AI coding safe enough for enterprise use.
+> Glupe Solution: Semantic Containers act as a Firewall. The AI is strictly forbidden from touching the "Architecture" (manual code). It can only operate inside the logic containers, making AI coding safe enough for enterprise use.
 
-5. The "Technical Debt" Spiral
+2. The "Technical Debt" Spiral
 Problem: Over time, code becomes messy ("spaghetti code") because developers take shortcuts to meet deadlines. Refactoring is risky because you might break existing features.
 
-> Yori Solution: Since the "Source of Truth" is the Intent (the prompt), the code is disposable. If the code becomes messy, you simply change the prompt and re-compile. The "Technical Debt" is erased because the code is temporary; only the Intent is permanent.
+> Glupe Solution: Since the "Source of Truth" is the Intent (the prompt), the code is disposable. If the code becomes messy, you simply change the prompt and re-compile. The "Technical Debt" is erased because the code is temporary; only the Intent is permanent.
 
-6. The "Boilerplate" Burden
+3. The "Boilerplate" Burden
 Problem: Developers spend 30-50% of their time writing repetitive boilerplate code (API endpoints, CRUD operations, getters/setters, config files).
 
->Yori Solution: Create a "Boilerplate Container" once. Use it across the entire project. Change it in one place, and every instance updates instantly.
+>Glupe Solution: Create a "Boilerplate Container" once. Use it across the entire project. Change it in one place, and every instance updates instantly.
 
-7. The "Single-Point of Failure" (Bus Factor)
+4. The "Single-Point of Failure" (Bus Factor)
 Problem: If a key developer leaves a team, they take the knowledge of "how the code works" with them. The remaining team struggles to understand the complex syntax.
 
->Yori Solution: The knowledge is stored in Natural Language inside the source file. A new developer can read the .yori file and immediately understand why the code exists, not just what it does. The "Bus Factor" is mitigated by readable source code.
+>Glupe Solution: The knowledge is stored in Natural Language inside the source file. A new developer can read the .Glupe file and immediately understand why the code exists, not just what it does. The "Bus Factor" is mitigated by readable source code.
 
-8. The "IoT/Embedded Resource" Constraint
+5. The "IoT/Embedded Resource" Constraint
 Problem: Writing firmware for microcontrollers (Arduino, ESP32) often requires low-level C/C++ knowledge that hobbyists don't have.
 
->Yori Solution: Hobbyists write high-level logic 
+>Glupe Solution: Hobbyists write high-level logic 
 ```
-$${ blink LED if temperature > 30 }$$)
+$${ blink LED if temperature > 30 }$$
 ``` 
-> and Yori compiles it to the tight, low-level C++ required by the microcontroller.
+> and Glupe compiles it to the tight, low-level C++ required by the microcontroller.
 
-9. Educational Accessibility
+6. Educational Accessibility
 Problem: Computer Science courses lose 50% of students in the first semester because of syntax errors (missing semicolons, pointer confusion).
 
->Yori Solution: Students learn Logic and Algorithms first using Acorn. They focus on problem-solving rather than syntax debugging. The "compiler" teaches them by showing the generated code.
+>Glupe Solution: Students learn Logic and Algorithms first using Acorn. They focus on problem-solving rather than syntax debugging. The "compiler" teaches them by showing the generated code.
 
-10. The "Documentation Drift"
+7. The "Documentation Drift"
 Problem: Code changes, but documentation doesn't. The docs become lies.
 
->Yori Solution: The Documentation is the Code. The semantic blocks describe the intent. There is no separate document to maintain, so it never goes out of date.
+>Glupe Solution: The Documentation is the Code. The semantic blocks describe the intent. There is no separate document to maintain, so it never goes out of date.
 
 ## 9. Related Work
 
@@ -705,27 +690,27 @@ Problem: Code changes, but documentation doesn't. The docs become lies.
 
 **Cursor**: AI-powered IDE with chat interface and codebase awareness. Still operates through suggestions rather than compilable syntax.
 
-**Key difference**: Yori treats semantic blocks as **part of the source code** rather than external prompts. Generated code is validated through native toolchains, not just "accepted" by the user.
+**Key difference**: Glupe treats semantic blocks as **part of the source code** rather than external prompts. Generated code is validated through native toolchains, not just "accepted" by the user.
 
 ### 9.2 Intentional Programming
 
 **Intentional Software (Simonyi, 2000s)** [[2]](#references): Domain-specific notations compiled to code through projectional editing. Required custom language workbenches.
 
-**Key difference**: Yori uses natural language interpreted by LLMs, not custom DSLs. No special tooling required—semantic blocks work in any text editor.
+**Key difference**: Glupe uses natural language interpreted by LLMs, not custom DSLs. No special tooling required—semantic blocks work in any text editor.
 
 ### 9.3 Program Synthesis
 
 **Sketch** [[3]](#references): Constraint-based synthesis from partial programs with holes.  
 **Rosette** [[4]](#references): Solver-aided synthesis from formal specifications.
 
-**Key difference**: These systems require formal specifications (types, assertions, examples). Yori accepts informal natural language.
+**Key difference**: These systems require formal specifications (types, assertions, examples). Glupe accepts informal natural language.
 
 ### 9.4 Natural Language Programming
 
 **AlphaCode** [[5]](#references): Generates competitive programming solutions from problem descriptions.  
 **CodeGen** [[6]](#references): Multi-turn program synthesis from conversational prompts.
 
-**Key difference**: These systems generate complete programs from scratch. Yori enables **hybrid** programming where developers mix concrete and abstract code.
+**Key difference**: These systems generate complete programs from scratch. Glupe enables **hybrid** programming where developers mix concrete and abstract code.
 
 ---
 
@@ -765,7 +750,7 @@ Weak models (e.g., 1B parameter) produce poor code. System requires competent mo
 File locking on Windows requires retry logic. Some toolchains (LaTeX, .NET) have complex setup requirements.
 
 ### 11 Future Directions
-This are theorized features not yet added in Yori (as of version 5.8)
+This are theorized features not yet added in Glupe (as of version 5.8)
 1. **Type-aware semantic blocks:**
 ```cpp
 int $${compute factorial}$$ (int n);  // LLM knows return type
@@ -827,9 +812,9 @@ You could even allow multiple inheritance (conceptually) or "interfaces."
  The "Refactoring" Superpower:
 
 In traditional code, refactoring requires finding every file and changing the logic.
-**With Yori Inheritance:**
+**With Glupe Inheritance:**
 You change the **Parent Prompt**.
-The next time you run `yori -make -u`, every single child container re-compiles with the new instructions.
+The next time you run `glupe -make -u`, every single child container re-compiles with the new instructions.
 
 **It solves the "Drift" problem.**
 In large projects, code drifts away from the original design spec. With Inheritance, the design spec (Parent) is permanently bonded to the implementation (Child).
@@ -839,7 +824,7 @@ This moves Semantic Containers closer to **Biological Metaphors.**
 *   **Parents** pass traits to **Children**.
 *   You can evolve a codebase by evolving the "DNA" (the Parent Containers) rather than performing surgery on the "Cells" (the individual functions).
 
-It turns Yori into a **Genetic Programming Environment.**
+It turns Glupe into a **Genetic Programming Environment.**
 
 ### 11.1 AST-Based Compilation (Hard Isolation)
 
@@ -862,7 +847,7 @@ The next major architectural shift (v6.0) involves moving from string-based proc
 
 **3. Interactive refinement:**
 ```
-yori compile program.yori --interactive
+Glupe compile program.Glupe --interactive
 > Block 1 is ambiguous. Did you mean:
   1. Ascending sort
   2. Descending sort
@@ -893,7 +878,7 @@ Multiple developers work on same file, some writing concrete code, others refini
 
 ## 12. Conclusion
 
-We presented **Yori**, a practical system for hybrid AI-assisted programming where natural language intent (or any DSL) and concrete code coexist as equal citizens. Our key insights:
+We presented **Glupe**, a practical system for hybrid AI-assisted programming where natural language intent (or any DSL) and concrete code coexist as equal citizens. Our key insights:
 
 1. **Lightweight syntax** (`$${...}$$`) integrates seamlessly with existing languages
 2. **Iterative refinement** with compiler error feedback dramatically improves LLM reliability
@@ -901,7 +886,7 @@ We presented **Yori**, a practical system for hybrid AI-assisted programming whe
 4. **Multi-provider abstraction** enables local-first development with cloud fallback
 5. **Developer tooling** (fix, explain, diff, sos) leverages same LLM backend for broader utility
 
-Yori demonstrates that semantic programming is **practical today** with current LLMs. As models improve, the balance may shift toward more semantic, less syntactic programming—but the developer remains in control, mixing precision where needed with abstraction where beneficial.
+Glupe demonstrates that semantic programming is **practical today** with current LLMs. As models improve, the balance may shift toward more semantic, less syntactic programming—but the developer remains in control, mixing precision where needed with abstraction where beneficial.
 
 **Semantic blocks are not a replacement for programming. They are a new tool in the programmer's arsenal.**
 
@@ -939,46 +924,46 @@ Thanks to Google for Gemini 3 VS Code extension, it was very useful all the way.
 
 ### Compilation
 ```bash
-yori file.yori                    # Compile with local LLM
-yori file.yori -cloud             # Use cloud provider
-yori file.yori -cpp -o program    # Target C++
-yori file.yori -py -o script.py   # Target Python
-yori file.yori -make              # Multi-file project mode
-yori file.yori -series            # Sequential file generation
-yori file.yori -run               # Compile and execute
-yori file.yori -t                 # Transpile only (no binary)
+glupe file.glp                      # Compile with local LLM
+glupe file.glp -cloud               # Use cloud provider
+glupe file.glp -cpp -o program      # Target C++
+glupe file.glp -py -o script.py     # Target Python
+glupe file.glp -make                # Multi-file project mode
+glupe file.glp -series              # Sequential file generation
+glupe file.glp -run                 # Compile and execute
+glupe file.glp -t                   # Transpile only (no binary)
 ```
 
 ### Developer Tools
 ```bash
-yori fix file.cpp "instruction"   # AI-powered code repair
-yori explain file.cpp Spanish     # Generate documentation
-yori diff v1.cpp v2.cpp           # Semantic diff analysis
-yori sos cpp "error message"      # Interactive help
+glupe fix file.cpp "instruction"   # AI-powered code repair
+glupe explain file.cpp Spanish     # Generate documentation
+glupe diff v1.cpp v2.cpp           # Semantic diff analysis
+glupe sos cpp "error message"      # Interactive help
 ```
 
 ### Configuration
 ```bash
-yori config see                   # View current config
-yori config api-key YOUR_KEY      # Set cloud API key
-yori config model-local           # Select Ollama model (interactive)
-yori config model-cloud gpt-4     # Set cloud model
-yori config max-retries 20        # Set retry limit
+glupe config see                   # View current config
+glupe config api-key YOUR_KEY      # Set cloud API key
+glupe config model-local           # Select Ollama model (interactive)
+glupe config model-cloud gpt-4     # Set cloud model
+glupe config max-retries 20        # Set retry limit
 ```
 
 ### Utilities
 ```bash
-yori --init                       # Create project template
-yori --version                    # Show version
-yori --clean                      # Remove temp files
-yori clean cache                  # Clear semantic cache
+glupe --init                       # Create project template
+glupe --version                    # Show version
+glupe --clean                      # Remove temp files
+glupe clean cache                  # Clear semantic cache
 ```
 
 ---
 
 ## Appendix B: Example Compilation Trace
 
-**Input (`hello.yori`):**
+**Input (`hello.glp`):**
 ```
 EXPORT: "hello.cpp"
 #include <iostream>
@@ -1022,9 +1007,9 @@ int main() {
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    YORI COMPILER                        │
+│                    Glupe COMPILER                        │
 │                                                         │
-│  Input: .yori files with semantic blocks                │
+│  Input: .Glupe files with semantic blocks                │
 │         ↓                                               │
 │  ┌──────────────────────────────────────────┐           │
 │  │ 1. PREPROCESSOR                          │           │
@@ -1075,6 +1060,6 @@ int main() {
 
 ---
 
-**Project Repository:** `https://github.com/alonsovm44/yori`  
+**Project Repository:** `https://github.com/alonsovm44/glupe`  
 **License:** MIT  
 **Contact:** [alonsovm443@outlook.com]
