@@ -44,7 +44,10 @@ else
     read -p "Do you want to install Ollama? [Y/n] " ans
     if [[ -z "$ans" || "$ans" =~ ^[Yy]$ ]]; then
         echo "Downloading Ollama installer..."
+        # We allow this to fail without crashing the whole script
+        set +e
         curl -fsSL https://ollama.com/install.sh | sh
+        set -e
         echo -e "${GREEN}[OK] Ollama installed.${NC}"
     fi
 fi
@@ -55,21 +58,22 @@ echo -e "${GREEN}[OK] Created installation directory: $INSTALL_DIR${NC}"
 
 # 4. Download Source
 echo "[INFO] Downloading source code..."
-if curl -fsSL "$REPO_URL/glupec.cpp" -o "$INSTALL_DIR/glupec.cpp" && \
-   curl -fsSL "$JSON_URL" -o "$INSTALL_DIR/json.hpp"; then
-    :
-else
-    echo -e "${RED}[ERROR] Failed to download source files.${NC}"
-    exit 1
+if ! curl -fsSL "$REPO_URL/glupec.cpp" -o "$INSTALL_DIR/glupec.cpp"; then
+    echo -e "${RED}[ERROR] Failed to download glupec.cpp${NC}"; exit 1
+fi
+if ! curl -fsSL "$JSON_URL" -o "$INSTALL_DIR/json.hpp"; then
+    echo -e "${RED}[ERROR] Failed to download json.hpp${NC}"; exit 1
 fi
 
 # 5. Compile
 echo "[INFO] Compiling Glupe..."
-COMPILE_CMD="$COMPILER \"$INSTALL_DIR/glupec.cpp\" -o \"$EXE_PATH\" -std=c++17 -O3"
+COMPILE_CMD="$COMPILER \"$INSTALL_DIR/glupec.cpp\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread"
 
-# Add filesystem link for Linux if needed (GCC < 9 usually)
+# Handle Filesystem linking
+# GCC on Linux usually needs -lstdc++fs for versions < 9, and it doesn't hurt to add it for newer versions.
+# Clang (macOS/BSD) usually doesn't need it or handles it internally.
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    COMPILE_CMD="$COMPILE_CMD -lstdc++fs -pthread"
+    COMPILE_CMD="$COMPILE_CMD -lstdc++fs"
 fi
 
 eval $COMPILE_CMD
@@ -124,7 +128,7 @@ else
 fi
 
 # 8. Cleanup
-rm -f "$INSTALL_DIR/glupec.cpp" "$INSTALL_DIR/json.hpp"
+# [FIX] Removed the deletion of source files. They should stay for transparency and manual rebuilding.
 
 echo -e "\n${CYAN}[SUCCESS] Glupe installed successfully!${NC}"
 echo "Run 'glupe --help' to get started."

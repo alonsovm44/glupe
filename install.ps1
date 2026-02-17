@@ -1,16 +1,16 @@
 # Glupe Installer for Windows
 # Usage: irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
 
-$ErrorActionPreference = "Stop"
-$RepoUrl = "https://raw.githubusercontent.com/alonsovm44/glupe/master"
-$JsonUrl = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
-$InstallDir = "$env:USERPROFILE\.glupe"
-$ExePath = "$InstallDir\glupe.exe"
+ $ErrorActionPreference = "Stop"
+ $RepoUrl = "https://raw.githubusercontent.com/alonsovm44/glupe/master"
+ $JsonUrl = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
+ $InstallDir = "$env:USERPROFILE\.glupe"
+ $ExePath = "$InstallDir\glupe.exe"
 
 Write-Host "--- Glupe Installer ---" -ForegroundColor Cyan
 
 # 1. Check for G++
-$MinGwBin = ""
+ $MinGwBin = ""
 try {
     $gpp = Get-Command g++ -ErrorAction Stop
     Write-Host "[OK] G++ found: $($gpp.Source)" -ForegroundColor Green
@@ -47,11 +47,14 @@ try {
     if ($ans -eq "" -or $ans -match "^[Yy]") {
         Write-Host "Downloading Ollama installer..."
         $OllamaExe = "$env:TEMP\OllamaSetup.exe"
-        Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $OllamaExe
-        Write-Host "Running Ollama installer..."
-        Start-Process -FilePath $OllamaExe -Wait
-        Remove-Item $OllamaExe -ErrorAction SilentlyContinue
-        Write-Host "[OK] Ollama installed." -ForegroundColor Green
+        try {
+            Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $OllamaExe
+            Write-Host "Running Ollama installer..."
+            Start-Process -FilePath $OllamaExe -Wait
+            Write-Host "[OK] Ollama installed." -ForegroundColor Green
+        } catch {
+            Write-Host "[WARN] Could not install Ollama automatically. Please install manually." -ForegroundColor Yellow
+        }
     }
 }
 
@@ -64,9 +67,7 @@ if (-not (Test-Path $InstallDir)) {
 # 3. Download Source
 Write-Host "[INFO] Downloading source code..."
 try {
-    # Download main source
     Invoke-WebRequest -Uri "$RepoUrl/glupec.cpp" -OutFile "$InstallDir\glupec.cpp"
-    # Download JSON dependency
     Invoke-WebRequest -Uri $JsonUrl -OutFile "$InstallDir\json.hpp"
 } catch {
     Write-Host "[ERROR] Failed to download source files." -ForegroundColor Red
@@ -77,7 +78,8 @@ try {
 
 # 4. Compile
 Write-Host "[INFO] Compiling Glupe..."
-$BuildCmd = "g++ `"$InstallDir\glupec.cpp`" -o `"$ExePath`" -std=c++17 -static-libgcc -static-libstdc++ -lstdc++fs -O3"
+# [FIX] Added -static to ensure the exe runs on any machine without DLLs
+ $BuildCmd = "g++ `"$InstallDir\glupec.cpp`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3"
 Invoke-Expression $BuildCmd
 
 if (-not (Test-Path $ExePath)) {
@@ -87,7 +89,7 @@ if (-not (Test-Path $ExePath)) {
 Write-Host "[OK] Compilation successful." -ForegroundColor Green
 
 # 5. Create Config
-$ConfigPath = "$InstallDir\config.json"
+ $ConfigPath = "$InstallDir\config.json"
 if (-not (Test-Path $ConfigPath)) {
     $ConfigContent = @{
         local = @{
@@ -107,12 +109,13 @@ if (-not (Test-Path $ConfigPath)) {
 }
 
 # 6. Add to PATH
-$UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$NewPath = $UserPath
-$UpdatePath = $false
+ $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+ $NewPath = $UserPath
+ $UpdatePath = $false
 
 if ($UserPath -notlike "*$InstallDir*") { $NewPath += ";$InstallDir"; $UpdatePath = $true }
-if ($MinGwBin -ne "" -and $UserPath -notlike "*$MinGwBin*") { $NewPath += ";$MinGwBin"; $UpdatePath = $true }
+# We generally don't need to add MinGW to permanent PATH for the user, only for this session.
+# Keeping the user's PATH clean is better. Glupe is now static, so it doesn't need it.
 
 if ($UpdatePath) {
     Write-Host "[INFO] Adding Glupe to PATH..."
@@ -123,8 +126,10 @@ if ($UpdatePath) {
 }
 
 # 7. Cleanup
-Remove-Item "$InstallDir\glupec.cpp" -ErrorAction SilentlyContinue
-Remove-Item "$InstallDir\json.hpp" -ErrorAction SilentlyContinue
+# [FIX] We KEEP glupec.cpp and json.hpp so users can recompile manually if they want, 
+# or if an update feature is added later.
+# Only remove the downloaded zip if it exists.
+if (Test-Path "$InstallDir\mingw.zip") { Remove-Item "$InstallDir\mingw.zip" }
 
 Write-Host "`n[SUCCESS] Glupe installed successfully!" -ForegroundColor Cyan
 Write-Host "Run 'glupe --help' to get started."
