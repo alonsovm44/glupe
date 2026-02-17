@@ -1,6 +1,24 @@
 # Read the White Paper
 https://github.com/alonsovm44/glupe/blob/master/WHITE_PAPER.md
 
+## Installation
+
+### Quick Install (Recommended)
+
+**Windows**
+```Powershell 
+ irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
+```
+**Linux/macOS:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
+``` 
+**Manual Build**
+
+````bash
+g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs
+```` 
+
 # Glupe 
 Glupe is a free and open-source CLI tool that bridges the gap between human intent and native execution. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden. Glupe turns these embedded blocks from high-level containers into optimized, native source code for any supported language, effectively decoupling your logic from the syntax and making your software immune to code rot.
 
@@ -150,27 +168,8 @@ glupe config api-key "YOUR_KEY"
 glupe config model-cloud gemini-1.5-flash
 ```
 
-## Installation (NOTE INSTALLERS CURRENTLY NOT AVAILABLE DUE TO FIXING ISSUES)
 
-### Quick Install (Recommended)
-
-**Linux/macOS:**
-```bash
-curl -fsSL https://raw.githubusercontent.com/alonsovm44/yori/master/linux_installer.sh | bash
-``` 
-
-**Windows:**
-Windows (PowerShell):
-
-```PS
-irm https://raw.githubusercontent.com/alonsovm44/yori/master/install.ps1 | iex
-```
-Manual Build
-
-````bash
-g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs
-```` 
-Usage Examples
+### Usage Examples
 1. Basic Compilation
 ````bash
 glupe main.cpp -o app.exe -cpp -cloud
