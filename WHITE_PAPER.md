@@ -476,6 +476,22 @@ Function `calculate()` changed from iterative to recursive implementation.
 - Understand refactorings
 - Identify behavioral changes beyond textual diffs
 
+### 5.5 Semantic Refinement (Compression)
+
+```bash
+glupe source.cpp -refine [-local | -cloud]
+```
+
+**Workflow:**
+1. Reads the source code file.
+2. Prompts the LLM to "semantically compress" the implementation details into high-level intent blocks (`$${...}$$`), while preserving the architectural skeleton (imports, class definitions, function signatures).
+3. Outputs a `.glp` file (e.g., `source.cpp.glp`).
+
+**Implications:**
+- **Legacy Modernization**: Converts "dead" legacy code back into "living" intent. A developer can refine a legacy C file into a `.glp` file, then recompile it targeting Rust or Python.
+- **Intent Recovery**: Recovers the "why" behind the code that is often lost in implementation details.
+- **Codebase Compression**: Reduces the cognitive load for developers reading the file, as they see the high-level logic first.
+- **It allows for 'no rot' software**: Unlike traditional code, intention does not age, a program coded in `.glp` can be recompiled into the same program in 10 or 20 years since it preserves the intent.
 ---
 
 ## 6. Language Support
@@ -940,6 +956,7 @@ glupe fix file.cpp "instruction"   # AI-powered code repair
 glupe explain file.cpp Spanish     # Generate documentation
 glupe diff v1.cpp v2.cpp           # Semantic diff analysis
 glupe sos cpp "error message"      # Interactive help
+glupe file.cpp -refine             # Reverse engineer to .glp
 ```
 
 ### Configuration
