@@ -91,7 +91,11 @@ Named containers: DONE.
 
 - Then YoriHub (last).
 
+
 ## For 6.0
+0.  Add languge compilers to config.json, so glupe is toolchain agnostic. No more hardcoded toolchain detection. 
+    - `glupe config toolchain <lang> <compiler_id>` This modifies the json file where the used compiler instruction is
+
 1.  AST w tree sitter (Hard Isolation)
     - [ ] Integrate tree-sitter C library
     - [ ] Implement language-agnostic placeholder replacement (normalize `$${}` to `/*ID*/`)

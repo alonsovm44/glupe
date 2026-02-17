@@ -24,16 +24,16 @@ Just as Docker packages the Environment to make software agnostic to the machine
 
 --- 
 
-###
+### The risk of AI generated code
 Every developer knows the risk of asking AI to modify a file: it’s like giving a junior developer root access to your production server. It's **all or nothing**. They might fix the bug, but they might also refactor your working code or delete critical comments.
 
-We built Glupe to solve this trust problem. Think of it like Docker for source code:
+We built Glupe to solve this trust problem.
 
-Instead of a Host System we have a Source Code File. The Containers are the `$${  }$$` blocks, isolated zones where the AI is allowed to work. Instead of isolating runtimes, Glupe isolates code blocks. The A.I is aware of the context outside, it undestands the logic of the rest of your program, but is forbbiden to touch it, it can run wild inside the semantic container, generating complex logic, but it won't touch the host. It is safely contained.
+Instead of a Host System we have a Source Code File. The Containers are the `$${  }$$` blocks, isolated zones where the AI is allowed to work. Instead of isolating runtimes, Glupe isolates code blocks. The A.I is aware of the context outside the blocks, it undestands the logic of the rest of your program, but is forbbiden to touch it; it can run wild inside the container, generating complex logic, but it won't touch the host. It is safely contained.
+
+Glupe allows for incremental builds via container hashing, if a container hasn't changed, it uses a cached code snippet to bypass LLM calls.
 
 This turns AI from a chaotic re-writer from scratch into a precision tool. You maintain architectural control, while the AI handles the implementation details *you want* to give to it.
-
-### Glupe and Glupe.io
 
 
 ### Glupe as a "compiler"
@@ -150,7 +150,7 @@ glupe config api-key "YOUR_KEY"
 glupe config model-cloud gemini-1.5-flash
 ```
 
-## Installation
+## Installation (NOTE INSTALLERS CURRENTLY NOT AVAILABLE DUE TO FIXING ISSUES)
 
 ### Quick Install (Recommended)
 
