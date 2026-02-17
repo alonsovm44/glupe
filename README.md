@@ -18,7 +18,13 @@ curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh 
 ````bash
 g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs
 ```` 
-
+### **Quick Sart**
+```bash
+glupe --init
+glupe hello.glp -o hello.exe -local
+.\hello
+```
+--- 
 # Glupe 
 Glupe is a free and open-source CLI tool that bridges the gap between human intent and native execution. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden. Glupe turns these embedded blocks from high-level containers into optimized, native source code for any supported language, effectively decoupling your logic from the syntax and making your software immune to code rot.
 
