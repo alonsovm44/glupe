@@ -1,1 +1,65 @@
-I need help to port this to linux and mac, help is welcomed
+# Contributing to Glupe
+
+First off, thank you for considering contributing to Glupe.
+
+Glupe is not just a tool; it is a manifesto. We are building a future where software engineering is defined by **Intent**, not syntax. We believe in software that doesn't rot, tools that respect privacy, and AI that serves the developer, not the other way around.
+
+## The Mission
+We are building a "Meta-Compiler" that turns natural language intent into native, optimized code.
+- **100% Local**: We prioritize Ollama and local LLMs.
+- **100% Free**: No subscriptions.
+- **100% Open**: MIT License.
+
+## How to Start
+
+### 1. The Stack
+Glupe is written in **C++17**.
+We intentionally keep the core in a single file (`glupec.cpp`) to ensure the compiler itself is portable, auditable, and easy to bootstrap.
+
+**Dependencies:**
+- `nlohmann/json` (Single header, usually downloaded automatically by the installer).
+- Standard C++17 libraries (`<filesystem>`, `<iostream>`, etc.).
+
+### 2. Building from Source
+
+**Windows (MinGW/G++):**
+```bash
+g++ glupec.cpp -o glupe.exe -std=c++17 -static-libgcc -static-libstdc++ -lstdc++fs -O3
+```
+
+**Linux / macOS:**
+```bash
+g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -O3
+```
+
+### 3. What We Need Help With
+Check `roadmap.md` for the latest goals. Right now, our priorities are:
+
+- **Hard Isolation (AST)**: We want to move from regex-based parsing to AST-based parsing (using Tree-sitter) to strictly enforce that AI cannot touch code outside the semantic containers.
+- **Cross-Platform Stability**: Testing and refining the `install.sh` script for various Linux distros and macOS.
+- **Language Support**: Adding new entries to the `LANG_DB` map in `glupec.cpp` to support more compilers and interpreters.
+- **Tree Shaking**: Implementing smart dependency analysis to remove unused imports from generated code.
+
+## Pull Request Guidelines
+
+1. **Keep it Simple**: Glupe is a CLI tool. Avoid adding heavy dependencies. The goal is to run on a potato if necessary.
+2. **Respect the Architecture**:
+   - `processInputWithCache`: Handles the semantic containers (`$${...}$$`).
+   - `callAI`: Handles the LLM interaction (Ollama/OpenAI/Google).
+   - `LANG_DB`: Handles language definitions.
+3. **Test Locally**: Ensure your changes compile and run with a local Ollama instance before submitting.
+4. **One Feature, One PR**: Keep pull requests focused on a single issue or feature.
+
+## Code Style
+- We use standard C++17.
+- No `using namespace std;` in header files (though `glupec.cpp` is a single translation unit, so we use it globally there for brevity).
+- Comments are encouraged, especially for the "AI Logic" sections.
+
+## The "No-Rot" Promise
+By contributing to Glupe, you agree that your code is compatible with the MIT License. We are building this for the long haul. We want Glupe to be compiling code 10 years from now.
+
+---
+
+### "Stop giving AI root access to your code."
+
+Join us in building the Semantic Container architecture.

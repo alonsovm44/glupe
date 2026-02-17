@@ -21,7 +21,7 @@ g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs
 ### **Quick Sart**
 ```bash
 glupe --init
-glupe hello.glp -o hello.exe -local
+glupe hello.glp -o hello.exe -cpp -local
 .\hello
 ```
 --- 

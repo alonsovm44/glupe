@@ -3,6 +3,9 @@
 
 Added:
 
+- added -refine mode to glupe
+- improved contributing file
+- added installer for windows and mac/linux
 - added abstract containers
 - added container inheritance
 - added basic tree shaking, prompt based
