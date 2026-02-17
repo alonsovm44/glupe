@@ -2,9 +2,8 @@
 https://github.com/alonsovm44/yori/blob/master/WHITE_PAPER.md
 
 # Glupe 
-Glupe is a free and open-source CLI tool that orchestrates code generation using language models. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden.
+Glupe is a free and open-source CLI tool that bridges the gap between human intent and native execution. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden. Glupe turns these embedded blocks from high-level containers into optimized, native source code for any supported language, effectively decoupling your logic from the syntax and making your software immune to code rot.
 
-Generate complete projects from natural language.
 100% local. 100% private. 100% free.
 No subscriptions. No telemetry. No cloud.
 Your code, your machine, your rules.
@@ -14,6 +13,14 @@ Your code, your machine, your rules.
 
 ### The one liner
 "Glupe isolates AI logic into semantic containers, so your manual code stays safe." 
+
+### Like Docker?
+
+Think of Glupe as Docker for Logic.
+Just as Docker packages the Environment to make software agnostic to the machine, Glupe packages the Intent to make software agnostic to the language and to time.
+
+- Docker solves the friction of Space: "It works on my machine, but not yours."
+- Glupe solves the friction of Time: "It works now in this language, but it won't in 5 years."
 
 --- 
 
@@ -25,6 +32,9 @@ We built Glupe to solve this trust problem. Think of it like Docker for source c
 Instead of a Host System we have a Source Code File. The Containers are the `$${  }$$` blocks, isolated zones where the AI is allowed to work. Instead of isolating runtimes, Glupe isolates code blocks. The A.I is aware of the context outside, it undestands the logic of the rest of your program, but is forbbiden to touch it, it can run wild inside the semantic container, generating complex logic, but it won't touch the host. It is safely contained.
 
 This turns AI from a chaotic re-writer from scratch into a precision tool. You maintain architectural control, while the AI handles the implementation details *you want* to give to it.
+
+### Glupe and Glupe.io
+
 
 ### Glupe as a "compiler"
 

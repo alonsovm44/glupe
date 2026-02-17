@@ -1,0 +1,137 @@
+// engine_m.glp
+// Semantic compression of engine_m.cpp into high‑level Glupe blocks
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cstdlib>
+#include <cstdio>
+#include <memory>
+#include <array>
+#include <thread>
+#include <chrono>
+#include "json.hpp"
+#include <curl/curl.h>
+
+using json = nlohmann::json;
+using namespace std;
+
+// --- CONFIGURATION ---
+const string API_KEY = "TU_API_KEY_AQUI";
+const string MODEL_ID = "gemini-1.5-flash";
+const int MAX_GENERATIONS = 10;
+
+// --- NETWORK UTILITIES ---
+size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
+    $$ write_callback {
+        append incoming HTTP chunk into string buffer
+        return processed byte count
+    }$$
+}
+
+string callGeminiAPI(string prompt) {
+    $$ call_gemini_api {
+        initialize CURL session
+        build REST request for Google Gemini
+        serialize JSON body containing prompt
+        configure headers and POST fields
+        perform request and capture response
+        handle network errors
+        cleanup CURL resources
+        return raw JSON response string
+    }$$
+}
+
+// --- SYSTEM UTILITIES ---
+string execCommand(const char* cmd) {
+    $$ exec_command {
+        open system pipe
+        read command output incrementally
+        accumulate into result string
+        return output or fatal error token
+    }$$
+}
+
+// --- LANGUAGE DETECTION ---
+struct LanguageConfig {
+    string lang;
+    string ext;
+    string compile_cmd_base;
+};
+
+LanguageConfig detectLanguage(json blueprint) {
+    $$ detect_language {
+        inspect blueprint tech_stack
+        normalize to lowercase
+        choose C++ if stack mentions cpp
+        otherwise default to Python
+        return language metadata
+    }$$
+}
+
+string cleanMarkdown(string raw) {
+    $$ clean_markdown {
+        detect fenced code blocks
+        extract inner code region
+        return cleaned code or raw text
+    }$$
+}
+
+// --- MAIN LOOP ---
+int main() {
+    $$ main_startup {
+        print engine banner
+        load app.json blueprint
+        abort if missing
+        detect language mode
+        compute output filename
+    }$$
+
+    string currentError = "";
+
+    for(int gen = 1; gen <= MAX_GENERATIONS; gen++) {
+        $$ generation_loop {
+            announce generation number
+            build prompt depending on whether previous iteration failed
+            embed blueprint JSON into prompt
+        }$$
+
+        string apiResponse = callGeminiAPI(prompt);
+
+        json responseJson;
+        try {
+            $$ parse_api_response {
+                parse JSON returned by Gemini
+                validate presence of candidates
+            }$$
+        } catch(...) {
+            $$ parse_failure {
+                log invalid JSON error
+                continue to next generation
+            }$$
+        }
+
+        string rawCode = responseJson["candidates"][0]["content"]["parts"][0]["text"];
+        string cleanCode = cleanMarkdown(rawCode);
+
+        $$ materialize_code {
+            write cleanCode into output file
+            notify user of file creation
+        }$$
+
+        $$ compile_test {
+            build compile command based on language
+            run execCommand to capture compiler output
+        }$$
+
+        $$ analyze_compilation {
+            if no output: treat as success
+            if warnings only: treat as success
+            detect fatal environment errors
+            otherwise store error for next iteration
+        }$$
+    }
+
+    return 0;
+}
