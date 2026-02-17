@@ -7,6 +7,8 @@ If you could help me getting this donde I would appreciate it much
 
 # For version 5.8
 
+0. Make a proper installer at least for Windows
+
 1. preFlightcheck works for any language not just hardcoded c & c++ (lines 768+) [done for python, pending for the rest of langs][]
 
 2. Treeshaking, at least functional [pending]
@@ -134,3 +136,5 @@ x=3
 
 PRINT(MYFUNC(x))
 ```
+
+11. Installer for linux and mac
