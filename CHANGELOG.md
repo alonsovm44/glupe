@@ -3,6 +3,7 @@
 
 Added:
 
+- added makefile based compilation
 - added -refine mode to glupe
 - improved contributing file
 - added installer for windows and mac/linux

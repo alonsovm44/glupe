@@ -1,0 +1,69 @@
+import json
+import os
+import sys
+import subprocess
+import time
+
+try:
+    from google import genai
+    from google.genai import types
+except ImportError:
+    print("❌ Error: Falta librería. Ejecuta: pip install google-genai")
+    sys.exit(1)
+
+API_KEY = "AIzaSyCBFQPavgZkZ0c0RDJmgJjv9LLL-1CpZ90"
+MODEL_ID = "gemini-2.5-flash"
+
+def load_blueprint(json_path):
+    $$ load_blueprint_logic {
+        open JSON file, parse content, handle exceptions,
+        return blueprint dict or None on failure
+    }$$
+
+def determine_language_config(blueprint):
+    """
+    Detecta si debe usar Python o C++ basado en el stack tecnológico.
+    """
+    $$ determine_language_config_logic {
+        inspect blueprint meta.tech_stack,
+        detect language preference,
+        return config dict with lang, ext, compile_cmd
+    }$$
+
+def generate_code_with_gemini(client, prompt, lang_config, previous_error=None):
+    $$ generate_code_with_gemini_logic {
+        build prompt depending on previous_error,
+        call Gemini API,
+        extract raw text,
+        strip markdown fences,
+        return cleaned code or None
+    }$$
+
+def test_compilation(file_path, lang_config):
+    """
+    Ejecuta el compilador y activa el FRENO DE EMERGENCIA si es necesario.
+    """
+    $$ test_compilation_logic {
+        run compiler command,
+        capture output,
+        detect fatal environment errors,
+        return (success, error_message)
+    }$$
+
+def run_factory():
+    $$ run_factory_logic {
+        load blueprint,
+        determine language config,
+        initialize client,
+        loop evolutionary generations:
+            generate code,
+            write file,
+            test compilation,
+            detect success or fatal error,
+            mutate on normal error
+    }$$
+
+if __name__ == "__main__":
+    $$ main_entry_logic {
+        wrap run_factory in try/except for KeyboardInterrupt
+    }$$

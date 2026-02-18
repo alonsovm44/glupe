@@ -1,0 +1,2 @@
+glupe:
+	g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
