@@ -1321,6 +1321,8 @@ int main(int argc, char* argv[]) {
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
         cout << "  insert-metadata <path> : Insert metadata template\n";
+        cout << "  push <file> <user> : Upload file to GlupeHub\n";
+        cout << "  pull <file> <user> : Download file from GlupeHub\n";
         return 0;
     }
 
@@ -1678,6 +1680,64 @@ int main(int argc, char* argv[]) {
             out.close();
             cout << "[SUCCESS] Created " << targetFile << " with metadata template." << endl;
         }
+        return 0;
+    }
+
+    // PUSH COMMAND
+    if (cmd == "push") {
+        if (argc < 4) {
+            cout << "Usage: glupe push <file> <username> [url]" << endl;
+            return 1;
+        }
+        string filename = argv[2];
+        string username = argv[3];
+        string url = (argc >= 5) ? argv[4] : "http://localhost:5000";
+
+        if (!fs::exists(filename)) {
+            cout << "[ERROR] File not found: " << filename << endl;
+            return 1;
+        }
+
+        cout << "[PUSH] Uploading " << filename << " to GlupeHub (" << url << ")..." << endl;
+        string curlCmd = "curl -sS -X POST -F \"file=@" + filename + "\" -F \"author=" + username + "\" \"" + url + "/push\"";
+        
+        CmdResult res = execCmd(curlCmd);
+        
+        try {
+            json j = json::parse(res.output);
+            if (j.contains("error")) {
+                cout << "[ERROR] Hub: " << j["error"].get<string>() << endl;
+                return 1;
+            }
+            if (j.contains("message")) cout << "[SUCCESS] " << j["message"].get<string>() << endl;
+        } catch (...) {
+            cout << "[RESPONSE] " << res.output << endl;
+        }
+        return 0;
+    }
+
+    // PULL COMMAND
+    if (cmd == "pull") {
+        if (argc < 4) {
+            cout << "Usage: glupe pull <file> <username> [url]" << endl;
+            return 1;
+        }
+        string filename = argv[2];
+        string username = argv[3];
+        string url = (argc >= 5) ? argv[4] : "http://localhost:5000";
+
+        string targetUrl = url + "/pull/" + username + "/" + filename;
+        cout << "[PULL] Downloading " << filename << " from " << username << "..." << endl;
+
+        string curlCmd = "curl -f -sS -L -o \"" + filename + "\" \"" + targetUrl + "\"";
+        CmdResult res = execCmd(curlCmd);
+
+        if (res.exitCode != 0) {
+            cout << "[ERROR] Download failed (404 Not Found or Connection Error)." << endl;
+            return 1;
+        }
+        
+        cout << "[SUCCESS] Saved " << filename << endl;
         return 0;
     }
 

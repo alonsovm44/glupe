@@ -26,4 +26,5 @@ version.txt
 yori_cache
 .yori.lock
 glupe_logo.png
+.venv/
 *.vsix
