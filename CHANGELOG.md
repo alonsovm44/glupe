@@ -3,6 +3,7 @@
 
 Added:
 
+- added pull and push error messages
 - added push and pull cmd; 17 feb 2026
 - added makefile based compilation
 - added -refine mode to glupe
