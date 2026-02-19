@@ -1691,7 +1691,7 @@ int main(int argc, char* argv[]) {
         }
         string filename = argv[2];
         string username = argv[3];
-        string url = (argc >= 5) ? argv[4] : "http://localhost:5000";
+        string url = (argc >= 5) ? argv[4] : "https://glupehub.up.railway.app/";
 
         if (!fs::exists(filename)) {
             cout << "[ERROR] File not found: " << filename << endl;
@@ -1724,7 +1724,7 @@ int main(int argc, char* argv[]) {
         }
         string filename = argv[2];
         string username = argv[3];
-        string url = (argc >= 5) ? argv[4] : "http://localhost:5000";
+        string url = (argc >= 5) ? argv[4] : "https://glupehub.up.railway.app/";
 
         string targetUrl = url + "/pull/" + username + "/" + filename;
         cout << "[PULL] Downloading " << filename << " from " << username << "..." << endl;
