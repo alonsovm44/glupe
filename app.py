@@ -37,6 +37,11 @@ def init_db():
             username VARCHAR(50) UNIQUE NOT NULL,
             password_hash VARCHAR(100) NOT NULL
         );
+         CREATE TABLE IF NOT EXISTS tags (
+        id SERIAL PRIMARY KEY,
+        file_id TEXT NOT NULL,
+        tag VARCHAR(50) NOT NULL
+    );
     ''')
     conn.commit()
     cur.close()
@@ -81,13 +86,28 @@ def register():
         return jsonify({"error": "User already exists"}), 409
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+def get_user_from_token(token):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT username FROM tokens WHERE token = %s", (token,))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+    if result:
+        return result[0] # Return the username
+    return None
+# 2. LOGIN
+# REPLACE YOUR login FUNCTION WITH THIS:
 
-# 2. LOGIN (Returns success if password matches)
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
     username = data.get('username')
     password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"error": "Missing fields"}), 400
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -100,20 +120,42 @@ def login():
         return jsonify({"error": "User not found"}), 404
 
     stored_hash = result[0]
-    if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-        token = jwt.encode({
-            'user': username,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
-        }, app.config['SECRET_KEY'], algorithm="HS256")
-        return jsonify({"status": "success", "token": token}), 200
-    else:
-        return jsonify({"error": "Invalid password"}), 401
+    
+    try:
+        # Check password
+        # Ensure input is bytes for bcrypt
+        if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+            
+            # --- JWT TOKEN GENERATION ---
+            payload = {
+                'user': username,
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+            }
+            
+            token = jwt.encode(payload, app.config['SECRET_KEY'], algorithm="HS256")
 
-# --- FILE ENDPOINTS ---
+            # PyJWT v2+ returns a string, but older versions returned bytes.
+            if isinstance(token, bytes):
+                token = token.decode('utf-8')
+            
+            return jsonify({"status": "success", "token": token}), 200
+        else:
+            return jsonify({"error": "Invalid password"}), 401
+            
+    except ValueError as ve:
+        # This catches "Invalid salt" if the DB hash is corrupted/not bcrypt
+        print(f"Bcrypt Error: {ve}")
+        return jsonify({"error": "Database integrity error (Bad Hash)"}), 500
+    except Exception as e:
+        print(f"Error checking password: {e}")
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+    
+# --- FILE ENDPOINTS --- 
 
 # 3. PUSH (Upload)
 @app.route('/push', methods=['POST'])
 def push_file():
+    # 1. Extract Token
     token = None
     if 'Authorization' in request.headers:
         auth_header = request.headers['Authorization']
@@ -123,21 +165,33 @@ def push_file():
     if not token:
         return jsonify({"error": "Token is missing"}), 401
 
+    # Get tags from form data (comma separated string)
+    tags_str = request.form.get('tags', '') 
+    tags_list = [t.strip().lower() for t in tags_str.split(',') if t.strip()]
+
+    # 2. Verify Token
     try:
+        # Decode the token using the secret key
         data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
         current_user = data['user']
-    except:
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Token has expired"}), 401
+    except jwt.InvalidTokenError:
         return jsonify({"error": "Token is invalid"}), 401
+    except Exception as e:
+        return jsonify({"error": f"Authentication failed: {str(e)}"}), 401
     
+    # 3. Check File Presence
     if 'file' not in request.files:
         return jsonify({"error": "No file"}), 400
 
     file = request.files['file']
-    author = request.form.get('author', 'anonymous')
     
-    if author != current_user:
-        return jsonify({"error": "Unauthorized: Author mismatch"}), 403
-
+    # 4. Handle Author/Username
+    # We trust the token, not the form data.
+    # The CLI might send 'author' in form data, but we ignore it to prevent spoofing.
+    author = current_user
+    
     folder = request.form.get('folder', '') # Optional subfolder
 
     if file.filename == '':
@@ -156,6 +210,20 @@ def push_file():
     
     file_path = os.path.join(base_path, filename_safe)
     file.save(file_path)
+
+    # Save tags to DB
+    if tags_list:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Delete old tags for this file (in case of re-upload)
+        cur.execute("DELETE FROM tags WHERE file_id = %s", (file_id,))
+        # Insert new tags
+        for tag in tags_list:
+            cur.execute("INSERT INTO tags (file_id, tag) VALUES (%s, %s)", (file_id, tag))
+        conn.commit()
+        cur.close()
+        conn.close()
+
     
     return jsonify({"status": "success", "id": f"{author}/{folder}/{filename_safe}"})
 
@@ -174,6 +242,82 @@ def pull_file(file_id):
         return jsonify({"error": "File not found"}), 404
 
     return send_file(file_path)
+
+# --- SEARCH ENDPOINTS ---
+
+# 1. Search Users
+@app.route('/search/users', methods=['GET'])
+def search_users():
+    query = request.args.get('q', '').lower()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    # Simple search: find usernames containing the query
+    cur.execute("SELECT username FROM users WHERE LOWER(username) LIKE %s", (f'%{query}%',))
+    users = [row[0] for row in cur.fetchall()]
+    cur.close()
+    conn.close()
+    return jsonify({"users": users}), 200
+
+# 2. Search Files
+@app.route('/search/files', methods=['GET'])
+def search_files():
+    query = request.args.get('q', '').lower()
+    tag_filter = request.args.get('tag', '').lower() #tags
+    author = request.args.get('author', None) # Optional filter
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if tag_filter:
+        # SEARCH BY TAG
+        cur.execute("SELECT file_id FROM tags WHERE tag = %s", (tag_filter,))
+        files = [row[0] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+        # Return simplified list
+        return jsonify({"files": [{"id": f, "filename": f.split('/')[-1]} for f in files]}), 200
+    
+
+    results = []
+    
+    # Walk through the storage directory
+    for root, dirs, files in os.walk(STORAGE_DIR):
+        for file in files:
+            if file.endswith('.glp'):
+                full_path = os.path.join(root, file)
+                # Calculate relative path for ID (e.g., alonsovm/project/file.glp)
+                rel_path = os.path.relpath(full_path, STORAGE_DIR)
+                
+                # Filter logic
+                if query in rel_path.lower():
+                    if author and not rel_path.startswith(author + os.sep):
+                        continue
+                    
+                    # Extract metadata (simple version: just grab filename)
+                    results.append({
+                        "id": rel_path.replace("\\", "/"), # Normalize path
+                        "filename": file
+                    })
+
+    return jsonify({"files": results}), 200
+
+# 3. Get Metadata (Read file header)
+@app.route('/meta/<path:file_id>', methods=['GET'])
+def get_meta(file_id):
+    file_path = os.path.join(STORAGE_DIR, file_id)
+    if not os.path.exists(file_path):
+        return jsonify({"error": "Not found"}), 404
+
+    # Just read the first 20 lines to get META_START ... META_END
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            lines = []
+            for i, line in enumerate(f):
+                if i < 30: lines.append(line)
+                else: break
+        return jsonify({"content_preview": "".join(lines)}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
