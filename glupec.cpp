@@ -1702,6 +1702,7 @@ int main(int argc, char* argv[]) {
         string curlCmd = "curl -sS -X POST -F \"file=@" + filename + "\" -F \"author=" + username + "\" \"" + url + "/push\"";
         
         CmdResult res = execCmd(curlCmd);
+        cout << "Server Response: " << res.output << endl;
         
         try {
             json j = json::parse(res.output);
@@ -1729,11 +1730,26 @@ int main(int argc, char* argv[]) {
         string targetUrl = url + "/pull/" + username + "/" + filename;
         cout << "[PULL] Downloading " << filename << " from " << username << "..." << endl;
 
-        string curlCmd = "curl -f -sS -L -o \"" + filename + "\" \"" + targetUrl + "\"";
+        string curlCmd = "curl -sS -L -w \"%{http_code}\" -o \"" + filename + "\" \"" + targetUrl + "\"";
         CmdResult res = execCmd(curlCmd);
 
         if (res.exitCode != 0) {
-            cout << "[ERROR] Download failed (404 Not Found or Connection Error)." << endl;
+            cout << "[ERROR] Download failed: " << res.output << endl;
+            return 1;
+        }
+
+        int httpCode = 0;
+        try { httpCode = stoi(res.output); } catch (...) {}
+
+        if (httpCode >= 400) {
+            cout << "[ERROR] Server returned HTTP " << httpCode << endl;
+            if (fs::exists(filename)) {
+                ifstream f(filename);
+                string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+                cout << "Server Response: " << content << endl;
+                f.close();
+                fs::remove(filename);
+            }
             return 1;
         }
         
