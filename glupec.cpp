@@ -1321,7 +1321,10 @@ int main(int argc, char* argv[]) {
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
         cout << "  insert-metadata <path> : Insert metadata template\n";
-        cout << "  push <file> <user> : Upload file to GlupeHub\n";
+        cout << "  login [url]        : Authenticate with GlupeHub\n";
+        cout << "  logout             : Log out from GlupeHub\n";
+        cout << "  whoami             : Show current user\n";
+        cout << "  push <file>        : Upload file to GlupeHub (requires login)\n";
         cout << "  pull <file> <user> : Download file from GlupeHub\n";
         return 0;
     }
@@ -1683,23 +1686,98 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // --- AUTH HELPERS ---
+    const string SESSION_FILE = ".glupe_session";
+
+    auto saveSession = [&](string token, string username) {
+        json j;
+        j["token"] = token;
+        j["username"] = username;
+        ofstream f(SESSION_FILE);
+        if (f.is_open()) {
+            f << j.dump(4);
+            f.close();
+            cout << "[SUCCESS] Logged in as " << username << endl;
+        } else {
+            cout << "[ERROR] Could not save session file." << endl;
+        }
+    };
+
+    auto getSession = [&]() -> pair<string, string> {
+        if (!fs::exists(SESSION_FILE)) return {"", ""};
+        try {
+            ifstream f(SESSION_FILE);
+            json j = json::parse(f);
+            return {j.value("token", ""), j.value("username", "")};
+        } catch (...) {
+            return {"", ""};
+        }
+    };
+
+    // LOGIN COMMAND
+    if (cmd == "login") {
+        string url = (argc >= 3) ? argv[2] : "https://glupehub.up.railway.app";
+        string username, password;
+        
+        cout << "Username: "; cin >> username;
+        cout << "Password: "; cin >> password;
+
+        json body;
+        body["username"] = username;
+        body["password"] = password;
+
+        ofstream f("login_temp.json"); f << body.dump(); f.close();
+        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @login_temp.json \"" + url + "/login\"";
+        CmdResult res = execCmd(curlCmd);
+        remove("login_temp.json");
+
+        try {
+            json response = json::parse(res.output);
+            if (response.contains("token")) saveSession(response["token"], username);
+            else if (response.value("status", "") == "success") saveSession("dummy_token", username); // Fallback
+            else cout << "[ERROR] Login failed: " << (response.contains("error") ? response["error"].get<string>() : res.output) << endl;
+        } catch (...) { cout << "[ERROR] Invalid response: " << res.output << endl; }
+        return 0;
+    }
+
+    // LOGOUT COMMAND
+    if (cmd == "logout") {
+        if (fs::exists(SESSION_FILE)) {
+            fs::remove(SESSION_FILE);
+            cout << "[SUCCESS] Logged out." << endl;
+        } else {
+            cout << "[INFO] You are not logged in." << endl;
+        }
+        return 0;
+    }
+
+    // WHOAMI COMMAND
+    if (cmd == "whoami") {
+        auto session = getSession();
+        if (session.second.empty()) {
+            cout << "Not logged in." << endl;
+        } else {
+            cout << "Logged in as: " << session.second << endl;
+        }
+        return 0;
+    }
+
     // PUSH COMMAND
     if (cmd == "push") {
-        if (argc < 4) {
-            cout << "Usage: glupe push <file> <username> [url]" << endl;
+        if (argc < 3) {
+            cout << "Usage: glupe push <file> [url]" << endl;
             return 1;
         }
         string filename = argv[2];
-        string username = argv[3];
-        string url = (argc >= 5) ? argv[4] : "https://glupehub.up.railway.app/";
+        string url = (argc >= 4) ? argv[3] : "https://glupehub.up.railway.app";
 
-        if (!fs::exists(filename)) {
-            cout << "[ERROR] File not found: " << filename << endl;
-            return 1;
-        }
+        if (!fs::exists(filename)) { cout << "[ERROR] File not found: " << filename << endl; return 1; }
 
-        cout << "[PUSH] Uploading " << filename << " to GlupeHub (" << url << ")..." << endl;
-        string curlCmd = "curl -sS -X POST -F \"file=@" + filename + "\" -F \"author=" + username + "\" \"" + url + "/push\"";
+        auto session = getSession();
+        if (session.first.empty()) { cout << "Error: Not logged in. Run 'glupe login' first." << endl; return 1; }
+
+        cout << "[PUSH] Uploading " << filename << " as " << session.second << "..." << endl;
+        string curlCmd = "curl -sS -X POST -H \"Authorization: Bearer " + session.first + "\" -F \"file=@" + filename + "\" -F \"author=" + session.second + "\" \"" + url + "/push\"";
         
         CmdResult res = execCmd(curlCmd);
         cout << "Server Response: " << res.output << endl;

@@ -1,6 +1,8 @@
 import os
 import bcrypt
 import psycopg2
+import jwt
+import datetime
 from flask import Flask, request, jsonify, send_file, abort
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -9,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv() # Load environment variables
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key')
 CORS(app)
 
 # --- DATABASE CONFIGURATION ---
@@ -98,7 +101,11 @@ def login():
 
     stored_hash = result[0]
     if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
-        return jsonify({"status": "success"}), 200
+        token = jwt.encode({
+            'user': username,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+        }, app.config['SECRET_KEY'], algorithm="HS256")
+        return jsonify({"status": "success", "token": token}), 200
     else:
         return jsonify({"error": "Invalid password"}), 401
 
@@ -107,14 +114,30 @@ def login():
 # 3. PUSH (Upload)
 @app.route('/push', methods=['POST'])
 def push_file():
-    # In a real app, you would validate a session token here
-    # For MVP, we trust the client to send the correct author name (simplified)
+    token = None
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        return jsonify({"error": "Token is missing"}), 401
+
+    try:
+        data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
+        current_user = data['user']
+    except:
+        return jsonify({"error": "Token is invalid"}), 401
     
     if 'file' not in request.files:
         return jsonify({"error": "No file"}), 400
 
     file = request.files['file']
     author = request.form.get('author', 'anonymous')
+    
+    if author != current_user:
+        return jsonify({"error": "Unauthorized: Author mismatch"}), 403
+
     folder = request.form.get('folder', '') # Optional subfolder
 
     if file.filename == '':

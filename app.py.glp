@@ -1,0 +1,63 @@
+import os
+import bcrypt
+import psycopg2
+import jwt
+import datetime
+from flask import Flask, request, jsonify, send_file, abort
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key')
+CORS(app)
+
+# --- DATABASE CONFIGURATION ---
+DATABASE_URL = os.environ.get('DATABASE_URL')
+STORAGE_DIR = os.environ.get('STORAGE_DIR', 'storage')
+
+os.makedirs(STORAGE_DIR, exist_ok=True)
+
+$$ get_db_connection { Establishes and returns a database connection } $$
+def get_db_connection():
+    pass
+
+$$ init_db { Initializes the database schema on startup } $$
+def init_db():
+    pass
+
+# Initialize on startup
+try:
+    init_db()
+    print("[DB] Database initialized.")
+except Exception as e:
+    print(f"[DB] Error initializing: {e}")
+
+# --- AUTH ENDPOINTS ---
+
+@app.route('/register', methods=['POST'])
+$$ register { Handles user registration, including password hashing and storage } $$
+def register():
+    pass
+
+@app.route('/login', methods=['POST'])
+$$ login { Authenticates user and generates JWT token if credentials are valid } $$
+def login():
+    pass
+
+# --- FILE ENDPOINTS ---
+
+@app.route('/push', methods=['POST'])
+$$ push_file { Handles file upload, including authorization and secure storage } $$
+def push_file():
+    pass
+
+@app.route('/pull/<path:file_id>', methods=['GET'])
+$$ pull_file { Handles file download with security checks and path validation } $$
+def pull_file(file_id):
+    pass
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
