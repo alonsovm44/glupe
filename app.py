@@ -50,6 +50,15 @@ def init_db():
 # Initialize on startup
 try:
     init_db()
+    # Migration for existing users table
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(100)")
+        conn.commit()
+        conn.close()
+    except:
+        pass
     print("[DB] Database initialized.")
 except Exception as e:
     print(f"[DB] Error initializing: {e}")
@@ -98,6 +107,54 @@ def get_user_from_token(token):
         return result[0] # Return the username
     return None
 # 2. LOGIN
+
+# --- SIGNUP FLOW ---
+
+@app.route('/auth/check_username', methods=['GET'])
+def check_username():
+    username = request.args.get('q', '').strip()
+    if not username: return jsonify({"error": "Empty username"}), 400
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM users WHERE username = %s", (username,))
+    exists = cur.fetchone()
+    cur.close()
+    conn.close()
+    
+    return jsonify({"available": not exists})
+
+@app.route('/auth/signup', methods=['POST'])
+def signup():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({"error": "Missing fields"}), 400
+
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, hashed))
+        conn.commit()
+        
+        user_folder = os.path.join(STORAGE_DIR, secure_filename(username))
+        os.makedirs(user_folder, exist_ok=True)
+        
+        cur.close()
+        conn.close()
+        
+        return jsonify({"status": "success", "message": "User created successfully"})
+    except psycopg2.errors.UniqueViolation:
+        return jsonify({"error": "Username already taken"}), 409
+    except Exception as e:
+        # This will catch DB errors or other unexpected issues
+        print(f"[FATAL] An unhandled exception occurred in /auth/signup: {e}")
+        return jsonify({"error": f"An unexpected server error occurred: {str(e)}"}), 500
+
 # REPLACE YOUR login FUNCTION WITH THIS:
 
 @app.route('/login', methods=['POST'])

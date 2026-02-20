@@ -1595,6 +1595,7 @@ int main(int argc, char* argv[]) {
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
         cout << "  insert-metadata <path> : Insert metadata template\n";
         cout << "  login [url]        : Authenticate with GlupeHub\n";
+        cout << "  signup [url]       : Create a new account\n";
         cout << "  logout             : Log out from GlupeHub\n";
         cout << "  whoami             : Show current user\n";
         cout << "  push <file> [tags] : Upload file to GlupeHub (requires login)\n";
@@ -1957,6 +1958,72 @@ int main(int argc, char* argv[]) {
             out << meta.str();
             out.close();
             cout << "[SUCCESS] Created " << targetFile << " with metadata template." << endl;
+        }
+        return 0;
+    }
+
+    // SIGNUP COMMAND
+    if (cmd == "signup") {
+        string url = (argc >= 3) ? argv[2] : "https://glupehub.up.railway.app";
+        string username, password, confirm_pass;
+
+        cout << "--- Glupe Sign Up ---" << endl;
+        
+        // 1. Username
+        while (true) {
+            cout << "Username: "; cin >> username;
+            string checkCmd = "curl -s \"" + url + "/auth/check_username?q=" + username + "\"";
+            CmdResult res = execCmd(checkCmd);
+            try {
+                json j = json::parse(res.output);
+                if (j.value("available", false)) break;
+                cout << "[ERROR] Username taken. Try another." << endl;
+            } catch (...) {
+                cout << "[ERROR] Could not verify username availability." << endl;
+                return 1;
+            }
+        }
+
+        // 2. Password
+        while (true) {
+            cout << "Password: "; cin >> password;
+            cout << "Confirm Password: "; cin >> confirm_pass;
+            if (password == confirm_pass) break;
+            cout << "[ERROR] Passwords do not match." << endl;
+        }
+
+        // Send Signup Request
+        json body;
+        body["username"] = username;
+        body["password"] = password;
+
+        ofstream f("signup_temp.json"); f << body.dump(); f.close();
+        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @signup_temp.json \"" + url + "/auth/signup\"";
+        CmdResult res = execCmd(curlCmd);
+        remove("signup_temp.json");
+
+        try {
+            json j = json::parse(res.output);
+            if (j.contains("error")) {
+                cout << "[ERROR] " << j["error"].get<string>() << endl;
+                return 1;
+            }
+            if (j.value("status", "") == "success") {
+                cout << "[SUCCESS] Account created! You can now login." << endl;
+            } else {
+                cout << "[ERROR] Signup failed: " << res.output << endl;
+                return 1;
+            }
+        } catch (...) {
+            cout << "[ERROR] Server error: Failed to parse server response." << endl;
+            if (!res.output.empty()) {
+                cout << "       Raw Response: " << res.output << endl;
+            } else {
+                cout << "       Raw Response: <empty>" << endl;
+            }git
+            cout << "cURL exit code: " << res.exitCode << endl;
+            cout << "(A non-zero cURL exit code suggests a network issue or that the server could not be reached.)" << endl;
+            return 1;
         }
         return 0;
     }
