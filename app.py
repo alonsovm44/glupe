@@ -211,6 +211,10 @@ def push_file():
     file_path = os.path.join(base_path, filename_safe)
     file.save(file_path)
 
+    # Definir el ID del archivo que se usará en la tabla de tags
+    # Usamos el mismo formato que devuelves en el JSON de éxito
+    file_id = f"{author_safe}/{secure_filename(folder) if folder else ''}{filename_safe}".replace("//", "/")
+
     # Save tags to DB
     if tags_list:
         conn = get_db_connection()

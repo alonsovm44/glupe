@@ -19,6 +19,7 @@
 #include <functional>
 #include <set>
 #include <memory>
+#include <limits>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -1306,6 +1307,112 @@ void showMetadata(const string& filename) {
     cout << "-----------------------------------\n";
 }
 
+// --- AUTH HELPERS ---
+const string SESSION_FILE = ".glupe_session";
+
+pair<string, string> getSession() {
+    if (!fs::exists(SESSION_FILE)) return {"", ""};
+    try {
+        ifstream f(SESSION_FILE);
+        json j = json::parse(f);
+        return {j.value("token", ""), j.value("username", "")};
+    } catch (...) {
+        return {"", ""};
+    }
+}
+
+void saveSession(string token, string username) {
+    json j;
+    j["token"] = token;
+    j["username"] = username;
+    ofstream f(SESSION_FILE);
+    if (f.is_open()) {
+        f << j.dump(4);
+        f.close();
+        cout << "[SUCCESS] Logged in as " << username << endl;
+    } else {
+        cout << "[ERROR] Could not save session file." << endl;
+    }
+}
+
+string getSessionToken() {
+    return getSession().first;
+}
+
+string getSessionUser() {
+    return getSession().second;
+}
+
+bool checkLogin() {
+    if (getSessionToken().empty()) {
+        cout << "Error: Not logged in. Run 'glupe login' first." << endl;
+        return false;
+    }
+    return true;
+}
+
+void startInteractiveHub() {
+    string hub_url = "https://glupehub.up.railway.app";
+    cout << "GlupeHub v-alpha-1.0 MVPType 'help' for commands." << endl;
+
+    while (true) {
+        cout << "hub> ";
+        string line;
+        getline(cin, line);
+
+        if (cin.eof() || line == "exit") {
+            break;
+        }
+        if (line.empty()) {
+            continue;
+        }
+
+        stringstream ss(line);
+        string command;
+        ss >> command;
+
+        if (command == "help") {
+            cout << "Available commands:\n";
+            cout << "  search <query>   : Search for files by name.\n";
+            cout << "  tag <tagname>    : Search for files by tag.\n";
+            cout << "  view <file_id>   : View file metadata (e.g., user/file.glp).\n";
+            cout << "  pull <file_id>   : Download a file.\n";
+            cout << "  exit             : Exit interactive mode.\n";
+        } else if (command == "search") {
+            string query;
+            getline(ss, query);
+            query.erase(0, query.find_first_not_of(" \t"));
+            if (query.empty()) { cout << "Usage: search <query>" << endl; continue; }
+            string curlCmd = "curl -sS -G --data-urlencode \"q=" + query + "\" \"" + hub_url + "/search/files\"";
+            cout << execCmd(curlCmd).output << endl;
+        } else if (command == "tag") {
+            string tag;
+            ss >> tag;
+            if (tag.empty()) { cout << "Usage: tag <tagname>" << endl; continue; }
+            string curlCmd = "curl -sS -G --data-urlencode \"tag=" + tag + "\" \"" + hub_url + "/search/files\"";
+            cout << execCmd(curlCmd).output << endl;
+        } else if (command == "view") {
+            string file_id;
+            ss >> file_id;
+            if (file_id.empty()) { cout << "Usage: view <file_id>" << endl; continue; }
+            string curlCmd = "curl -sS \"" + hub_url + "/meta/" + file_id + "\"";
+            cout << execCmd(curlCmd).output << endl;
+        } else if (command == "pull") {
+            string file_id;
+            ss >> file_id;
+            if (file_id.empty()) { cout << "Usage: pull <file_id>" << endl; continue; }
+            size_t last_slash_pos = file_id.find_last_of('/');
+            string filename = (last_slash_pos == string::npos) ? file_id : file_id.substr(last_slash_pos + 1);
+            string curlCmd = "curl -sS -L -o \"" + filename + "\" \"" + hub_url + "/pull/" + file_id + "\"";
+            CmdResult res = execCmd(curlCmd);
+            if (res.exitCode == 0) { cout << "[SUCCESS] Saved " << filename << endl; } 
+            else { cout << "[ERROR] Download failed. Server response: " << res.output << endl; }
+        } else {
+            cout << "Unknown command: '" << command << "'. Type 'help' for commands." << endl;
+        }
+    }
+}
+
 // --- MAIN ---
 int main(int argc, char* argv[]) {
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -1324,7 +1431,8 @@ int main(int argc, char* argv[]) {
         cout << "  login [url]        : Authenticate with GlupeHub\n";
         cout << "  logout             : Log out from GlupeHub\n";
         cout << "  whoami             : Show current user\n";
-        cout << "  push <file>        : Upload file to GlupeHub (requires login)\n";
+        cout << "  push <file> [tags] : Upload file to GlupeHub (requires login)\n";
+        cout << "  hub                : Enter interactive hub mode\n";
         cout << "  pull <file> <user> : Download file from GlupeHub\n";
         return 0;
     }
@@ -1686,34 +1794,6 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    // --- AUTH HELPERS ---
-    const string SESSION_FILE = ".glupe_session";
-
-    auto saveSession = [&](string token, string username) {
-        json j;
-        j["token"] = token;
-        j["username"] = username;
-        ofstream f(SESSION_FILE);
-        if (f.is_open()) {
-            f << j.dump(4);
-            f.close();
-            cout << "[SUCCESS] Logged in as " << username << endl;
-        } else {
-            cout << "[ERROR] Could not save session file." << endl;
-        }
-    };
-
-    auto getSession = [&]() -> pair<string, string> {
-        if (!fs::exists(SESSION_FILE)) return {"", ""};
-        try {
-            ifstream f(SESSION_FILE);
-            json j = json::parse(f);
-            return {j.value("token", ""), j.value("username", "")};
-        } catch (...) {
-            return {"", ""};
-        }
-    };
-
     // LOGIN COMMAND
     if (cmd == "login") {
         string url = (argc >= 3) ? argv[2] : "https://glupehub.up.railway.app";
@@ -1762,22 +1842,46 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    // HUB COMMAND
+    if (cmd == "hub") {
+        if (!checkLogin()) {
+            return 1;
+        }
+        // Clear cin buffer in case of leftover newlines from other commands
+        cin.ignore((numeric_limits<streamsize>::max)(), '\n');
+        startInteractiveHub();
+        return 0;
+    }
+
     // PUSH COMMAND
     if (cmd == "push") {
         if (argc < 3) {
-            cout << "Usage: glupe push <file> [url]" << endl;
+            cout << "Usage: glupe push <file> [tags] [url]" << endl;
             return 1;
         }
         string filename = argv[2];
-        string url = (argc >= 4) ? argv[3] : "https://glupehub.up.railway.app";
+        string tags = "";
+        string url = "https://glupehub.up.railway.app";
+
+        if (argc >= 4) {
+            string arg3 = argv[3];
+            if (arg3.rfind("http", 0) != 0) {
+                tags = arg3;
+                if (argc >= 5) {
+                    url = argv[4];
+                }
+            } else {
+                url = arg3;
+            }
+        }
 
         if (!fs::exists(filename)) { cout << "[ERROR] File not found: " << filename << endl; return 1; }
 
         auto session = getSession();
         if (session.first.empty()) { cout << "Error: Not logged in. Run 'glupe login' first." << endl; return 1; }
 
-        cout << "[PUSH] Uploading " << filename << " as " << session.second << "..." << endl;
-        string curlCmd = "curl -sS -X POST -H \"Authorization: Bearer " + session.first + "\" -F \"file=@" + filename + "\" -F \"author=" + session.second + "\" \"" + url + "/push\"";
+        cout << "[PUSH] Uploading " << filename << " as " << session.second << (tags.empty() ? "" : " with tags...") << endl;
+        string curlCmd = "curl -sS -X POST -H \"Authorization: Bearer " + session.first + "\" -F \"file=@" + filename + "\" -F \"author=" + session.second + "\"" + (tags.empty() ? "" : " -F \"tags=" + tags + "\"") + " \"" + url + "/push\"";
         
         CmdResult res = execCmd(curlCmd);
         cout << "Server Response: " << res.output << endl;

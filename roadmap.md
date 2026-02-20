@@ -73,8 +73,8 @@ for (const auto& item : blueprint) {
 
 8. Wrapper detection for multiple languages, not just c++
 
-9. Container inheritance
-4. "Logic Inheritance" (The OOP of Intent)
+9. Container inheritance [DONE]
+ "Logic Inheritance" (The OOP of Intent)
 This is the most exciting engineering possibility.
 
 Scenario: You have a standard approach for logging across your company.

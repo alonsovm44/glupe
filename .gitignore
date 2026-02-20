@@ -29,3 +29,4 @@ glupe_logo.png
 .glupe_session
 .venv/
 *.vsix
+glupec.cpp

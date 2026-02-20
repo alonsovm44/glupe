@@ -24,6 +24,8 @@ Removed:
 
 Improved/Fixed:
 
+- fixed pushing with tags not working
+
 ## v5.7.3 2026-02-14
 
 Added:
