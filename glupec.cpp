@@ -2020,7 +2020,7 @@ int main(int argc, char* argv[]) {
                 cout << "       Raw Response: " << res.output << endl;
             } else {
                 cout << "       Raw Response: <empty>" << endl;
-            }git
+            }
             cout << "cURL exit code: " << res.exitCode << endl;
             cout << "(A non-zero cURL exit code suggests a network issue or that the server could not be reached.)" << endl;
             return 1;
