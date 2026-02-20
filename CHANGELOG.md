@@ -25,6 +25,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed chunk based refinement not working, 19 Feb
 - fixed installer -Wait flag getting hanged
 - fixed pushing with tags not working
 

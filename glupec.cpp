@@ -2044,6 +2044,12 @@ int main(int argc, char* argv[]) {
 
         if (!fs::exists(filename)) { cout << "[ERROR] File not found: " << filename << endl; return 1; }
 
+        string ext = getExt(filename);
+        if (ext != ".txt" && ext != ".glp" && ext != ".glupe" && ext != ".md") {
+            cout << "[ERROR] Invalid file type. Only .txt, .glp, .glupe, and .md files are allowed in the hub." << endl;
+            return 1;
+        }
+
         auto session = getSession();
         if (session.first.empty()) { cout << "Error: Not logged in. Run 'glupe login' first." << endl; return 1; }
 
