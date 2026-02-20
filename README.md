@@ -6,10 +6,18 @@ https://github.com/alonsovm44/glupe/blob/master/WHITE_PAPER.md
 ### Quick Install (Recommended)
 
 **Windows**
+Installation guide for Windows
+1. Press `Win + R` and type `cmd` or open cmd.exe
+2. Type  `Powershell`
+3. Run this command:
 ```Powershell 
  irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
 ```
+If you install Ollama be sure to accept all pop up windows.
+The installer automatically installs the latest version of Glupe.s
 **Linux/macOS:**
+Installation in Linux/macOS
+1. Open bash terminal and run the following command:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
 ``` 

@@ -3,6 +3,7 @@
 
 Added:
 
+- imrpoved UI on the hub for view and show cmds
 - added JWT token auth
 - added login functionality
 - added pull and push error messages
@@ -24,6 +25,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed installer -Wait flag getting hanged
 - fixed pushing with tags not working
 
 ## v5.7.3 2026-02-14
