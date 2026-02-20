@@ -43,15 +43,16 @@ try {
     Write-Host "[OK] Ollama found." -ForegroundColor Green
 } catch {
     Write-Host "[INFO] Ollama (Local AI) not found." -ForegroundColor Yellow
-    $ans = Read-Host "Do you want to install Ollama? [Y/n]"
-    if ($ans -eq "" -or $ans -match "^[Yy]") {
+    Start-Sleep -Seconds 1
+    $ans = Read-Host "Do you want to install Ollama? [y/N]"
+    if ($ans -match "^[Yy]") {
         Write-Host "Downloading Ollama installer..."
         $OllamaExe = "$env:TEMP\OllamaSetup.exe"
         try {
             Invoke-WebRequest -Uri "https://ollama.com/download/OllamaSetup.exe" -OutFile $OllamaExe
             Write-Host "Running Ollama installer..."
-            Start-Process -FilePath $OllamaExe -Wait
-            Write-Host "[OK] Ollama installed." -ForegroundColor Green
+            Start-Process -FilePath $OllamaExe
+            Write-Host "[OK] Ollama installer launched. Please complete the setup." -ForegroundColor Green
         } catch {
             Write-Host "[WARN] Could not install Ollama automatically. Please install manually." -ForegroundColor Yellow
         }
