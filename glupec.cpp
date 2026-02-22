@@ -2690,6 +2690,12 @@ int main(int argc, char* argv[]) {
                 prompt << "5. Process '$${ instructions }$$' templates by implementing the logic.\n";
                 prompt << "6. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
                 prompt << "6. Output ONLY the EXPORT blocks. No conversation.\n";
+                prompt << "1. Use 'EXPORT: \"filename.ext\"' ... 'EXPORT: END' for every file.\n";
+                prompt << "2. The language for each file is determined by its extension (e.g., '.py' for Python, '.c' for C). You MUST generate valid code for that specific language inside its EXPORT block.\n";
+                prompt << "3. Implement the full logic/content. No placeholders.\n";
+                prompt << "4. Process '$${ instructions }$$' templates by implementing the logic inside them.\n";
+                prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
+                prompt << "6. Output ONLY the EXPORT blocks. No conversation or other text.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
                 prompt << "ROLE: Semantic Transpiler.\n";
