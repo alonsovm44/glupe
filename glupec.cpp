@@ -2300,8 +2300,8 @@ int main(int argc, char* argv[]) {
                 
                 stringstream prompt;
                     prompt << "ROLE: Senior Systems Engineer & Logic Architect.\n";
-                    prompt << "TASK: Transpile Source Code into a High-Fidelity Semantic Blueprint (.glp).\n";
-                    prompt << "GOAL: Destill the implementation into functional blocks $$ name { logic } $$ while KEEPING the external interface intact.\n";
+                    prompt << "TASK: Transpile the source code into a high fidelity semantic blueprint (.glp).\n";
+                    prompt << "GOAL: Destill the implementation into functional blocks '$$ name -> parent { logic } $$' .\n";
 
                     if (i > 0) {
                         prompt << "\n[EXTERNAL_CONTEXT_FROM_PREVIOUS_PARTS]\n";
@@ -2311,13 +2311,16 @@ int main(int argc, char* argv[]) {
                     }
 
                     prompt << "\n[STRICT_RULES]\n";
-                    prompt << "1. DO NOT SUMMARIZE. Rewrite the logic inside blocks using pseudocode or technical steps.\n";
-                    prompt << "   BAD: $$ init { Set up the system } $$\n";
-                    prompt << "   GOOD: $$ init { Open database at DB_URL, verify 'users' table exists, and initialize session_map } $$\n";
-                    prompt << "2. KEEP ALL function signatures (return type, name, params) OUTSIDE the blocks.\n";
-                    prompt << "3. REPLACE ONLY the curly-brace bodies { ... } with semantic blocks $$ block_name { ... } $$.\n";
-                    prompt << "4. PRESERVE all #include, constants, and global variable declarations exactly as they are.\n";
-                    prompt << "5. Return ONLY the .glp fragment for this part. No conversation. No markdown code blocks.\n";
+                    prompt << "Semantic blocks should represent functions, classes, and logical groupings of code. They should not be arbitrary line groupings.\n";
+                    prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
+                    prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
+                    prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
+                    prompt << "1. DO NOT OVER SUMMARIZE. Rewrite the logic inside blocks using technical steps.\n";
+                    prompt << "   BAD: $$ init { Set up the system } $$ <- too vague\n";
+                    prompt << "   GOOD: $$ init { 1. Open database at DB_URL, 2. verify 'users' table exists, 3. and initialize session_map } $$\n";
+                    prompt << "2. Represent each function with a semantic block $$ block_name { ... }$$.\n";
+                    prompt << "3. PRESERVE all #include, constants, and global variable declarations in their own semantic blocks\n";
+                    prompt << "4. Return ONLY the .glp fragment for this part. No conversation. No markdown code blocks.\n";
 
                     prompt << "\n[SOURCE_CODE_PART_" << (i+1) << "]\n";
                     prompt << chunks[i] << "\n";
