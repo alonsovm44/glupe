@@ -2311,6 +2311,7 @@ int main(int argc, char* argv[]) {
                     }
 
                     prompt << "\n[STRICT_RULES]\n";
+                    prompt << "When refining code into intent, use a numbered algorithmic format. Use standard indentation for nested logic (1, 1.1, 1.2). Do not use prose. Use imperative verbs (Get, Set, Check, Return).";
                     prompt << "Semantic blocks should represent functions, classes, and logical groupings of code. They should not be arbitrary line groupings.\n";
                     prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
                     prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
@@ -2369,7 +2370,10 @@ int main(int argc, char* argv[]) {
 
             string outputFile = file + ".glp";
             ofstream out(outputFile);
+            // [UPDATED] Wrap in EXPORT block for -make compatibility
+            out << "EXPORT: \"" << file << "\"\n";
             out << fullRefinedCode;
+            out << "EXPORT: END\n";
             out.close();
 
             cout << "[SUCCESS] Semantic file generated: " << outputFile << endl;
@@ -2379,7 +2383,8 @@ int main(int argc, char* argv[]) {
 
     if (!explicitLang) {
         if (outputName.empty()) {
-             CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : (CURRENT_MODE == GenMode::MODEL_3D ? MODEL_DB["obj"] : IMAGE_DB["svg"]); 
+             if (makeMode) CURRENT_LANG = LANG_DB["glp"];
+             else CURRENT_LANG = (CURRENT_MODE == GenMode::CODE) ? LANG_DB["cpp"] : (CURRENT_MODE == GenMode::MODEL_3D ? MODEL_DB["obj"] : IMAGE_DB["svg"]); 
         } else {
             string ext = getExt(outputName);
             bool found = false;
@@ -2416,12 +2421,14 @@ int main(int argc, char* argv[]) {
     }
     
     if (CURRENT_MODE == GenMode::CODE) {
-        cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
-        if (CURRENT_LANG.versionCmd.empty()) {
-            cout << "   [INFO] No toolchain required." << endl;
-        } else if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
-            cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
-        } else cout << "   [OK] Ready." << endl;
+        if (!makeMode || explicitLang) {
+            cout << "[CHECK] Toolchain for " << CURRENT_LANG.name << "..." << endl;
+            if (CURRENT_LANG.versionCmd.empty()) {
+                cout << "   [INFO] No toolchain required." << endl;
+            } else if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
+                cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
+            } else cout << "   [OK] Ready." << endl;
+        }
     } else if (CURRENT_MODE == GenMode::MODEL_3D) {
         cout << "[MODE] 3D Generation (" << CURRENT_LANG.name << ")" << endl;
     } else {
@@ -2668,7 +2675,11 @@ int main(int argc, char* argv[]) {
         if (CURRENT_MODE == GenMode::CODE) {
             if (makeMode) {
                 prompt << "ROLE: Software Architect.\n";
-                prompt << "TASK: Structure and implement the project files for a " << CURRENT_LANG.name << " project.\n";
+                if (explicitLang) {
+                    prompt << "TASK: Structure and implement the project files for a " << CURRENT_LANG.name << " project.\n";
+                } else {
+                    prompt << "TASK: Structure and implement the project files based on the provided instructions.\n";
+                }
                 prompt << "RULES:\n";
                 prompt << "1. Use 'EXPORT: \"filename\"' ... 'EXPORT: END' for every file.\n";
                 prompt << "2. Implement full logic/content. No placeholders.\n";
@@ -2766,52 +2777,78 @@ int main(int argc, char* argv[]) {
         code = processExports(code, fs::current_path());
 
         if (makeMode) {
-            cout << "[MAKE] Generation complete. Files exported." << endl;
+            // Check for content outside exports
+            bool hasContent = false;
+            for (char c : code) { if (!isspace(c)) { hasContent = true; break; } }
 
-            // [INTELLIGENT BUILD] Auto-detect and run generated build scripts
-            bool buildSuccess = false;
-            if (fs::exists("Makefile")) {
-                cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
-                if (system("make") == 0) buildSuccess = true;
-            } else if (fs::exists("CMakeLists.txt")) {
-                cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
-                if (!fs::exists("build")) fs::create_directory("build");
-                if (system("cd build && cmake .. && cmake --build .") == 0) buildSuccess = true;
-            } else if (fs::exists("build.sh")) {
-                cout << "[MAKE] build.sh detected. Executing..." << endl;
-                #ifndef _WIN32
-                if (system("chmod +x build.sh && ./build.sh") == 0) buildSuccess = true;
-                #else
-                if (system("bash build.sh") == 0) buildSuccess = true;
-                #endif
-            } else if (fs::exists("build.bat")) {
-                cout << "[MAKE] build.bat detected. Executing..." << endl;
-                if (system("build.bat") == 0) buildSuccess = true;
-            } else {
-                cout << "[MAKE] No build script found. Skipping build step." << endl;
-            }
-
-            if (runOutput) {
-                if (buildSuccess) {
-                    if (fs::exists(outputName)) {
-                        cout << "\n[RUN] Executing " << outputName << "..." << endl;
-                        string cmd = outputName;
-                        #ifndef _WIN32
-                        if (cmd.find('/') == string::npos) cmd = "./" + cmd;
-                        std::error_code ec;
-                        fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
-                        #endif
-                        string sysCmd = "\"" + cmd + "\"";
-                        system(sysCmd.c_str());
-                    } else {
-                        cout << "[WARN] Output binary '" << outputName << "' not found." << endl;
-                        cout << "       (Hint: Use -o <filename> to specify the expected binary name)" << endl;
+            if (hasContent) {
+                cout << "[MAKE] Content detected outside EXPORT blocks." << endl;
+                if (!explicitLang) {
+                    selectTarget();
+                    // Update output filename extension if it was defaulted
+                    if (outputName.find(stripExt(inputFiles[0])) != string::npos) {
+                         string base = stripExt(outputName);
+                         if (CURRENT_LANG.producesBinary && !transpileMode) {
+                             #ifdef _WIN32
+                             outputName = base + ".exe";
+                             #else
+                             outputName = base;
+                             #endif
+                         } else {
+                             outputName = base + CURRENT_LANG.extension;
+                         }
                     }
-                } else {
-                    cout << "[WARN] Build failed or missing. Skipping execution." << endl;
+                    // Update tempSrc extension
+                    tempSrc = "temp_build" + CURRENT_LANG.extension;
                 }
+            } else {
+                cout << "[MAKE] Generation complete. Files exported." << endl;
+
+                // [INTELLIGENT BUILD] Auto-detect and run generated build scripts
+                bool buildSuccess = false;
+                if (fs::exists("Makefile")) {
+                    cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
+                    if (system("make") == 0) buildSuccess = true;
+                } else if (fs::exists("CMakeLists.txt")) {
+                    cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
+                    if (!fs::exists("build")) fs::create_directory("build");
+                    if (system("cd build && cmake .. && cmake --build .") == 0) buildSuccess = true;
+                } else if (fs::exists("build.sh")) {
+                    cout << "[MAKE] build.sh detected. Executing..." << endl;
+                    #ifndef _WIN32
+                    if (system("chmod +x build.sh && ./build.sh") == 0) buildSuccess = true;
+                    #else
+                    if (system("bash build.sh") == 0) buildSuccess = true;
+                    #endif
+                } else if (fs::exists("build.bat")) {
+                    cout << "[MAKE] build.bat detected. Executing..." << endl;
+                    if (system("build.bat") == 0) buildSuccess = true;
+                } else {
+                    cout << "[MAKE] No build script found. Skipping build step." << endl;
+                }
+
+                if (runOutput) {
+                    if (buildSuccess) {
+                        if (fs::exists(outputName)) {
+                            cout << "\n[RUN] Executing " << outputName << "..." << endl;
+                            string cmd = outputName;
+                            #ifndef _WIN32
+                            if (cmd.find('/') == string::npos) cmd = "./" + cmd;
+                            std::error_code ec;
+                            fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
+                            #endif
+                            string sysCmd = "\"" + cmd + "\"";
+                            system(sysCmd.c_str());
+                        } else {
+                            cout << "[WARN] Output binary '" << outputName << "' not found." << endl;
+                            cout << "       (Hint: Use -o <filename> to specify the expected binary name)" << endl;
+                        }
+                    } else {
+                        cout << "[WARN] Build failed or missing. Skipping execution." << endl;
+                    }
+                }
+                return 0;
             }
-            return 0;
         }
 
         ofstream out(tempSrc); out << code; out.close();

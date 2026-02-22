@@ -3,6 +3,9 @@
 
 Added:
 
+- added context detection for export blocks, if content is found outside it asks for a target language
+- smart prompting for -make mode
+- added language agnostic default for make mode
 - imrpoved UI on the hub for view and show cmds
 - added JWT token auth
 - added login functionality

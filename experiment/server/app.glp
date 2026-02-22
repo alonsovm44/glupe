@@ -1,0 +1,133 @@
+$$ imports {
+    import os
+    import bcrypt
+    import psycopg2
+    import jwt
+    import datetime
+    from flask import Flask, request, jsonify, send_file, abort
+    from flask_cors import CORS
+    from werkzeug.utils import secure_filename
+    from dotenv import load_dotenv
+} $$
+
+$$ constants {
+    DATABASE_URL = os.environ.get('DATABASE_URL')
+    STORAGE_DIR = os.environ.get('STORAGE_DIR', 'storage')
+} $$
+
+$$ global_variables {
+    app = Flask(__name__)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key')
+    CORS(app)
+} $$
+
+$$ storage_setup -> global_variables {
+    1. Ensure storage directory exists: os.makedirs(STORAGE_DIR, exist_ok=True)
+} $$
+
+$$ get_db_connection {
+    1. Connect to the database using psycopg2: conn = psycopg2.connect(DATABASE_URL)
+    2. Return the connection: return conn
+} $$
+
+$$ABSTRACT db_operation -> get_db_connection {
+    Abstract block for database operations
+} $$
+
+$$ init_db -> db_operation {
+    1. Get database connection: conn = get_db_connection()
+    2. Create cursor: cur = conn.cursor()
+    3. Execute SQL to create users and tags tables if not exists
+    4. Commit changes: conn.commit()
+    5. Close cursor and connection: cur.close(), conn.close()
+} $$
+
+$$ initialize_app {
+    1. Call init_db to initialize database tables
+    2. Handle migration for existing users table
+    3. Print initialization status
+} $$
+
+$$ register -> db_operation {
+    1. Extract username and password from request
+    2. Validate input fields
+    3. Hash password using bcrypt
+    4. Insert user into database
+    5. Create user folder in storage
+    6. Handle database exceptions
+} $$
+
+$$ get_user_from_token -> db_operation {
+    1. Get database connection: conn = get_db_connection()
+    2. Create cursor: cur = conn.cursor()
+    3. Query database for username based on token
+    4. Close cursor and connection: cur.close(), conn.close()
+    5. Return username if found, otherwise None
+} $$
+
+$$ check_username -> db_operation {
+    1. Extract username from request
+    2. Validate input
+    3. Check if username exists in database
+    4. Return availability status
+} $$
+
+$$ signup -> db_operation {
+    1. Extract username and password from request
+    2. Validate input fields
+    3. Hash password using bcrypt
+    4. Insert user into database
+    5. Create user folder in storage
+    6. Handle database exceptions
+} $$
+
+$$ login -> db_operation {
+    1. Extract username and password from request
+    2. Validate input fields
+    3. Query database for user
+    4. Verify password using bcrypt
+    5. Generate JWT token
+    6. Handle exceptions
+} $$
+
+$$ push_file -> db_operation {
+    1. Extract token from request headers
+    2. Verify token and get current user
+    3. Check file presence in request
+    4. Handle file upload and storage
+    5. Save tags to database
+    6. Return success response
+} $$
+
+$$ pull_file {
+    1. Extract file ID from request
+    2. Validate file path
+    3. Check file existence
+    4. Return file for download
+} $$
+
+$$ search_users -> db_operation {
+    1. Extract search query from request
+    2. Query database for matching users
+    3. Return search results
+} $$
+
+$$ search_files -> db_operation {
+    1. Extract search query and filters from request
+    2. Search files by tag or filename
+    3. Return search results
+} $$
+
+$$ get_meta {
+    1. Extract file ID from request
+    2. Validate file path
+    3. Read file metadata
+    4. Return metadata preview
+} $$
+
+$$ main {
+    1. Initialize application: initialize_app()
+    2. Run Flask app: app.run(host='0.0.0.0', port=5000)
+}$$
+
+
