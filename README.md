@@ -1,12 +1,36 @@
 # Read the White Paper
 https://github.com/alonsovm44/glupe/blob/master/WHITE_PAPER.md
+# Glupe 
+Glupe is a free and open-source CLI tool that bridges the gap between human intent and native execution. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden. Glupe turns these embedded blocks from high-level containers into optimized, native source code for any supported language, effectively decoupling your logic from the syntax and making your software immune to code rot.
+
+100% local. 100% private. 100% free.
+No subscriptions. No telemetry. No cloud.
+Your code, your machine, your rules.
+
+--- 
+## What is Glupe?
+### The one liner
+"Glupe isolates AI logic into semantic containers, so your manual code stays safe." 
+---
+
+Think of Glupe as "Docker for Logic."
+
+Just as Docker packages the Environment to make software independent of the machine, Glupe packages the Intent to make software independent of the language.
+
+They both solve "It works on my machine," but at different layers:
+
+- Docker freezes the Operating System. It ensures your code runs the same on your laptop, the cloud, or a server in 2015.
+- Glupe freezes the Algorithm. It ensures your code can be compiled to C++ today, Rust in 2030, or whatever language exists in 2050.
+Docker solves Space. Glupe solves Time.
+
+Best of all, they work together. You can store your .glp blueprints in a Docker container—creating software that is immortal in both environment and logic.
 
 ## Installation
 
 ### Quick Install (Recommended)
 
 **Windows**
-Installation guide for Windows
+Installation guide
 1. Press `Win + R` and type `cmd` or open cmd.exe
 2. Type  `Powershell`
 3. Run this command:
@@ -14,7 +38,8 @@ Installation guide for Windows
  irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
 ```
 If you install Ollama be sure to accept all pop up windows.
-The installer automatically installs the latest version of Glupe.s
+The installer automatically installs the latest version of Glupe.
+
 **Linux/macOS:**
 Installation in Linux/macOS
 1. Open bash terminal and run the following command:
@@ -32,28 +57,6 @@ glupe --init
 glupe hello.glp -o hello.exe -cpp -local
 .\hello
 ```
---- 
-# Glupe 
-Glupe is a free and open-source CLI tool that bridges the gap between human intent and native execution. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden. Glupe turns these embedded blocks from high-level containers into optimized, native source code for any supported language, effectively decoupling your logic from the syntax and making your software immune to code rot.
-
-100% local. 100% private. 100% free.
-No subscriptions. No telemetry. No cloud.
-Your code, your machine, your rules.
-
---- 
-## What is Glupe?
-
-### The one liner
-"Glupe isolates AI logic into semantic containers, so your manual code stays safe." 
-
-### Like Docker?
-
-Think of Glupe as Docker for Logic.
-Just as Docker packages the Environment to make software agnostic to the machine, Glupe packages the Intent to make software agnostic to the language and to time.
-
-- Docker solves the friction of Space: "It works on my machine, but not yours."
-- Glupe solves the friction of Time: "It works now in this language, but it won't in 5 years."
-
 --- 
 
 ### The risk of AI generated code
