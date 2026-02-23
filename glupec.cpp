@@ -1478,6 +1478,7 @@ void startInteractiveHub() {
             cout << "  view <file_id>   : View file metadata (e.g., user/file.glp).\n";
             cout << "  pull <file_id>   : Download a file.\n";
             cout << "  delete <path>    : Delete a file (e.g. file.glp).\n";
+            cout << "  rename <old> <new>: Rename a file.\n";
             cout << "  exit             : Exit interactive mode.\n";
         } else if (command == "search") {
             string query;
@@ -1635,12 +1636,81 @@ void startInteractiveHub() {
                 cin.ignore((numeric_limits<streamsize>::max)(), '\n');
                 cout << "Cancelled." << endl;
             }
+        } else if (command == "rename") {
+            string old_path, new_path;
+            ss >> old_path >> new_path;
+            if (old_path.empty() || new_path.empty()) { cout << "Usage: rename <old_path> <new_path>" << endl; continue; }
+
+            auto session = getSession();
+            if (session.first.empty()) { cout << "[ERROR] Not logged in." << endl; continue; }
+
+            if (old_path.find('/') == string::npos) old_path = session.second + "/" + old_path;
+            if (new_path.find('/') == string::npos) new_path = session.second + "/" + new_path;
+
+            json body;
+            body["old_path"] = old_path;
+            body["new_path"] = new_path;
+
+            ofstream f("rename_temp.json"); f << body.dump(); f.close();
+            string curlCmd = "curl -sS -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer " + session.first + "\" -d @rename_temp.json \"" + hub_url + "/rename\"";
+            CmdResult res = execCmd(curlCmd);
+            remove("rename_temp.json");
+
+            try {
+                json j = json::parse(res.output);
+                if (j.contains("error")) cout << "[ERROR] " << j["error"].get<string>() << endl;
+                else if (j.contains("message")) cout << "[SUCCESS] " << j["message"].get<string>() << endl;
+                else cout << res.output << endl;
+            } catch (...) {
+                cout << res.output << endl;
+            }
         } else {
             cout << "Unknown command: '" << command << "'. Type 'help' for commands." << endl;
         }
     }
 }
 
+void showHelp() {
+    cout << "GLUPE v" << CURRENT_VERSION << " - The Semantic Compiler\n";
+    cout << "Usage: glupe [files...] [options] [\"*instructions\"]\n\n";
+    
+    cout << "Core Options:\n";
+    cout << "  -o <file>        : Specify output filename.\n";
+    cout << "  -cloud           : Use cloud AI provider (configured in config.json).\n";
+    cout << "  -local           : Use local AI provider (Ollama).\n";
+    cout << "  -u, --update     : Update mode (edits existing file instead of overwriting).\n";
+    cout << "  -make            : Architect mode (generates multi-file projects from blueprints).\n";
+    cout << "  -series          : Series mode (generates files sequentially).\n";
+    cout << "  -refine          : Refine mode (reverse engineer code to .glp blueprint).\n";
+    cout << "  -t, --transpile  : Transpile only (do not compile binary).\n";
+    cout << "  -run             : Run the output binary after compilation.\n";
+    cout << "  -dry-run         : Show prompt/context without calling AI.\n";
+    cout << "  -verbose         : Enable verbose logging.\n";
+    cout << "  -3d              : 3D model generation mode.\n";
+    cout << "  -img             : Image generation mode.\n";
+    cout << "  --clean          : Remove temporary build files.\n";
+    cout << "  --init           : Initialize project (hello.glp, config.json).\n\n";
+
+    cout << "Commands:\n";
+    cout << "  config <key> <val>      : Update configuration.\n";
+    cout << "  config model-local      : Interactive local model selection.\n";
+    cout << "  clean cache             : Clear semantic cache.\n";
+    cout << "  fix <file> \"instr\"      : AI-powered code repair.\n";
+    cout << "  explain <file> [lang]   : Generate documentation.\n";
+    cout << "  diff <f1> <f2> [lang]   : Semantic diff report.\n";
+    cout << "  sos [lang] \"query\"      : Ask AI for help.\n";
+    cout << "  hub                     : Enter interactive GlupeHub mode.\n";
+    cout << "  login / signup / logout : GlupeHub authentication.\n";
+    cout << "  push <file> [tags]      : Upload to GlupeHub.\n";
+    cout << "  pull <file> <user>      : Download from GlupeHub.\n";
+    cout << "  info <file>             : Show file metadata.\n\n";
+    
+    cout << "Examples:\n";
+    cout << "  glupe main.glp -o app.exe -cpp\n";
+    cout << "  glupe idea.txt -make -series\n";
+    cout << "  glupe legacy.c -refine\n";
+    cout << "  glupe fix bug.py \"fix index out of range\"\n";
+}
 // --- MAIN ---
 int main(int argc, char* argv[]) {
     auto startTime = std::chrono::high_resolution_clock::now();
@@ -2305,6 +2375,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
         else if (arg == "--help" || arg == "-h") {
+            showHelp();
             return 0;
         }
         else if (arg[0] == '-') {

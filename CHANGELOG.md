@@ -28,6 +28,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed help menu not appearing
 - fixed -make mode defaulting to c++
 - fixed chunk based refinement not working, 19 Feb
 - fixed installer -Wait flag getting hanged
