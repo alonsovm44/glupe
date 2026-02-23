@@ -1,0 +1,96 @@
+$$ imports {
+    1. Import tkinter as tk
+    2. Import ttk, filedialog, messagebox from tkinter
+    3. Import shutil
+    4. Import datetime
+} $$
+
+$$ constants {
+    1. Set SENSITIVE_KEYS to ["PASSWORD", "SECRET", "API_KEY", "JWT_SECRET"]
+} $$
+
+$$ EnvEditor {
+    1. Initialize -> __init__ {
+        1.1. Set root to input root
+        1.2. Set root title to ".env Visual Manager PRO"
+        1.3. Set root geometry to "800x450"
+        1.4. Initialize env_path to None
+        1.5. Initialize data to empty list
+        1.6. Call create_ui
+    }
+
+    2. create_ui {
+        2.1. Create top frame and pack
+        2.2. Create and pack "Open .env" button with command open_env
+        2.3. Create and pack "Save" button with command save_env
+        2.4. Create and pack "Restore Backup" button with command restore_backup
+        2.5. Create show_secrets_var as BooleanVar
+        2.6. Create and pack "Show Secrets" Checkbutton with command refresh_tree
+        2.7. Create search_var as StringVar
+        2.8. Create and pack search Entry and "Go" button with command search_key
+        2.9. Create and pack Treeview with columns "key" and "value"
+        2.10. Bind Treeview double-click to edit_value
+    }
+
+    3. open_env {
+        3.1. Get file path using filedialog
+        3.2. If path is empty, return
+        3.3. Set env_path to path
+        3.4. Call load_env
+    }
+
+    4. load_env {
+        4.1. Clear tree and data
+        4.2. Open env_path and read lines
+        4.3. For each line, split into key and value, append to data
+        4.4. Call refresh_tree
+    }
+
+    5. refresh_tree {
+        5.1. Clear tree
+        5.2. For each key, value in data, insert into tree with display_value based on show_secrets_var
+        5.3. Call highlight_issues
+    }
+
+    6. highlight_issues {
+        6.1. Initialize keys_seen to empty dict
+        6.2. For each item in tree, check for duplicates and empty values
+        6.3. Configure tags for duplicates and empty values
+    }
+
+    7. edit_value {
+        7.1. Get selected item and key
+        7.2. Find index in data
+        7.3. Create popup with entry for new value
+        7.4. Define save and copy_value functions
+        7.5. Pack buttons in popup
+    }
+
+    8. save_env {
+        8.1. Check if env_path is set
+        8.2. Create backup
+        8.3. Write data to env_path
+        8.4. Show save message
+        8.5. Call refresh_tree
+    }
+
+    9. search_key {
+        9.1. Get query from search_var
+        9.2. If query is empty, return
+        9.3. Search for query in tree and select matching item
+    }
+
+    10. restore_backup {
+        10.1. Check if env_path is set
+        10.2. Get backup path using filedialog
+        10.3. Copy backup to env_path
+        10.4. Call load_env
+        10.5. Show restore message
+    }
+} $$
+
+$$ main {
+    1. Create root Tk instance
+    2. Create EnvEditor instance with root
+    3. Call root mainloop
+} $$

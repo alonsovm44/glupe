@@ -29,4 +29,5 @@ glupe_logo.png
 .glupe_session
 .venv/
 *.vsix
+.yggdrasil/
 .glupe_build.cache
