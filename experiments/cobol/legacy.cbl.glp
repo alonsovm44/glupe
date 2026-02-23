@@ -5,18 +5,20 @@ $$ PROGRAM -> COBOL {
 
     $$ ENVIRONMENT {
         $$ INPUT_OUTPUT {
-            FILE-CONTROL.
+            $$ FILE_CONTROL {
                 SELECT INPUT-FILE ASSIGN TO "INPUT.DAT".
+            }
         }
     }
 
     $$ DATA {
         $$ FILE_SECTION {
-            FD INPUT-FILE.
+            $$ FD_INPUT_FILE {
                 01 INPUT-RECORD.
                     05 CUSTOMER-ID      PIC X(10).
                     05 CUSTOMER-NAME    PIC X(20).
                     05 BALANCE          PIC 9(5)V99.
+            }
         }
 
         $$ WORKING_STORAGE {

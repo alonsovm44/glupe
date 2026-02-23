@@ -2459,6 +2459,7 @@ int main(int argc, char* argv[]) {
                     }
                     prompt << "When refining code into intent, use a numbered algorithmic format. Use standard indentation for nested logic (1, 1.1, 1.2). Do not use prose. Use imperative verbs (Get, Set, Check, Return).";
                     prompt << "Semantic blocks should represent functions, classes, and logical groupings of code. They should not be arbitrary line groupings.\n";
+                    prompt << "Do not nest semantic blocks: BAD: $$ block1 { logic $$ block2 { logic } $$ }$$. GOOD: $$ block1 { logic }$$ $$ block2 { logic }$$\n";
                     prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
                     prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
                     prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
