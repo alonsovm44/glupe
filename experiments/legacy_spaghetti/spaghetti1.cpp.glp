@@ -1,0 +1,69 @@
+$$ includes {  
+1. Preserve "#include <iostream>"  
+2. Preserve "#include <fstream>"  
+3. Preserve "#include <string.h>"  
+4. Preserve "#include <stdlib.h>"  
+} $$
+
+$$ globals {  
+1. Declare global char* buffer  
+2. Declare global int size = 0  
+} $$
+
+$$ loadFile {  
+1. Open file using fopen(filename, "r")  
+1.1 Check if file pointer is null  
+1.2 If null: Print error and Return  
+2. Seek to end of file  
+3. Get file size using ftell  
+4. Seek back to start  
+5. Allocate buffer of size+1 using new[]  
+6. Initialize index i = 0  
+7. Loop until feof(f)  
+7.1 Read character using fgetc  
+7.2 If char != -1: Set buffer[i] = char  
+7.3 Increment i  
+8. Set buffer[i] = '\0'  
+9. Close file  
+} $$
+
+$$ processData {  
+1. Check if size == 0  
+1.1 If true: Return  
+2. Initialize counters: lines = 0, words = 0, patternCount = 0  
+3. Initialize pattern = "ERROR"  
+4. Initialize flags: inWord = false, foundPattern = false  
+5. Loop i from 0 to size-1  
+5.1 Check line count  
+5.1.1 If buffer[i] == '\n': Increment lines  
+5.2 Check word boundaries  
+5.2.1 If buffer[i] is space OR newline OR tab  
+5.2.1.1 If inWord == true: Increment words, Set inWord = false  
+5.2.2 Else: Set inWord = true  
+5.3 Search for pattern  
+5.3.1 If buffer[i] == pattern[0]  
+5.3.1.1 Set match = true  
+5.3.1.2 Loop j from 1 to strlen(pattern)-1  
+5.3.1.2.1 If buffer[i+j] != pattern[j]: Set match = false, Break  
+5.3.1.3 If match == true: Increment patternCount  
+6. Print report header  
+7. Print lines count  
+8. Print words count  
+9. Print patternCount  
+10. Print report footer  
+} $$
+
+$$ cleanup {  
+1. Check if buffer != NULL  
+1.1 If true: delete[] buffer  
+1.2 Set buffer = NULL  
+} $$
+
+$$ main {  
+1. Check if argc < 2  
+1.1 If true: Print usage and Return 1  
+2. Call loadFile(argv[1])  
+3. Call processData()  
+4. Call cleanup()  
+5. Return 0  
+} $$

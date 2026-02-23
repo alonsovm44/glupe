@@ -1,0 +1,85 @@
+$$ includes {
+    #include <iostream>
+    #include <fstream>
+    #include <string.h>
+    #include <stdlib.h>
+}
+
+$$ constants {
+    // No constants in original code
+}
+
+$$ globals {
+    char* buffer = nullptr; // Global raw pointer, initialized to nullptr
+    int size = 0;
+}
+
+$$ loadFile -> file_loader {
+    1. Open file at filename in read mode
+    2. Check if file opened successfully
+    2.1 If not, print error message and return
+    3. Get file size
+    4. Reset file pointer to start
+    5. Allocate memory for buffer with size + 1
+    6. Read file content into buffer
+    7. Null-terminate buffer
+    8. Close file
+}
+
+$$ count_lines {
+    1. Initialize line count to 0
+    2. Iterate over buffer
+    3. If current character is newline, increment line count
+    4. Return line count
+}
+
+$$ count_words {
+    1. Initialize word count to 0
+    2. Initialize in_word flag to false
+    3. Iterate over buffer
+    4. If current character is whitespace and in_word is true, increment word count and reset in_word
+    5. If current character is not whitespace, set in_word to true
+    6. Return word count
+}
+
+$$ find_pattern -> pattern_finder {
+    1. Initialize pattern count to 0
+    2. Define pattern string
+    3. Iterate over buffer
+    4. If current character matches pattern start, check for full pattern match
+    4.1 If full pattern matches, increment pattern count
+    5. Return pattern count
+}
+
+$$ generate_report -> report_generator {
+    1. Get line count
+    2. Get word count
+    3. Get pattern count
+    4. Print report header
+    5. Print line count
+    6. Print word count
+    7. Print pattern count
+    8. Print report footer
+}
+
+$$ processData -> data_processor {
+    1. Check if buffer is empty
+    1.1 If empty, return
+    2. Count lines
+    3. Count words
+    4. Find pattern occurrences
+    5. Generate report
+}
+
+$$ cleanup -> resource_manager {
+    1. Check if buffer is allocated
+    1.1 If allocated, deallocate buffer and set to nullptr
+}
+
+$$ main -> application_entry_point {
+    1. Check if file argument is provided
+    1.1 If not, print usage and return error
+    2. Load file
+    3. Process data
+    4. Clean up resources
+}

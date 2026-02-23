@@ -1,0 +1,57 @@
+$$ PROGRAM -> COBOL {
+    $$ IDENTIFICATION {
+        PROGRAM-ID. LEGACY-SPAGHETTI.
+    }
+
+    $$ ENVIRONMENT {
+        $$ INPUT_OUTPUT {
+            FILE-CONTROL.
+                SELECT INPUT-FILE ASSIGN TO "INPUT.DAT".
+        }
+    }
+
+    $$ DATA {
+        $$ FILE_SECTION {
+            FD INPUT-FILE.
+                01 INPUT-RECORD.
+                    05 CUSTOMER-ID      PIC X(10).
+                    05 CUSTOMER-NAME    PIC X(20).
+                    05 BALANCE          PIC 9(5)V99.
+        }
+
+        $$ WORKING_STORAGE {
+            01 WS-EOF               PIC X VALUE 'N'.
+                88 EOF              VALUE 'Y'.
+            01 WS-TOTAL             PIC 9(9)V99 VALUE 0.
+            01 WS-COUNT             PIC 9(5) VALUE 0.
+        }
+    }
+
+    $$ PROCEDURE {
+        $$ MAIN_PARA {
+            1. OPEN INPUT INPUT-FILE.
+            2. PERFORM READ-FILE.
+            3. PERFORM PROCESS-FILE UNTIL EOF.
+            4. PERFORM PRINT-TOTAL.
+            5. CLOSE INPUT-FILE.
+            6. STOP RUN.
+        }
+
+        $$ READ_FILE {
+            1. READ INPUT-FILE.
+            2. CHECK AT END.
+            3. IF AT END, SET WS-EOF TO 'Y'.
+        }
+
+        $$ PROCESS_FILE {
+            1. ADD BALANCE TO WS-TOTAL.
+            2. ADD 1 TO WS-COUNT.
+            3. PERFORM READ-FILE.
+        }
+
+        $$ PRINT_TOTAL {
+            1. DISPLAY "TOTAL CUSTOMERS: " WS-COUNT.
+            2. DISPLAY "TOTAL BALANCE: " WS-TOTAL.
+        }
+    }
+}

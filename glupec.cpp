@@ -120,6 +120,31 @@ bool isFatalError(const string& errMsg) {
     return false;
 }
 
+// [NEW] Heuristic to detect spaghetti/legacy code
+bool detectIfCodeIsSpaghetti(const string& code) {
+    if (code.find("goto ") != string::npos) return true;
+    if (code.find("setjmp") != string::npos) return true;
+    
+    int maxIndent = 0;
+    int currentIndent = 0;
+    for (char c : code) {
+        if (c == '{') currentIndent++;
+        else if (c == '}') currentIndent--;
+        if (currentIndent > 6) return true; 
+    }
+
+    string lowerCode = code;
+    transform(lowerCode.begin(), lowerCode.end(), lowerCode.begin(), ::tolower);
+    if (lowerCode.find("spaghetti") != string::npos) return true;
+    if (lowerCode.find("legacy") != string::npos) return true;
+    if (lowerCode.find("don't touch") != string::npos) return true;
+    if (lowerCode.find("do not touch") != string::npos) return true;
+    if (lowerCode.find("hack") != string::npos) return true;
+    if (lowerCode.find("fixme") != string::npos) return true;
+
+    return false;
+}
+
 // [NEW] Helper for ETA formatting
 string formatDuration(long long seconds) {
     if (seconds < 60) return to_string(seconds) + "s";
@@ -137,7 +162,12 @@ struct LangProfile {
 
 map<string, LangProfile> LANG_DB = {
     {"cpp",  {"cpp", "C++", ".cpp", "g++ --version", "g++ -std=gnu++17", true}},
+    {"cc",   {"cpp", "C++", ".cc",  "g++ --version", "g++ -std=gnu++17", true}},
+    {"cxx",  {"cpp", "C++", ".cxx", "g++ --version", "g++ -std=gnu++17", true}},
+    {"hpp",  {"cpp", "C++", ".hpp", "g++ --version", "g++ -std=gnu++17", true}},
+    {"hh",   {"cpp", "C++", ".hh",  "g++ --version", "g++ -std=gnu++17", true}},
     {"c",    {"c",   "C",   ".c",   "gcc --version", "gcc", true}},
+    {"h",    {"c",   "C",   ".h",   "gcc --version", "gcc", true}},
     {"rust", {"rust","Rust",".rs",  "rustc --version", "rustc", true}}, 
     {"go",   {"go",  "Go",  ".go",  "go version", "go build", true}},
     {"py",   {"py",  "Python", ".py", "python --version", "python -m py_compile", false, "python"}},
@@ -1447,6 +1477,7 @@ void startInteractiveHub() {
             cout << "  show <username>  : Show files for a user.\n";
             cout << "  view <file_id>   : View file metadata (e.g., user/file.glp).\n";
             cout << "  pull <file_id>   : Download a file.\n";
+            cout << "  delete <path>    : Delete a file (e.g. file.glp).\n";
             cout << "  exit             : Exit interactive mode.\n";
         } else if (command == "search") {
             string query;
@@ -1573,6 +1604,37 @@ void startInteractiveHub() {
             CmdResult res = execCmd(curlCmd);
             if (res.exitCode == 0) { cout << "[SUCCESS] Saved " << filename << endl; } 
             else { cout << "[ERROR] Download failed. Server response: " << res.output << endl; }
+        } else if (command == "delete") {
+            string path;
+            ss >> path;
+            if (path.empty()) { cout << "Usage: delete <path>" << endl; continue; }
+
+            auto session = getSession();
+            if (session.first.empty()) { cout << "[ERROR] Not logged in." << endl; continue; }
+
+            // If path doesn't contain '/', prepend username
+            if (path.find('/') == string::npos) {
+                path = session.second + "/" + path;
+            }
+
+            cout << "Are you sure you want to delete " << path << "? [y/N]: ";
+            char c;
+            if (cin >> c && (c == 'y' || c == 'Y')) {
+                cin.ignore((numeric_limits<streamsize>::max)(), '\n');
+                string curlCmd = "curl -sS -X DELETE -H \"Authorization: Bearer " + session.first + "\" \"" + hub_url + "/delete/" + path + "\"";
+                CmdResult res = execCmd(curlCmd);
+                try {
+                    json j = json::parse(res.output);
+                    if (j.contains("error")) cout << "[ERROR] " << j["error"].get<string>() << endl;
+                    else if (j.contains("message")) cout << "[SUCCESS] " << j["message"].get<string>() << endl;
+                    else cout << res.output << endl;
+                } catch (...) {
+                    cout << res.output << endl;
+                }
+            } else {
+                cin.ignore((numeric_limits<streamsize>::max)(), '\n');
+                cout << "Cancelled." << endl;
+            }
         } else {
             cout << "Unknown command: '" << command << "'. Type 'help' for commands." << endl;
         }
@@ -2195,6 +2257,7 @@ int main(int argc, char* argv[]) {
     bool makeMode = false;
     bool seriesMode = false;
     bool refineMode = false;
+    bool blindMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -2298,10 +2361,19 @@ int main(int argc, char* argv[]) {
             for (size_t i = 0; i < chunks.size(); ++i) {
                 cout << "   -> Processing chunk " << (i + 1) << "/" << chunks.size() << "..." << endl;
                 
+                bool isSpaghetti = detectIfCodeIsSpaghetti(chunks[i]);
+
                 stringstream prompt;
+                if (isSpaghetti) {
+                    cout << "      [!] Spaghetti Code Detected. Enabling Refactoring Mode." << endl;
+                    prompt << "ROLE: Expert Legacy Code Refactorer & Systems Architect.\n";
+                    prompt << "TASK: Refactor the following MESSY/LEGACY code into a clean, modern semantic blueprint (.glp).\n";
+                    prompt << "GOAL: Untangle logic, remove redundancy, and produce a professional structure while PRESERVING FUNCTIONALITY.\n";
+                } else {
                     prompt << "ROLE: Senior Systems Engineer & Logic Architect.\n";
                     prompt << "TASK: Transpile the source code into a high fidelity semantic blueprint (.glp).\n";
                     prompt << "GOAL: Destill the implementation into functional blocks '$$ name -> parent { logic } $$' .\n";
+                }
 
                     if (i > 0) {
                         prompt << "\n[EXTERNAL_CONTEXT_FROM_PREVIOUS_PARTS]\n";
@@ -2311,12 +2383,19 @@ int main(int argc, char* argv[]) {
                     }
 
                     prompt << "\n[STRICT_RULES]\n";
+                    if (isSpaghetti) {
+                        prompt << "0. REFACTOR BAD PATTERNS. Replace 'goto' with loops/control structures. Flatten deep nesting. Use meaningful names.\n";
+                    }
                     prompt << "When refining code into intent, use a numbered algorithmic format. Use standard indentation for nested logic (1, 1.1, 1.2). Do not use prose. Use imperative verbs (Get, Set, Check, Return).";
                     prompt << "Semantic blocks should represent functions, classes, and logical groupings of code. They should not be arbitrary line groupings.\n";
                     prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
                     prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
                     prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
+                    if (!isSpaghetti) prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
+                    else prompt << "0. DO NOT OMIT BUSINESS LOGIC. Preserve all functionality, but restructure the implementation details to be clean.\n";
+                    
                     prompt << "1. DO NOT OVER SUMMARIZE. Rewrite the logic inside blocks using technical steps.\n";
+                    prompt << "1.5 PRIORITIZE LOGIC OVER SYNTAX. If code contains nested loops or unclear structure, do NOT just list the variables. Instead, determine the Goal of the loop (e.g., 'Count Items', 'Filter Data') and create a block named after that goal. Ignore individual variable declarations if they are part of a larger algorithm.";
                     prompt << "   BAD: $$ init { Set up the system } $$ <- too vague\n";
                     prompt << "   GOOD: $$ init { 1. Open database at DB_URL, 2. verify 'users' table exists, 3. and initialize session_map } $$\n";
                     prompt << "2. Represent each function with a semantic block $$ block_name { ... }$$.\n";
@@ -2370,10 +2449,7 @@ int main(int argc, char* argv[]) {
 
             string outputFile = file + ".glp";
             ofstream out(outputFile);
-            // [UPDATED] Wrap in EXPORT block for -make compatibility
-            out << "EXPORT: \"" << file << "\"\n";
             out << fullRefinedCode;
-            out << "EXPORT: END\n";
             out.close();
 
             cout << "[SUCCESS] Semantic file generated: " << outputFile << endl;
@@ -2427,6 +2503,7 @@ int main(int argc, char* argv[]) {
                 cout << "   [INFO] No toolchain required." << endl;
             } else if (execCmd(CURRENT_LANG.versionCmd).exitCode != 0) {
                 cout << "   [!] Toolchain not found (" << CURRENT_LANG.versionCmd << "). Blind Mode." << endl;
+                blindMode = true;
             } else cout << "   [OK] Ready." << endl;
         }
     } else if (CURRENT_MODE == GenMode::MODEL_3D) {
@@ -2681,36 +2758,29 @@ int main(int argc, char* argv[]) {
                     prompt << "TASK: Structure and implement the project files based on the provided instructions.\n";
                 }
                 prompt << "RULES:\n";
-                prompt << "1. Use 'EXPORT: \"filename\"' ... 'EXPORT: END' for every file.\n";
-                prompt << "2. Implement full logic/content. No placeholders.\n";
-                prompt << "3. Include build scripts (Makefile/CMakeLists.txt) if needed.\n";
-                if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c" || CURRENT_LANG.id == "arduino" || CURRENT_LANG.id == "esp32") {
-                    prompt << "4. NO wrappers (Python.h/system()). Native implementation only.\n";
-                }
-                prompt << "5. Process '$${ instructions }$$' templates by implementing the logic.\n";
-                prompt << "6. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
-                prompt << "6. Output ONLY the EXPORT blocks. No conversation.\n";
                 prompt << "1. Use 'EXPORT: \"filename.ext\"' ... 'EXPORT: END' for every file.\n";
                 prompt << "2. The language for each file is determined by its extension (e.g., '.py' for Python, '.c' for C). You MUST generate valid code for that specific language inside its EXPORT block.\n";
                 prompt << "3. Implement the full logic/content. No placeholders.\n";
                 prompt << "4. Process '$${ instructions }$$' templates by implementing the logic inside them.\n";
                 prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
                 prompt << "6. Output ONLY the EXPORT blocks. No conversation or other text.\n";
+                prompt << "7. Do NOT perform web searches. Rely solely on your internal knowledge.\n";
             } else {
                 // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
                 prompt << "ROLE: Semantic Transpiler.\n";
                 prompt << "TASK: Convert input logic to a single valid " << CURRENT_LANG.name << " file.\n";
                 prompt << "RULES:\n";
-                prompt << "1. NO wrappers (<Python.h>, system()). Re-implement logic natively.\n";
-                prompt << "2. Use standard libraries (e.g. std::vector, std::map).\n";
+                prompt << "1. NO wrappers (e.g. calling other languages via system()). Re-implement logic natively in " << CURRENT_LANG.name << ".\n";
+                prompt << "2. Use standard libraries/modules native to " << CURRENT_LANG.name << ".\n";
                 prompt << "3. Output must be self-contained and runnable.\n";
                 if (CURRENT_LANG.id == "arduino" || CURRENT_LANG.id == "esp32") {
                     prompt << "4. Use 'setup()' and 'loop()' entry points. Do NOT include 'main()'.\n";
-                } else if (!CURRENT_LANG.buildCmd.empty()) {
+                } else if (CURRENT_LANG.producesBinary) {
                     prompt << "4. Include a 'main' entry point.\n";
                 }
                 prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
-                prompt << "5. No external language headers.\n";
+                prompt << "6. No external language headers/imports unless standard.\n";
+                prompt << "7. Preferably use training knowledge on " << CURRENT_LANG.name << "\n";
             }
         } else if (CURRENT_MODE == GenMode::MODEL_3D) {
             prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
@@ -2889,7 +2959,10 @@ int main(int argc, char* argv[]) {
         }
 
         CmdResult build;
-        if (CURRENT_LANG.buildCmd.empty()) {
+        if (blindMode) {
+            cout << "   [WARN] Blind Mode: Skipping verification." << endl;
+            build.exitCode = 0;
+        } else if (CURRENT_LANG.buildCmd.empty()) {
             build.exitCode = 0;
         } else {
             string valCmd = CURRENT_LANG.buildCmd + " \"" + tempSrc + "\"";
@@ -2903,7 +2976,7 @@ int main(int argc, char* argv[]) {
             bool saveSuccess = false;
 
             // Smart Output Logic
-            bool saveAsSource = (getExt(outputName) == CURRENT_LANG.extension) || transpileMode;
+            bool saveAsSource = (getExt(outputName) == CURRENT_LANG.extension) || transpileMode || blindMode;
 
             for(int i=0; i<5; i++) {
                 try {
@@ -2942,6 +3015,9 @@ int main(int argc, char* argv[]) {
             ofstream cFile(cacheFile); cFile << currentHash;
 
             if (runOutput) {
+                if (blindMode) {
+                    cout << "[WARN] Cannot run in Blind Mode." << endl;
+                } else {
                 cout << "\n[RUN] Executing..." << endl;
                 string cmd = outputName;
                 if (!CURRENT_LANG.producesBinary) {
@@ -2955,6 +3031,7 @@ int main(int argc, char* argv[]) {
                     cmd = "\"" + cmd + "\"";
                 }
                 system(cmd.c_str());
+                }
             }
 
             return 0;

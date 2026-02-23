@@ -28,6 +28,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed -make mode defaulting to c++
 - fixed chunk based refinement not working, 19 Feb
 - fixed installer -Wait flag getting hanged
 - fixed pushing with tags not working
