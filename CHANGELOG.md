@@ -29,6 +29,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed global context not appearing in series mode
 - fixed help menu not appearing
 - fixed -make mode defaulting to c++
 - fixed chunk based refinement not working, 19 Feb

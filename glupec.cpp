@@ -53,7 +53,6 @@ int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
 const string CURRENT_VERSION = "5.8.0";
-const string GLUPE_CACHE_DIR = ".glupe_cache";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -62,8 +61,7 @@ GenMode CURRENT_MODE = GenMode::CODE;
 ofstream logFile;
 
 void initLogger() {
-    if (!fs::exists(GLUPE_CACHE_DIR)) fs::create_directory(GLUPE_CACHE_DIR);
-    logFile.open(GLUPE_CACHE_DIR + "/glupe.log", ios::app); 
+    logFile.open("glupe.log", ios::app); 
     if (logFile.is_open()) {
         auto t = time(nullptr);
         auto tm = *localtime(&t);
@@ -314,17 +312,16 @@ string callAI(string prompt) {
     }
 
     for(int i=0; i<3; i++) {
-        string reqFile = GLUPE_CACHE_DIR + "/request_temp.json";
-        ofstream file(reqFile); 
+        ofstream file("request_temp.json"); 
         file << body.dump(-1, ' ', false, json::error_handler_t::replace); 
         file.close();
         
         string verbosity = VERBOSE_MODE ? " -v" : " -s";
-        string cmd = "curl" + verbosity + " -X POST -H \"Content-Type: application/json\"" + extraHeaders + " -d @" + reqFile + " \"" + url + "\"";
+        string cmd = "curl" + verbosity + " -X POST -H \"Content-Type: application/json\"" + extraHeaders + " -d @request_temp.json \"" + url + "\"";
         
         CmdResult res = execCmd(cmd);
         response = res.output;
-        remove(reqFile.c_str());
+        remove("request_temp.json");
         
         if (VERBOSE_MODE) cout << "\n[DEBUG] Raw Response: " << response << endl;
 
@@ -636,8 +633,8 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
 }
 
 // [NEW] Cache System Constants
-const string CACHE_DIR = GLUPE_CACHE_DIR + "/containers";
-const string LOCK_FILE = GLUPE_CACHE_DIR + "/.glupe.lock";
+const string CACHE_DIR = "glupe_cache";
+const string LOCK_FILE = ".glupe.lock";
 
 struct Container {
     string id;
@@ -649,7 +646,6 @@ struct Container {
 json LOCK_DATA;
 
 void initCache() {
-    if (!fs::exists(GLUPE_CACHE_DIR)) fs::create_directory(GLUPE_CACHE_DIR);
     if (!fs::exists(CACHE_DIR)) fs::create_directory(CACHE_DIR);
     if (fs::exists(LOCK_FILE)) {
         try {
@@ -1242,7 +1238,7 @@ bool preFlightCheck(const set<string>& deps) {
     if (CURRENT_LANG.checkCmd.empty() && CURRENT_LANG.id != "cpp" && CURRENT_LANG.id != "c") return true; 
 
     cout << "[CHECK] Verifying dependencies locally..." << endl;
-    string tempCheck = GLUPE_CACHE_DIR + "/temp_dep_check" + CURRENT_LANG.extension;
+    string tempCheck = "temp_dep_check" + CURRENT_LANG.extension;
     ofstream out(tempCheck);
     
     if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c") {
@@ -1267,14 +1263,8 @@ bool preFlightCheck(const set<string>& deps) {
     CmdResult res = execCmd(cmd);
     
     fs::remove(tempCheck);
-    // Clean up object files in cache dir
     if (fs::exists(stripExt(tempCheck) + ".o")) fs::remove(stripExt(tempCheck) + ".o");
     if (fs::exists(stripExt(tempCheck) + ".obj")) fs::remove(stripExt(tempCheck) + ".obj");
-    // Clean up object files that might have landed in CWD (common with gcc -c)
-    string cwdObj = fs::path(tempCheck).filename().replace_extension(".o").string();
-    if (fs::exists(cwdObj)) fs::remove(cwdObj);
-    string cwdObjWin = fs::path(tempCheck).filename().replace_extension(".obj").string();
-    if (fs::exists(cwdObjWin)) fs::remove(cwdObjWin);
 
     if (res.exitCode != 0) {
         cout << "   [!] Missing Dependency Detected!" << endl;
@@ -1432,7 +1422,7 @@ void showMetadata(const string& filename) {
 }
 
 // --- AUTH HELPERS ---
-const string SESSION_FILE = GLUPE_CACHE_DIR + "/.glupe_session";
+const string SESSION_FILE = ".glupe_session";
 
 pair<string, string> getSession() {
     if (!fs::exists(SESSION_FILE)) return {"", ""};
@@ -1676,11 +1666,10 @@ void startInteractiveHub() {
             body["old_path"] = old_path;
             body["new_path"] = new_path;
 
-            string tempFile = GLUPE_CACHE_DIR + "/rename_temp.json";
-            ofstream f(tempFile); f << body.dump(); f.close();
-            string curlCmd = "curl -sS -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer " + session.first + "\" -d @" + tempFile + " \"" + hub_url + "/rename\"";
+            ofstream f("rename_temp.json"); f << body.dump(); f.close();
+            string curlCmd = "curl -sS -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer " + session.first + "\" -d @rename_temp.json \"" + hub_url + "/rename\"";
             CmdResult res = execCmd(curlCmd);
-            remove(tempFile.c_str());
+            remove("rename_temp.json");
 
             try {
                 json j = json::parse(res.output);
@@ -1806,9 +1795,10 @@ int main(int argc, char* argv[]) {
     // CLEAN COMMAND
     if (cmd == "clean") {
         if (argc >= 3 && string(argv[2]) == "cache") {
-             cout << "[CLEAN] Removing cache directory (" << GLUPE_CACHE_DIR << ")..." << endl;
+             cout << "[CLEAN] Removing cache directory (" << CACHE_DIR << ")..." << endl;
              try {
-                 if (fs::exists(GLUPE_CACHE_DIR)) fs::remove_all(GLUPE_CACHE_DIR);
+                 if (fs::exists(CACHE_DIR)) fs::remove_all(CACHE_DIR);
+                 if (fs::exists(LOCK_FILE)) fs::remove(LOCK_FILE);
                  cout << "[SUCCESS] Cache cleaned." << endl;
              } catch (const fs::filesystem_error& e) {
                  cerr << "[ERROR] Failed to clean cache: " << e.what() << endl;
@@ -2214,11 +2204,10 @@ int main(int argc, char* argv[]) {
         body["username"] = username;
         body["password"] = password;
 
-        string tempFile = GLUPE_CACHE_DIR + "/signup_temp.json";
-        ofstream f(tempFile); f << body.dump(); f.close();
-        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @" + tempFile + " \"" + url + "/auth/signup\"";
+        ofstream f("signup_temp.json"); f << body.dump(); f.close();
+        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @signup_temp.json \"" + url + "/auth/signup\"";
         CmdResult res = execCmd(curlCmd);
-        remove(tempFile.c_str());
+        remove("signup_temp.json");
 
         try {
             json j = json::parse(res.output);
@@ -2258,11 +2247,10 @@ int main(int argc, char* argv[]) {
         body["username"] = username;
         body["password"] = password;
 
-        string tempFile = GLUPE_CACHE_DIR + "/login_temp.json";
-        ofstream f(tempFile); f << body.dump(); f.close();
-        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @" + tempFile + " \"" + url + "/login\"";
+        ofstream f("login_temp.json"); f << body.dump(); f.close();
+        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @login_temp.json \"" + url + "/login\"";
         CmdResult res = execCmd(curlCmd);
-        remove(tempFile.c_str());
+        remove("login_temp.json");
 
         try {
             json response = json::parse(res.output);
@@ -2529,14 +2517,11 @@ int main(int argc, char* argv[]) {
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
             try {
-                string cacheFile = GLUPE_CACHE_DIR + "/.glupe_build.cache";
-                if (fs::exists(cacheFile)) fs::remove(cacheFile);
-                if (fs::exists(GLUPE_CACHE_DIR)) {
-                    for (const auto& entry : fs::directory_iterator(GLUPE_CACHE_DIR)) {
-                        if (entry.is_regular_file()) {
-                            string fname = entry.path().filename().string();
-                            if (fname.find("temp_build") == 0) fs::remove(entry.path());
-                        }
+                if (fs::exists(".glupe_build.cache")) fs::remove(".glupe_build.cache");
+                for (const auto& entry : fs::directory_iterator(fs::current_path())) {
+                    if (entry.is_regular_file()) {
+                        string fname = entry.path().filename().string();
+                        if (fname.find("temp_build") == 0) fs::remove(entry.path());
                     }
                 }
             } catch (...) {}
@@ -2815,7 +2800,7 @@ int main(int argc, char* argv[]) {
     initCache();
 
     size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
-    string cacheFile = GLUPE_CACHE_DIR + "/.glupe_build.cache"; 
+    string cacheFile = ".glupe_build.cache"; 
 
     if (!updateMode && !dryRun && fs::exists(cacheFile) && fs::exists(outputName)) {
         ifstream cFile(cacheFile);
@@ -2928,8 +2913,8 @@ int main(int argc, char* argv[]) {
 
     if (dryRun) { cout << "--- CONTEXT PREVIEW ---\n" << aggregatedContext << endl; return 0; }
 
-    string tempSrc = GLUPE_CACHE_DIR + "/temp_build" + CURRENT_LANG.extension;
-    string tempBin = GLUPE_CACHE_DIR + "/temp_build.exe"; 
+    string tempSrc = "temp_build" + CURRENT_LANG.extension;
+    string tempBin = "temp_build.exe"; 
     string errorHistory = ""; 
 
     // [OPTIMIZATION] Direct Compilation for matching source files
@@ -3295,6 +3280,7 @@ int main(int argc, char* argv[]) {
             log("FAIL", "Pass " + to_string(gen) + " failed.");
 
             // [UPDATED v5.1] Catch literal translation attempts
+            // for 6.0 make this more robust by not hardcoding python -> c++ cases
             if (err.find("python.h") != string::npos || err.find("Python.h") != string::npos) {
                  errorHistory = "FATAL: You are trying to include Python.h. STOP. Rewrite the code using native C++ std:: libraries only.\n";
             } else if (err.find("print(") != string::npos || err.find("import ") != string::npos || err.find("def ") != string::npos) {
