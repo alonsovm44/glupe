@@ -53,6 +53,7 @@ int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
 const string CURRENT_VERSION = "5.8.0";
+const string GLUPE_CACHE_DIR = ".glupe_cache";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -61,7 +62,8 @@ GenMode CURRENT_MODE = GenMode::CODE;
 ofstream logFile;
 
 void initLogger() {
-    logFile.open("glupe.log", ios::app); 
+    if (!fs::exists(GLUPE_CACHE_DIR)) fs::create_directory(GLUPE_CACHE_DIR);
+    logFile.open(GLUPE_CACHE_DIR + "/glupe.log", ios::app); 
     if (logFile.is_open()) {
         auto t = time(nullptr);
         auto tm = *localtime(&t);
@@ -212,7 +214,8 @@ map<string, LangProfile> LANG_DB = {
     {"acn",  {"acn", "Acorn",   ".acn", "", "", false}},
     {"arduino", {"arduino", "Arduino (AVR)", ".ino", "arduino-cli version", "arduino-cli compile --fqbn arduino:avr:uno", true}},
     {"esp32",   {"esp32",   "ESP32",          ".ino", "arduino-cli version", "arduino-cli compile --fqbn esp32:esp32:esp32", true}},
-    {"glp", {"glp", "glupe",    ".glp", "", "", false}}
+    {"glp",   {"glp", "glupe",    ".glp",   "", "", false}},
+    {"glupe", {"glp", "glupe",    ".glupe", "", "", false}}
 };
 
 map<string, LangProfile> MODEL_DB = {
@@ -311,16 +314,17 @@ string callAI(string prompt) {
     }
 
     for(int i=0; i<3; i++) {
-        ofstream file("request_temp.json"); 
+        string reqFile = GLUPE_CACHE_DIR + "/request_temp.json";
+        ofstream file(reqFile); 
         file << body.dump(-1, ' ', false, json::error_handler_t::replace); 
         file.close();
         
         string verbosity = VERBOSE_MODE ? " -v" : " -s";
-        string cmd = "curl" + verbosity + " -X POST -H \"Content-Type: application/json\"" + extraHeaders + " -d @request_temp.json \"" + url + "\"";
+        string cmd = "curl" + verbosity + " -X POST -H \"Content-Type: application/json\"" + extraHeaders + " -d @" + reqFile + " \"" + url + "\"";
         
         CmdResult res = execCmd(cmd);
         response = res.output;
-        remove("request_temp.json");
+        remove(reqFile.c_str());
         
         if (VERBOSE_MODE) cout << "\n[DEBUG] Raw Response: " << response << endl;
 
@@ -632,8 +636,8 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
 }
 
 // [NEW] Cache System Constants
-const string CACHE_DIR = "glupe_cache";
-const string LOCK_FILE = ".glupe.lock";
+const string CACHE_DIR = GLUPE_CACHE_DIR + "/containers";
+const string LOCK_FILE = GLUPE_CACHE_DIR + "/.glupe.lock";
 
 struct Container {
     string id;
@@ -645,6 +649,7 @@ struct Container {
 json LOCK_DATA;
 
 void initCache() {
+    if (!fs::exists(GLUPE_CACHE_DIR)) fs::create_directory(GLUPE_CACHE_DIR);
     if (!fs::exists(CACHE_DIR)) fs::create_directory(CACHE_DIR);
     if (fs::exists(LOCK_FILE)) {
         try {
@@ -708,7 +713,7 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
         bool isNamed = false;
         bool isAbstract = false; // [NEW] Track abstract status
         string id;
-        string parentId; // [NEW] Parent ID for inheritance
+        vector<string> parentIds; // [NEW] Parent IDs for inheritance
         size_t contentStart = 0;
         size_t scan = start + 2;
         
@@ -735,15 +740,23 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
                 while(brace < code.length() && isspace(code[brace])) brace++;
                 if (brace + 1 < code.length() && code[brace] == '-' && code[brace+1] == '>') {
                      size_t pScan = brace + 2;
-                     while(pScan < code.length() && isspace(code[pScan])) pScan++;
-                     size_t pStart = pScan;
-                     while(pScan < code.length() && !isspace(code[pScan]) && code[pScan] != '{') {
-                         pScan++;
+                     while (pScan < code.length()) {
+                         while(pScan < code.length() && isspace(code[pScan])) pScan++;
+                         if (pScan >= code.length() || code[pScan] == '{') break;
+                         
+                         size_t pStart = pScan;
+                         while(pScan < code.length() && !isspace(code[pScan]) && code[pScan] != ',' && code[pScan] != '{') {
+                             pScan++;
+                         }
+                         if (pScan > pStart) {
+                             parentIds.push_back(code.substr(pStart, pScan - pStart));
+                         }
+                         
+                         while(pScan < code.length() && isspace(code[pScan])) pScan++;
+                         if (pScan < code.length() && code[pScan] == ',') pScan++;
+                         else if (code[pScan] == '{') { brace = pScan; break; }
                      }
-                     if (pScan > pStart) {
-                         parentId = code.substr(pStart, pScan - pStart);
-                         brace = pScan;
-                     }
+                     brace = pScan;
                 }
 
                 while(brace < code.length() && isspace(code[brace])) brace++;
@@ -767,14 +780,19 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
             string prompt = code.substr(contentStart, end - contentStart);
             
             // [NEW] Logic Inheritance
-            if (!parentId.empty()) {
-                if (containerPrompts.count(parentId)) {
-                    string parentLogic = containerPrompts[parentId];
+            if (!parentIds.empty()) {
+                string combinedParents;
+                for(const auto& pid : parentIds) {
+                    if (containerPrompts.count(pid)) {
+                        combinedParents += "\n--- INHERITED FROM " + pid + " ---\n" + containerPrompts[pid] + "\n";
+                        cout << "   [INHERIT] Container '" << id << "' inherits from '" << pid << "'" << endl;
+                    } else {
+                        cout << "   [WARN] Parent container '" << pid << "' not found (must be defined before use)." << endl;
+                    }
+                }
+                if (!combinedParents.empty()) {
                     string childLogic = prompt;
-                    prompt = "INHERITED FROM " + parentId + ":\n" + parentLogic + "\n\nCHILD LOGIC:\n" + childLogic;
-                    cout << "   [INHERIT] Container '" << id << "' inherits from '" << parentId << "'" << endl;
-                } else {
-                    cout << "   [WARN] Parent container '" << parentId << "' not found (must be defined before use)." << endl;
+                    prompt = "CONTEXT: The following logic is inherited from parent containers.\nRESOLUTION RULES:\n1. Child logic overrides parent logic.\n2. If parents contradict, the last listed parent takes precedence.\n" + combinedParents + "\n--- CHILD LOGIC (" + id + ") ---\n" + childLogic;
                 }
             }
             containerPrompts[id] = prompt; // Store resolved prompt
@@ -954,10 +972,7 @@ string stripTemplates(const string& line, bool& insideTemplate) {
                 // [NEW] Skip inheritance syntax in stripper
                 if (brace + 1 < line.length() && line[brace] == '-' && line[brace+1] == '>') {
                      size_t pScan = brace + 2;
-                     while(pScan < line.length() && isspace(line[pScan])) pScan++;
-                     while(pScan < line.length() && !isspace(line[pScan]) && line[pScan] != '{') {
-                         pScan++;
-                     }
+                     while(pScan < line.length() && line[pScan] != '{') pScan++; // Skip until {
                      brace = pScan;
                 }
 
@@ -1071,10 +1086,7 @@ bool validateContainers(const string& code) {
                 while(brace < code.length() && isspace(code[brace])) brace++;
                 if (brace + 1 < code.length() && code[brace] == '-' && code[brace+1] == '>') {
                      size_t pScan = brace + 2;
-                     while(pScan < code.length() && isspace(code[pScan])) pScan++;
-                     while(pScan < code.length() && !isspace(code[pScan]) && code[pScan] != '{') {
-                         pScan++;
-                     }
+                     while(pScan < code.length() && code[pScan] != '{') pScan++; // Skip until {
                      brace = pScan;
                 }
 
@@ -1085,7 +1097,14 @@ bool validateContainers(const string& code) {
                         return false;
                     }
                     ids.insert(id);
-                    pos = brace + 1;
+                    
+                    // [FIX] Check for closing tag and skip content to avoid false positives inside prompts
+                    size_t end = code.find("}$$", brace + 1);
+                    if (end == string::npos) {
+                        cerr << "[ERROR] Unclosed container: \"" << id << "\" (missing }$$)" << endl;
+                        return false;
+                    }
+                    pos = end + 3;
                     continue;
                 }
             }
@@ -1223,7 +1242,7 @@ bool preFlightCheck(const set<string>& deps) {
     if (CURRENT_LANG.checkCmd.empty() && CURRENT_LANG.id != "cpp" && CURRENT_LANG.id != "c") return true; 
 
     cout << "[CHECK] Verifying dependencies locally..." << endl;
-    string tempCheck = "temp_dep_check" + CURRENT_LANG.extension;
+    string tempCheck = GLUPE_CACHE_DIR + "/temp_dep_check" + CURRENT_LANG.extension;
     ofstream out(tempCheck);
     
     if (CURRENT_LANG.id == "cpp" || CURRENT_LANG.id == "c") {
@@ -1248,8 +1267,14 @@ bool preFlightCheck(const set<string>& deps) {
     CmdResult res = execCmd(cmd);
     
     fs::remove(tempCheck);
+    // Clean up object files in cache dir
     if (fs::exists(stripExt(tempCheck) + ".o")) fs::remove(stripExt(tempCheck) + ".o");
     if (fs::exists(stripExt(tempCheck) + ".obj")) fs::remove(stripExt(tempCheck) + ".obj");
+    // Clean up object files that might have landed in CWD (common with gcc -c)
+    string cwdObj = fs::path(tempCheck).filename().replace_extension(".o").string();
+    if (fs::exists(cwdObj)) fs::remove(cwdObj);
+    string cwdObjWin = fs::path(tempCheck).filename().replace_extension(".obj").string();
+    if (fs::exists(cwdObjWin)) fs::remove(cwdObjWin);
 
     if (res.exitCode != 0) {
         cout << "   [!] Missing Dependency Detected!" << endl;
@@ -1407,7 +1432,7 @@ void showMetadata(const string& filename) {
 }
 
 // --- AUTH HELPERS ---
-const string SESSION_FILE = ".glupe_session";
+const string SESSION_FILE = GLUPE_CACHE_DIR + "/.glupe_session";
 
 pair<string, string> getSession() {
     if (!fs::exists(SESSION_FILE)) return {"", ""};
@@ -1651,10 +1676,11 @@ void startInteractiveHub() {
             body["old_path"] = old_path;
             body["new_path"] = new_path;
 
-            ofstream f("rename_temp.json"); f << body.dump(); f.close();
-            string curlCmd = "curl -sS -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer " + session.first + "\" -d @rename_temp.json \"" + hub_url + "/rename\"";
+            string tempFile = GLUPE_CACHE_DIR + "/rename_temp.json";
+            ofstream f(tempFile); f << body.dump(); f.close();
+            string curlCmd = "curl -sS -X POST -H \"Content-Type: application/json\" -H \"Authorization: Bearer " + session.first + "\" -d @" + tempFile + " \"" + hub_url + "/rename\"";
             CmdResult res = execCmd(curlCmd);
-            remove("rename_temp.json");
+            remove(tempFile.c_str());
 
             try {
                 json j = json::parse(res.output);
@@ -1696,6 +1722,7 @@ void showHelp() {
     cout << "  config model-local      : Interactive local model selection.\n";
     cout << "  clean cache             : Clear semantic cache.\n";
     cout << "  edit <file> --container <name> \"prompt\" : Edit a container's prompt.\n";
+    cout << "  check <file>            : Validate syntax of a .glp file.\n";
     cout << "  fix <file> \"instr\"      : AI-powered code repair.\n";
     cout << "  explain <file> [lang]   : Generate documentation.\n";
     cout << "  diff <f1> <f2> [lang]   : Semantic diff report.\n";
@@ -1779,10 +1806,9 @@ int main(int argc, char* argv[]) {
     // CLEAN COMMAND
     if (cmd == "clean") {
         if (argc >= 3 && string(argv[2]) == "cache") {
-             cout << "[CLEAN] Removing cache directory (" << CACHE_DIR << ")..." << endl;
+             cout << "[CLEAN] Removing cache directory (" << GLUPE_CACHE_DIR << ")..." << endl;
              try {
-                 if (fs::exists(CACHE_DIR)) fs::remove_all(CACHE_DIR);
-                 if (fs::exists(LOCK_FILE)) fs::remove(LOCK_FILE);
+                 if (fs::exists(GLUPE_CACHE_DIR)) fs::remove_all(GLUPE_CACHE_DIR);
                  cout << "[SUCCESS] Cache cleaned." << endl;
              } catch (const fs::filesystem_error& e) {
                  cerr << "[ERROR] Failed to clean cache: " << e.what() << endl;
@@ -1916,6 +1942,32 @@ int main(int argc, char* argv[]) {
         cout << answer << endl;
         cout << "----------------------\n";
         return 0;
+    }
+
+    // CHECK COMMAND
+    if (cmd == "check") {
+        if (argc < 3) {
+            cout << "Usage: glupe check <file>" << endl;
+            return 1;
+        }
+        string targetFile = argv[2];
+        if (!fs::exists(targetFile)) {
+            cout << "[ERROR] File not found: " << targetFile << endl;
+            return 1;
+        }
+        
+        ifstream f(targetFile);
+        string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+        f.close();
+
+        cout << "[CHECK] Validating syntax for " << targetFile << "..." << endl;
+        if (validateContainers(content)) {
+            cout << "[SUCCESS] Syntax OK. Containers are valid." << endl;
+            return 0;
+        } else {
+            cout << "[FAIL] Syntax errors detected." << endl;
+            return 1;
+        }
     }
 
     // UPDATE COMMAND
@@ -2162,10 +2214,11 @@ int main(int argc, char* argv[]) {
         body["username"] = username;
         body["password"] = password;
 
-        ofstream f("signup_temp.json"); f << body.dump(); f.close();
-        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @signup_temp.json \"" + url + "/auth/signup\"";
+        string tempFile = GLUPE_CACHE_DIR + "/signup_temp.json";
+        ofstream f(tempFile); f << body.dump(); f.close();
+        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @" + tempFile + " \"" + url + "/auth/signup\"";
         CmdResult res = execCmd(curlCmd);
-        remove("signup_temp.json");
+        remove(tempFile.c_str());
 
         try {
             json j = json::parse(res.output);
@@ -2205,10 +2258,11 @@ int main(int argc, char* argv[]) {
         body["username"] = username;
         body["password"] = password;
 
-        ofstream f("login_temp.json"); f << body.dump(); f.close();
-        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @login_temp.json \"" + url + "/login\"";
+        string tempFile = GLUPE_CACHE_DIR + "/login_temp.json";
+        ofstream f(tempFile); f << body.dump(); f.close();
+        string curlCmd = "curl -s -X POST -H \"Content-Type: application/json\" -d @" + tempFile + " \"" + url + "/login\"";
         CmdResult res = execCmd(curlCmd);
-        remove("login_temp.json");
+        remove(tempFile.c_str());
 
         try {
             json response = json::parse(res.output);
@@ -2401,8 +2455,7 @@ int main(int argc, char* argv[]) {
                 while (scan < content.length() && isspace(content[scan])) scan++;
                 if (content.substr(scan, 2) == "->") {
                     scan += 2;
-                    while (scan < content.length() && isspace(content[scan])) scan++;
-                    while (scan < content.length() && !isspace(content[scan]) && content[scan] != '{') scan++;
+                    while (scan < content.length() && content[scan] != '{') scan++;
                 }
                 while (scan < content.length() && isspace(content[scan])) scan++;
 
@@ -2476,11 +2529,14 @@ int main(int argc, char* argv[]) {
         else if (arg == "--clean") {
             cout << "[CLEAN] Removing temporary build files..." << endl;
             try {
-                if (fs::exists(".glupe_build.cache")) fs::remove(".glupe_build.cache");
-                for (const auto& entry : fs::directory_iterator(fs::current_path())) {
-                    if (entry.is_regular_file()) {
-                        string fname = entry.path().filename().string();
-                        if (fname.find("temp_build") == 0) fs::remove(entry.path());
+                string cacheFile = GLUPE_CACHE_DIR + "/.glupe_build.cache";
+                if (fs::exists(cacheFile)) fs::remove(cacheFile);
+                if (fs::exists(GLUPE_CACHE_DIR)) {
+                    for (const auto& entry : fs::directory_iterator(GLUPE_CACHE_DIR)) {
+                        if (entry.is_regular_file()) {
+                            string fname = entry.path().filename().string();
+                            if (fname.find("temp_build") == 0) fs::remove(entry.path());
+                        }
                     }
                 }
             } catch (...) {}
@@ -2759,7 +2815,7 @@ int main(int argc, char* argv[]) {
     initCache();
 
     size_t currentHash = hash<string>{}(aggregatedContext + CURRENT_LANG.id + MODEL_ID + (updateMode ? "u" : "n") + customInstructions);
-    string cacheFile = ".glupe_build.cache"; 
+    string cacheFile = GLUPE_CACHE_DIR + "/.glupe_build.cache"; 
 
     if (!updateMode && !dryRun && fs::exists(cacheFile) && fs::exists(outputName)) {
         ifstream cFile(cacheFile);
@@ -2872,8 +2928,8 @@ int main(int argc, char* argv[]) {
 
     if (dryRun) { cout << "--- CONTEXT PREVIEW ---\n" << aggregatedContext << endl; return 0; }
 
-    string tempSrc = "temp_build" + CURRENT_LANG.extension;
-    string tempBin = "temp_build.exe"; 
+    string tempSrc = GLUPE_CACHE_DIR + "/temp_build" + CURRENT_LANG.extension;
+    string tempBin = GLUPE_CACHE_DIR + "/temp_build.exe"; 
     string errorHistory = ""; 
 
     // [OPTIMIZATION] Direct Compilation for matching source files

@@ -1,14 +1,33 @@
 # Read the White Paper
 https://github.com/alonsovm44/glupe/blob/master/WHITE_PAPER.md
 # Glupe 
-Glupe is a free and open-source CLI tool that bridges the gap between human intent and native execution. It introduces a "Semantic Container" architecture, allowing you to define exactly where AI touches your code and where it is forbidden. Glupe turns these embedded blocks from high-level containers into optimized, native source code for any supported language, effectively decoupling your logic from the syntax and making your software immune to code rot.
+Glupe is a semantic metaprogramming language. Unlike traditional metaprogramming systems that operate within a single language (C++ templates, Lisp macros), Glupe operates at the level of human intent and can materialize that intent into any target programming language. This positions Glupe as a 'meta' language not just in the technical sense of generating code, but in the philosophical sense of being one level above all programming languages.
 
-100% local. 100% private. 100% free.
-No subscriptions. No telemetry. No cloud.
-Your code, your machine, your rules.
+Example meta-program:
+```glupe
 
+$$ include {
+    standard io library
+    vector library
+
+}$$
+$$ABSTRACT rules{
+    every printed message must end with "!"
+}$$
+
+$$ABSTRACT rules2{
+    every printed message must end with "?"
+}$$
+
+$$ main -> rules, rules2 {
+ let v = vector[1,2,3]
+ print v   
+}$$
+
+```
+This code can be compiled into 40+ supported languages or native executables.
 --- 
-## What is Glupe?
+## But what does Glupe do?
 ### The one liner
 "Glupe isolates AI logic into semantic containers, so your manual code stays safe." 
 ---
