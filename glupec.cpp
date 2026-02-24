@@ -1695,10 +1695,12 @@ void showHelp() {
     cout << "  config <key> <val>      : Update configuration.\n";
     cout << "  config model-local      : Interactive local model selection.\n";
     cout << "  clean cache             : Clear semantic cache.\n";
+    cout << "  edit <file> --container <name> \"prompt\" : Edit a container's prompt.\n";
     cout << "  fix <file> \"instr\"      : AI-powered code repair.\n";
     cout << "  explain <file> [lang]   : Generate documentation.\n";
     cout << "  diff <f1> <f2> [lang]   : Semantic diff report.\n";
     cout << "  sos [lang] \"query\"      : Ask AI for help.\n";
+    cout << "  update                  : Check for and apply updates to glupe.\n";
     cout << "  hub                     : Enter interactive GlupeHub mode.\n";
     cout << "  login / signup / logout : GlupeHub authentication.\n";
     cout << "  push <file> [tags]      : Upload to GlupeHub.\n";
@@ -1719,11 +1721,13 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         cout << "GLUPE v" << CURRENT_VERSION << " (Multi-File)\nUsage: glupe file1 ... [-o output] [-cloud/-local] [-3d/-img] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
+        cout << "  edit <f> --cont <n> \"p\" : Edit a container's prompt\n";
         cout << "  clean cache        : Clear semantic cache\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
+        cout << "  update             : Check for and apply updates to glupe.\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
         cout << "  insert-metadata <path> : Insert metadata template\n";
         cout << "  login [url]        : Authenticate with GlupeHub\n";
@@ -1911,6 +1915,35 @@ int main(int argc, char* argv[]) {
         cout << "\n--- GLUPE SOS REPLY ---\n";
         cout << answer << endl;
         cout << "----------------------\n";
+        return 0;
+    }
+
+    // UPDATE COMMAND
+    if (cmd == "update") {
+        cout << "[UPDATE] Checking for new version..." << endl;
+        
+        #ifdef _WIN32
+        string updateUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/main/scripts/update.ps1";
+        string command = "powershell -Command \"irm " + updateUrl + " | iex\"";
+        #else
+        string updateUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/main/scripts/update.sh";
+        string command = "curl -sSL " + updateUrl + " | bash";
+        #endif
+
+        cout << "   -> Executing update script from repository..." << endl;
+        if (VERBOSE_MODE) {
+            cout << "   [CMD] " << command << endl;
+        }
+
+        int result = system(command.c_str());
+
+        if (result != 0) {
+            cerr << "[ERROR] Update script failed with exit code: " << result << endl;
+            cerr << "   Please try updating manually from the repository." << endl;
+            return 1;
+        }
+        
+        cout << "[SUCCESS] Glupe has been updated. Please restart your terminal." << endl;
         return 0;
     }
 
@@ -2308,6 +2341,99 @@ int main(int argc, char* argv[]) {
         }
         
         cout << "[SUCCESS] Saved " << filename << endl;
+        return 0;
+    }
+
+    // EDIT COMMAND
+    if (cmd == "edit") {
+        if (argc < 6) {
+            cout << "Usage: glupe edit <file> --container <name> \"<new prompt>\"" << endl;
+            return 1;
+        }
+        string targetFile = argv[2];
+        string containerFlag = argv[3];
+        string containerName = argv[4];
+        string newPrompt = argv[5];
+
+        if (containerFlag != "--container") {
+            cout << "Usage: glupe edit <file> --container <name> \"<new prompt>\"" << endl;
+            return 1;
+        }
+
+        if (!fs::exists(targetFile)) {
+            cout << "[ERROR] File not found: " << targetFile << endl;
+            return 1;
+        }
+
+        ifstream f(targetFile);
+        string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+        f.close();
+
+        string newContent;
+        size_t pos = 0;
+        bool found = false;
+        while ((pos = content.find("$$", pos)) != string::npos) {
+            size_t scan = pos + 2;
+            while (scan < content.length() && isspace(content[scan])) scan++;
+
+            if (content.substr(scan, 8) == "ABSTRACT") {
+                scan += 8;
+                while (scan < content.length() && isspace(content[scan])) scan++;
+            }
+
+            string currentId;
+            if (content[scan] == '"') {
+                size_t idStart = scan + 1;
+                size_t idEnd = content.find('"', idStart);
+                if (idEnd != string::npos) {
+                    currentId = content.substr(idStart, idEnd - idStart);
+                    scan = idEnd + 1;
+                }
+            } else {
+                size_t idStart = scan;
+                while (scan < content.length() && !isspace(content[scan]) && content[scan] != '{' && content.substr(scan, 2) != "->") {
+                    scan++;
+                }
+                currentId = content.substr(idStart, scan - idStart);
+            }
+
+            if (currentId == containerName) {
+                while (scan < content.length() && isspace(content[scan])) scan++;
+                if (content.substr(scan, 2) == "->") {
+                    scan += 2;
+                    while (scan < content.length() && isspace(content[scan])) scan++;
+                    while (scan < content.length() && !isspace(content[scan]) && content[scan] != '{') scan++;
+                }
+                while (scan < content.length() && isspace(content[scan])) scan++;
+
+                if (content[scan] == '{') {
+                    size_t contentStart = scan + 1;
+                    size_t contentEnd = content.find("}$$", contentStart);
+                    if (contentEnd != string::npos) {
+                        string before = content.substr(0, contentStart);
+                        string after = content.substr(contentEnd);
+                        string originalPrompt = content.substr(contentStart, contentEnd - contentStart);
+                        size_t firstChar = originalPrompt.find_first_not_of(" \t\r\n");
+                        string padding = (firstChar != string::npos) ? originalPrompt.substr(0, firstChar) : "\n    ";
+                        newContent = before + padding + newPrompt + padding + after;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            pos++;
+        }
+
+        if (!found) {
+            cout << "[ERROR] Container '" << containerName << "' not found in " << targetFile << endl;
+            return 1;
+        }
+
+        ofstream out(targetFile);
+        out << newContent;
+        out.close();
+
+        cout << "[SUCCESS] Container '" << containerName << "' in " << targetFile << " updated." << endl;
         return 0;
     }
 
