@@ -16,7 +16,7 @@ $$ABSTRACT rules{
 }$$
 
 $$ABSTRACT rules2{
-    every printed message must end with "?"
+    every printed message must begin with "?"
 }$$
 
 $$ main -> rules, rules2 {
@@ -24,6 +24,10 @@ $$ main -> rules, rules2 {
  print v   
 }$$
 
+```
+Result:
+```
+? 1,2,3 ! 
 ```
 This code can be compiled into 40+ supported languages or native executables.
 --- 
@@ -101,68 +105,121 @@ If compilation fails, Glupe can attempt to fix the problem by re-running the mod
 Glupe is not a deterministic compiler or a formal transpiler. It is an orchestrator that relies on external compilers and the quality of the configured language model, using LLMs to assist with code generation and build orchestration
 
 ---
-## Key Features
-Key Features
+ ## Key Features
+ ### AI-Powered Code Generation
+Generate executable code from natural language, mixed languages, or existing files:
 
-1. LLM-based code generation from text input or existing files, which can be combination of any language, example:
-`glupe utils.py myalgorithm.c -o myprogram.exe -cpp -cloud`
+```bash
+glupe utils.py myalgorithm.c -o myprogram.exe -cpp -cloud
+```
+Combine Python, C, and intent → get a native C++ binary
 
-2. Multi-file output via EXPORT: blocks in glupe text files. Any text file will work for gupe files, i recommend `.glupe`, `.txt` or markdown files.
+### Multi-File Project Generation
+Use EXPORT: blocks to define entire projects in a single .glp file:
 
-Note: glupe files support user-generated code mixed with AI generated code using the $${ ... }$$ blocks. Example:
-```gkupe
+```glupe
 EXPORT: "mylib.h"
-$${
-  define a function called 'myfunction()' which takes a number and returns its square
-}$$
+$$ myfunc { define a function 'myfunction()' that returns square of a number }$$
 EXPORT: END
 
 EXPORT: "myprogram.cpp"
 #include <iostream>
 #include <vector>
-#include "mylib.h" //for myfunction()
-
-using namespace std;
+#include "mylib.h"
 
 int main(){
   int x = 3;
-  $${
+  $$ main { 
     make a vector V containing [1,2,3,4,5]
-    print hello world and the vector V content and clean the buffer
-    print(myfunction(x))  //prints 9
+    print "hello world" and vector V
+    print(myfunction(x))  // should print 9
   }$$
 }
 EXPORT: END
-``` 
-You then run
+```
+Run this script
 ```bash
 glupe idea.txt -make -cloud -series
 ```
-As you can see, it is a high level text file with a C++ file embedded, which in turn has high level logic embedded into it. This allows the user to have full control on where the A.I touches the code vs where it is not allowed. The `-series` flag tells Glupe to build the files in series, not in parallel (by default), this is to ensure the AI does not suffer from prompt fatigue and returns an incomplete or hallucinated output.
+### Full Control: You Drive, AI Fills
+Unlike "all-or-nothing" AI generators, Glupe lets you decide exactly where AI touches your code:
 
----
+You control structure, includes, and architecture
+AI only fills $${ ... }$$ blocks
+Perfect for production code where safety matters
 
-### TL;DR:
-Glupe parses the export blocks and creates the requested project files, copying the the textual code you provided and leting the AI fill the semantic patches you declared, using the `-series` flag tells Glupe to make each file in series, not in parallel, to avoid prompt fatigue. Unlike most AI idea-to-code generators which work on an "all or nothing" basis, Glupe gives you full control on where you want the AI to touch your code, and where you take the wheel.
----
+### Series Mode (Prevents Prompt Fatigue)
+```bash
+glupe project.glp -make -series
+```
+Generates files sequentially (not parallel) to ensure AI maintains context and delivers complete, coherent outputs.
 
-3. Automatic build detection (Makefile, CMakeLists.txt, build.sh, build.bat)
+### Automatic Build Detection
+Glupe automatically detects and runs your build system:
 
-4. Retry loop with compiler feedback (self-healing)
+Makefile → runs make
 
-5. Optional execution of built binaries via `-run` flag
+CMakeLists.txt → configures and builds
 
-6. Model-agnostic (local and cloud models supported via ollama)
+build.sh / build.bat → executes directly
 
-Additional utility commands: 
-1. `fix`. Adds deltas to your file based in a text instruction
-usage `glupe fix project.c "fix segfault in line 1023" -local`
-2. `explain`. It makes a copy of your file thoroughly commented anad explaining what the code does. Good for onboarding.
-usage `glupe explain main.cpp -cloud english`
-3. `diff`, used to make a semantic diff markdown report
-used like this `glupe diff version1.py version2.py -cloud` 
-4. `sos`. Custom techsupport in your terminal.
-used like this `glupe sos english -local "problem or error description"`
+### Self-Healing Compilation
+Failed build? Glupe retries with compiler feedback:
+
+```bash
+[Pass 1] Missing #include <map>
+[Pass 2] Wide string mismatch  
+[Pass 3] BUILD SUCCESSFUL!
+```
+### One-Step Execution
+```bash
+glupe app.glp -o app.exe -cpp -local -run
+```
+# Compiles AND runs immediately
+Model-Agnostic
+Works with any LLM backend:
+
+Local: Ollama (privacy, zero cost)
+
+Cloud: OpenAI, Google Gemini (more power)
+
+Custom: Any OpenAI-compatible API
+
+Utility Commands
+### fix – Apply Smart Edits
+Add changes to your code via natural language:
+
+```bash
+glupe fix project.c "fix segfault in line 1023" -local
+```
+
+### explain – Auto-Generate Documentation
+Create a thoroughly commented copy of your file:
+
+```bash
+glupe explain main.cpp -cloud english
+```
+Creates main_doc.cpp with detailed comments
+
+### diff – Semantic Change Analysis
+Generate a Markdown report of what changed, not just what text changed:
+
+```bash
+glupe diff version1.py version2.py -cloud
+```
+Outputs human-readable change summary
+### sos – Terminal Tech Support
+Get AI help without leaving your terminal:
+```bash
+glupe sos english -local "KeyError: 'name' in my pandas script"
+```
+### TL;DR
+Glupe is a semantic compiler that:
+- Parses EXPORT: blocks to create project files
+- Copies your literal code exactly as written
+- Lets AI fill only the $${ ... }$$ blocks you designate
+- Uses -series to build files sequentially (prevents AI fatigue)
+- Gives you full control—unlike black-box AI generators
 
 ## Why use Glupe?
 1. A different approach to build automation
