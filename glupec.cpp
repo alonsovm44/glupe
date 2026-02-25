@@ -699,10 +699,47 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
     size_t pos = 0;
     
     while (pos < code.length()) {
-        size_t start = code.find("$$", pos);
+        size_t start = code.find("$", pos);
         if (start == string::npos) {
             result += code.substr(pos);
             break;
+        }
+
+        bool isBlock = false;
+        bool isInline = false;
+        size_t scan = 0;
+
+        if (start + 1 < code.length() && code[start+1] == '$') {
+            isBlock = true;
+            scan = start + 2;
+        } else {
+            // Inline container check: $ ... { ... } ... $ on same line
+            size_t lineEnd = code.find('\n', start);
+            if (lineEnd == string::npos) lineEnd = code.length();
+            
+            size_t openB = code.find('{', start);
+            if (openB != string::npos && openB < lineEnd) {
+                // Look for } followed by $
+                size_t searchPos = openB + 1;
+                while (searchPos < lineEnd) {
+                    size_t closeB = code.find('}', searchPos);
+                    if (closeB == string::npos || closeB >= lineEnd) break;
+                    size_t check = closeB + 1;
+                    while (check < lineEnd && isspace(code[check])) check++;
+                    if (check < lineEnd && code[check] == '$') {
+                        isInline = true;
+                        scan = start + 1;
+                        break;
+                    }
+                    searchPos = closeB + 1;
+                }
+            }
+        }
+
+        if (!isBlock && !isInline) {
+            result += code.substr(pos, start - pos + 1);
+            pos = start + 1;
+            continue;
         }
 
         // Check named $$ "id" {
@@ -711,7 +748,6 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
         string id;
         vector<string> parentIds; // [NEW] Parent IDs for inheritance
         size_t contentStart = 0;
-        size_t scan = start + 2;
         
         while(scan < code.length() && isspace(code[scan])) scan++;
         
@@ -765,11 +801,35 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
 
         if (isNamed) {
             // Find end of container
-            size_t end = code.find("}$$", contentStart);
+            size_t end = string::npos;
+            size_t nextPos = 0;
+
+            if (isBlock) {
+                end = code.find("}$$", contentStart);
+                if (end != string::npos) nextPos = end + 3;
+            } else {
+                // Inline end finding
+                size_t lineEnd = code.find('\n', start);
+                if (lineEnd == string::npos) lineEnd = code.length();
+                size_t searchPos = contentStart;
+                while (searchPos < lineEnd) {
+                    size_t closeB = code.find('}', searchPos);
+                    if (closeB == string::npos || closeB >= lineEnd) break;
+                    size_t check = closeB + 1;
+                    while (check < lineEnd && isspace(code[check])) check++;
+                    if (check < lineEnd && code[check] == '$') {
+                        end = closeB;
+                        nextPos = check + 1;
+                        break;
+                    }
+                    searchPos = closeB + 1;
+                }
+            }
+
             if (end == string::npos) {
                 // Malformed, just append and continue
-                result += code.substr(pos, start - pos + 2);
-                pos = start + 2;
+                result += code.substr(pos, (isBlock ? 2 : 1));
+                pos = start + (isBlock ? 2 : 1);
                 continue;
             }
 
@@ -798,7 +858,7 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
                 cout << "   [ABSTRACT] Defined container: " << id << endl;
                 result += code.substr(pos, start - pos); // Append text before container
                 result += "// [ABSTRACT: " + id + "]\n"; // Placeholder comment (no code generation)
-                pos = end + 3;
+                pos = nextPos;
                 continue;
             }
 
@@ -858,11 +918,11 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
                 LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
             }
 
-            pos = end + 3; // Skip }$$
+            pos = nextPos; 
         } else {
             // Anonymous or malformed, keep as is (or handle anonymous logic)
-            result += code.substr(pos, start - pos + 2);
-            pos = start + 2;
+            result += code.substr(pos, start - pos + (isBlock ? 2 : 1));
+            pos = start + (isBlock ? 2 : 1);
         }
     }
     return result;
@@ -932,12 +992,45 @@ string stripTemplates(const string& line, bool& insideTemplate) {
     }
 
     while (pos < line.length()) {
-        size_t start = line.find("$$", pos);
+        size_t start = line.find("$", pos);
         if (start == string::npos) {
             result += line.substr(pos);
             break;
         }
         
+        bool isBlock = false;
+        bool isInline = false;
+        size_t scan = 0;
+
+        if (start + 1 < line.length() && line[start+1] == '$') {
+            isBlock = true;
+            scan = start + 2;
+        } else {
+            // Inline check
+            size_t openB = line.find('{', start);
+            if (openB != string::npos) {
+                size_t searchPos = openB + 1;
+                while (searchPos < line.length()) {
+                    size_t closeB = line.find('}', searchPos);
+                    if (closeB == string::npos) break;
+                    size_t check = closeB + 1;
+                    while (check < line.length() && isspace(line[check])) check++;
+                    if (check < line.length() && line[check] == '$') {
+                        isInline = true;
+                        scan = start + 1;
+                        break;
+                    }
+                    searchPos = closeB + 1;
+                }
+            }
+        }
+
+        if (!isBlock && !isInline) {
+            result += line.substr(pos, start - pos + 1);
+            pos = start + 1;
+            continue;
+        }
+
         bool isContainer = false;
         size_t contentStart = 0;
 
@@ -948,7 +1041,6 @@ string stripTemplates(const string& line, bool& insideTemplate) {
         } 
         // Check named $$ "id" {
         else {
-            size_t scan = start + 2;
             while(scan < line.length() && isspace(line[scan])) scan++;
             
             // [NEW] Skip ABSTRACT keyword in stripper
@@ -984,16 +1076,36 @@ string stripTemplates(const string& line, bool& insideTemplate) {
             if (start > pos) {
                 result += line.substr(pos, start - pos);
             }
-            size_t end = line.find("}$$", contentStart);
+            size_t end = string::npos;
+            size_t nextPos = 0;
+            if (isBlock) {
+                end = line.find("}$$", contentStart);
+                if (end != string::npos) nextPos = end + 3;
+            } else {
+                size_t searchPos = contentStart;
+                while (searchPos < line.length()) {
+                    size_t closeB = line.find('}', searchPos);
+                    if (closeB == string::npos) break;
+                    size_t check = closeB + 1;
+                    while (check < line.length() && isspace(line[check])) check++;
+                    if (check < line.length() && line[check] == '$') {
+                        end = closeB;
+                        nextPos = check + 1;
+                        break;
+                    }
+                    searchPos = closeB + 1;
+                }
+            }
+
             if (end == string::npos) {
                 insideTemplate = true;
                 break;
             }
-            pos = end + 3;
+            pos = nextPos;
         } else {
             // Not a container, keep $$
-            result += line.substr(pos, start - pos + 2);
-            pos = start + 2;
+            result += line.substr(pos, start - pos + (isBlock ? 2 : 1));
+            pos = start + (isBlock ? 2 : 1);
         }
     }
     return result;
@@ -1053,13 +1165,93 @@ vector<BlueprintEntry> parseBlueprint(const string& fullContext) {
 bool validateContainers(const string& code) {
     set<string> ids;
     size_t pos = 0;
-    while ((pos = code.find("$$", pos)) != string::npos) {
+    while ((pos = code.find("$", pos)) != string::npos) {
+        bool isBlock = false;
+        bool isInline = false;
+        size_t scan = 0;
+
+        if (pos + 1 < code.length() && code[pos+1] == '$') {
+            isBlock = true;
+            scan = pos + 2;
+        } else {
+            size_t lineEnd = code.find('\n', pos);
+            if (lineEnd == string::npos) lineEnd = code.length();
+            size_t openB = code.find('{', pos);
+            if (openB != string::npos && openB < lineEnd) {
+                size_t searchPos = openB + 1;
+                while (searchPos < lineEnd) {
+                    size_t closeB = code.find('}', searchPos);
+                    if (closeB == string::npos || closeB >= lineEnd) break;
+                    size_t check = closeB + 1;
+                    while (check < lineEnd && isspace(code[check])) check++;
+                    if (check < lineEnd && code[check] == '$') {
+                        isInline = true;
+                        scan = pos + 1;
+                        break;
+                    }
+                    searchPos = closeB + 1;
+                }
+            }
+        }
+
+        if (!isBlock && !isInline) { 
+            // [NEW] Check for malformed inline container (multiline)
+            size_t lineEnd = code.find('\n', pos);
+            if (lineEnd == string::npos) lineEnd = code.length();
+            
+            size_t check = pos + 1;
+            while(check < lineEnd && isspace(code[check])) check++;
+            
+            bool isHeader = false;
+            size_t bracePos = string::npos;
+
+            // Case: $ {
+            if (check < lineEnd && code[check] == '{') {
+                isHeader = true;
+                bracePos = check;
+            } 
+            // Case: $ ID ... or $ -> ...
+            else {
+                size_t idStart = check;
+                while(check < lineEnd && (isalnum(static_cast<unsigned char>(code[check])) || code[check] == '_')) check++;
+                
+                // If we advanced (found ID) or didn't (maybe just ->), check next
+                while(check < lineEnd && isspace(code[check])) check++;
+                
+                if (check < lineEnd && code[check] == '{') {
+                    isHeader = true; // $ ID {
+                    bracePos = check;
+                } else if (check + 1 < lineEnd && code[check] == '-' && code[check+1] == '>') {
+                    // $ ... -> ...
+                    check += 2;
+                    while(check < lineEnd && code[check] != '{') check++; // Skip parents
+                    if (check < lineEnd && code[check] == '{') {
+                        isHeader = true;
+                        bracePos = check;
+                    }
+                }
+            }
+
+            if (isHeader) {
+                // If it looks like a container start but !isInline, check if it lacks closing brace on same line
+                size_t closeB = code.find('}', bracePos);
+                bool hasClosingBrace = (closeB != string::npos && closeB < lineEnd);
+                
+                if (!hasClosingBrace) {
+                     int lineNum = 1;
+                     for(size_t i=0; i<pos; ++i) if(code[i] == '\n') lineNum++;
+                     cerr << "[ERROR] Malformed inline container at line " << lineNum << ".\n        Inline containers ($ ... $) must be closed on the same line.\n        Use block containers ($$ ... $$) for multi-line logic.\n        Context: " << code.substr(pos, min((size_t)50, lineEnd - pos)) << "..." << endl;
+                     return false;
+                }
+            }
+            pos++; continue; 
+        }
+
         // Check anonymous $${ (skip)
-        if (pos + 2 < code.length() && code[pos+2] == '{') {
-            pos += 3; continue;
+        if (scan < code.length() && code[scan] == '{') {
+            pos = scan + 1; continue;
         }
         // Check named $$ "id" {
-        size_t scan = pos + 2;
         while(scan < code.length() && isspace(code[scan])) scan++;
         
         // [NEW] Skip ABSTRACT keyword in validator
@@ -1095,17 +1287,35 @@ bool validateContainers(const string& code) {
                     ids.insert(id);
                     
                     // [FIX] Check for closing tag and skip content to avoid false positives inside prompts
-                    size_t end = code.find("}$$", brace + 1);
+                    size_t end = string::npos;
+                    size_t nextPos = 0;
+                    if (isBlock) {
+                        end = code.find("}$$", brace + 1);
+                        if (end != string::npos) nextPos = end + 3;
+                    } else {
+                        size_t searchPos = brace + 1;
+                        while (searchPos < code.length()) {
+                            size_t closeB = code.find('}', searchPos);
+                            if (closeB == string::npos) break;
+                            size_t check = closeB + 1;
+                            while (check < code.length() && isspace(code[check])) check++;
+                            if (check < code.length() && code[check] == '$') {
+                                end = closeB; nextPos = check + 1; break;
+                            }
+                            searchPos = closeB + 1;
+                        }
+                    }
+
                     if (end == string::npos) {
-                        cerr << "[ERROR] Unclosed container: \"" << id << "\" (missing }$$)" << endl;
+                        cerr << "[ERROR] Unclosed container: \"" << id << "\"" << endl;
                         return false;
                     }
-                    pos = end + 3;
+                    pos = nextPos;
                     continue;
                 }
             }
         }
-        pos += 2;
+        pos = scan;
     }
     return true;
 }
@@ -2629,6 +2839,7 @@ int main(int argc, char* argv[]) {
                     prompt << "Do not nest semantic blocks: BAD: $$ block1 { logic $$ block2 { logic } $$ }$$. GOOD: $$ block1 { logic }$$ $$ block2 { logic }$$\n";
                     prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
                     prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
+                    prompt << "For single-line logic, use inline containers: $ name -> parent { logic }. These behave like standard containers but must be on a single line.\n";
                     prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
                     if (!isSpaghetti) prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
                     else prompt << "0. DO NOT OMIT BUSINESS LOGIC. Preserve all functionality, but restructure the implementation details to be clean.\n";

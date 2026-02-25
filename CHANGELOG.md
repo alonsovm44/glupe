@@ -3,6 +3,7 @@
 
 Added:
 
+- added inline containers and syntax error checking, 24 feb 26
 - added multiple container inheritance with edge case support
 - added context detection for export blocks, if content is found outside it asks for a target language
 - smart prompting for -make mode
