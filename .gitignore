@@ -1,4 +1,6 @@
 # --- Binaries and Executables ---
+glupe
+build/
 *.exe
 *.dll
 *.o
@@ -15,7 +17,8 @@ critics_and_improvement/
 config.json
 build.bat
 # ---  IDE ---
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 .idea/
 __pycache__/
 
