@@ -2,11 +2,13 @@
 
 Added:
 
+- added embedded glupe code parsing in files supporting // /**/
 - added IMPORT: END blocks
 Removed:
 
 Improved/Fixed:
 
+- fixed embedded code in comments bypassed by direct compilation
 ## v5.8 2026-02-14
 ## Happy St. Valentine day (saint Valentine pray for us sinners)
 

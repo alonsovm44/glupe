@@ -1272,7 +1272,7 @@ vector<BlueprintEntry> parseBlueprint(const string& fullContext) {
 }
 
 // [NEW] Validate container names and detect collisions
-bool validateContainers(const string& code) {
+bool validateContainers(const string& code, bool* outHasActive = nullptr) {
     set<string> ids;
     size_t pos = 0;
     while ((pos = code.find("$", pos)) != string::npos) {
@@ -1359,13 +1359,16 @@ bool validateContainers(const string& code) {
 
         // Check anonymous $${ (skip)
         if (scan < code.length() && code[scan] == '{') {
+            if (outHasActive) *outHasActive = true;
             pos = scan + 1; continue;
         }
         // Check named $$ "id" {
         while(scan < code.length() && isspace(code[scan])) scan++;
         
         // [NEW] Skip ABSTRACT keyword in validator
+        bool isAbstract = false;
         if (scan + 8 <= code.length() && code.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == code.length() || isspace(code[scan+8]))) {
+            isAbstract = true;
             scan += 8;
             while(scan < code.length() && isspace(code[scan])) scan++;
         }
@@ -1395,6 +1398,7 @@ bool validateContainers(const string& code) {
                         return false;
                     }
                     ids.insert(id);
+                    if (outHasActive && !isAbstract) *outHasActive = true;
                     
                     // [FIX] Check for closing tag and skip content to avoid false positives inside prompts
                     size_t end = string::npos;
@@ -3088,7 +3092,6 @@ int main(int argc, char* argv[]) {
             ifstream f(p);
             string raw((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
             
-            string cleanRaw = stripMetadata(raw);
             f.close();
 
             string decommented = decommentGlupeSyntax(raw);
@@ -3115,7 +3118,8 @@ int main(int argc, char* argv[]) {
     }
 
     // [NEW] Validate containers globally before processing
-    if (!validateContainers(aggregatedContext)) return 1;
+    bool hasActiveContainers = false;
+    if (!validateContainers(aggregatedContext, &hasActiveContainers)) return 1;
 
     // [FIX] Now it is safe to write initial exports (if any)
     for (const auto& data : loadedInputs) {
@@ -3246,7 +3250,7 @@ int main(int argc, char* argv[]) {
     // [OPTIMIZATION] Direct Compilation for matching source files
     bool canDirectCompile = false;
     if (CURRENT_MODE == GenMode::CODE && CURRENT_LANG.producesBinary && 
-        customInstructions.empty() && !updateMode && !transpileMode && !makeMode) {
+        customInstructions.empty() && !updateMode && !transpileMode && !makeMode && !hasActiveContainers) {
         
         canDirectCompile = true;
         for (const auto& file : inputFiles) {

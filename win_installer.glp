@@ -1,0 +1,22 @@
+INTENT: "Professional Windows installer for Glupe with PowerShell backend"
+
+$$ABSTRACT const{
+    cmd = "irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex" 
+}
+
+$$ popup_intro{
+    title: "Welcome to the Glupe Installer"
+    message: "This installer will guide you through the installation of Glupe on your Windows system. Click 'Next' to continue."
+    button next: "Next"
+}$$
+
+$$ main{
+ system("powershell -Command \"& {$(irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex)}\"")
+}$$
+
+$$ done -> main{
+when "Installation complete! Click 'Finish' to exit the installer."
+button finish: "Finish"
+system("glupe --version")
+}$$
+

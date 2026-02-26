@@ -34,7 +34,7 @@ Implementation plan:
 6. Validate output with Tree-sitter again
 7. Add languages gradually, AI is good at filling gaps not at making from scratch, currently refine is buggy since it is 100% AI generated. 
 
-## embedded glupe support
+## embedded glupe support [DONE]
 
 Just as Krzysztof suggested, the glupe syntax breaks intellisense and syntax highlight for actual IDEs $${}$$ ${}$ instead we could add
 ```cpp
@@ -61,5 +61,14 @@ int main(){
 ```
 
 have two syntaxes, one for pure glp files (the standard $${}$$) and one for embedded files, so DX is smoother and adoption is easier.
+
+## Time stamp detection
+
+If someone hotfixes the output file at 2 am the intent and the generated cpp will diverge, and that drift tends to become larger and larger.
+
+Idea: Make-like timestamp detection. 
+
+Idea 2: -refine modified output file 
+
 
 ## 
