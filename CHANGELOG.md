@@ -1,3 +1,12 @@
+## v5.8.1 2026-02-25
+
+Added:
+
+- added IMPORT: END blocks
+Removed:
+
+Improved/Fixed:
+
 ## v5.8 2026-02-14
 ## Happy St. Valentine day (saint Valentine pray for us sinners)
 
@@ -8,14 +17,12 @@ Added:
 - added context detection for export blocks, if content is found outside it asks for a target language
 - smart prompting for -make mode
 - added language agnostic default for make mode
-- imrpoved UI on the hub for view and show cmds
 - added JWT token auth
 - added login functionality
 - added pull and push error messages
 - added push and pull cmd; 17 feb 2026
 - added makefile based compilation
 - added -refine mode to glupe
-- improved contributing file
 - added installer for windows and mac/linux
 - added abstract containers
 - added container inheritance
@@ -36,6 +43,8 @@ Improved/Fixed:
 - fixed chunk based refinement not working, 19 Feb
 - fixed installer -Wait flag getting hanged
 - fixed pushing with tags not working
+- improved contributing file
+- imrpoved UI on the hub for view and show cmds
 
 ## v5.7.3 2026-02-14
 

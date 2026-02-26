@@ -275,12 +275,19 @@ To set clear expectations:
 2. Not deterministic: Output depends on the model and prompt, so results may vary between runs.
 3. Not a production build system: It does not track dependencies or perform incremental builds.
 4. Not a formal transpiler: It generates code via LLMs, not via syntax tree translation.
-```
+
 The Vision
 Programming has traditionally required years of study to master syntax and memory management. Glupe aims to lower the barrier of software engineering so a broader audience can access computational resources for their professional fields.
 
 Glupe transforms the compiler from a syntax checker into a partner in creation.
 ---
 License & Contributing
+
+## CONTRIBUTORS
+Thanks very much for all contributions to Glupe
+
+- Alonso Velazquez (Mexico) since Jan 15 26
+- Krzysztof Dudek (Poland) since Feb 23 26
+
 MIT License
 ---

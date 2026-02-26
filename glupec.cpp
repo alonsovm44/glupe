@@ -52,7 +52,7 @@ string API_URL = "";
 int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
-const string CURRENT_VERSION = "5.8.0";
+const string CURRENT_VERSION = "5.8.1";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -577,27 +577,133 @@ string performTreeShaking(const string& code, const string& language) {
 }
 
 // --- PREPROCESSOR ---
+// [NEW] Pre-processor to extract glupe syntax from comments
+string decommentGlupeSyntax(const string& code) {
+    string processedCode = code;
+    size_t pos = 0;
+
+    // --- Handle block comments: /* ... */ ---
+    pos = 0;
+    while ((pos = processedCode.find("/*", pos)) != string::npos) {
+        size_t endPos = processedCode.find("*/", pos + 2);
+        if (endPos == string::npos) break; // Unclosed comment, stop processing
+
+        string commentContent = processedCode.substr(pos + 2, endPos - (pos + 2));
+        
+        string trimmedContent = commentContent;
+        size_t first = trimmedContent.find_first_not_of(" \t\r\n");
+        if (first == string::npos) { // Empty or whitespace-only comment
+            pos = endPos + 2;
+            continue;
+        }
+        trimmedContent.erase(0, first);
+        size_t last = trimmedContent.find_last_not_of(" \t\r\n");
+        if (last != string::npos) trimmedContent.erase(last + 1);
+
+        bool isBlockContainer = (trimmedContent.rfind("$$", 0) == 0 && trimmedContent.rfind("$$") == trimmedContent.length() - 2);
+        bool isInlineContainer = (trimmedContent.rfind("$", 0) == 0 && trimmedContent.rfind("$") == trimmedContent.length() - 1);
+
+        if (isBlockContainer || isInlineContainer) {
+            processedCode.replace(pos, (endPos + 2) - pos, commentContent);
+            pos += commentContent.length();
+        } else {
+            pos = endPos + 2;
+        }
+    }
+
+    // --- Handle line comments: // ... ---
+    pos = 0;
+    while ((pos = processedCode.find("//", pos)) != string::npos) {
+        size_t endOfLine = processedCode.find('\n', pos);
+        if (endOfLine == string::npos) endOfLine = processedCode.length();
+
+        string commentContent = processedCode.substr(pos + 2, endOfLine - (pos + 2));
+        
+        string trimmedContent = commentContent;
+        size_t first = trimmedContent.find_first_not_of(" \t\r\n");
+        if (first == string::npos) { // Empty or whitespace-only comment
+            pos = endOfLine;
+            if (pos >= processedCode.length()) break;
+            continue;
+        }
+        trimmedContent.erase(0, first);
+        size_t last = trimmedContent.find_last_not_of(" \t\r\n");
+        if (last != string::npos) trimmedContent.erase(last + 1);
+
+        bool isInlineContainer = (trimmedContent.rfind("$", 0) == 0 && trimmedContent.rfind("$") == trimmedContent.length() - 1);
+
+        if (isInlineContainer) {
+            processedCode.replace(pos, endOfLine - pos, commentContent);
+            pos += commentContent.length();
+        } else {
+            pos = endOfLine;
+            if (pos >= processedCode.length()) break;
+        }
+    }
+    return processedCode;
+}
 string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     stringstream ss(code);
     string line;
+    vector<string> lines;
+    while (getline(ss, line)) lines.push_back(line);
+
     string processed;
     
-    while (getline(ss, line)) {
-        string cleanLine = line;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        string cleanLine = lines[i];
         size_t first = cleanLine.find_first_not_of(" \t\r\n");
-        if (first == string::npos) { processed += line + "\n"; continue; }
+        if (first == string::npos) { processed += lines[i] + "\n"; continue; }
         cleanLine.erase(0, first);
         
+        // Ignore orphaned IMPORT: END lines (they should be consumed by blocks)
+        if (cleanLine == "IMPORT: END") continue;
+
         if (cleanLine.rfind("IMPORT:", 0) == 0) {
-            string fname = cleanLine.substr(7);
-            size_t q1 = fname.find_first_of("\"'");
-            size_t q2 = fname.find_last_of("\"'");
-            if (q1 != string::npos && q2 != string::npos && q2 > q1) fname = fname.substr(q1 + 1, q2 - q1 - 1);
-            else {
-                fname.erase(0, fname.find_first_not_of(" \t\r\n\"'"));
-                size_t last = fname.find_last_not_of(" \t\r\n\"'");
-                if (last != string::npos) fname.erase(last + 1);
+            string directiveContent = cleanLine.substr(7);
+            string fname;
+            
+            // Robust filename extraction
+            size_t q1 = directiveContent.find_first_of("\"'");
+            if (q1 != string::npos) {
+                char quote = directiveContent[q1];
+                size_t q2 = directiveContent.find(quote, q1 + 1);
+                if (q2 != string::npos) fname = directiveContent.substr(q1 + 1, q2 - q1 - 1);
+                else fname = directiveContent.substr(q1 + 1);
+            } else {
+                fname = directiveContent;
+                size_t start = fname.find_first_not_of(" \t\r\n");
+                if (start != string::npos) fname = fname.substr(start);
+                size_t end = fname.find_last_not_of(" \t\r\n");
+                if (end != string::npos) fname = fname.substr(0, end + 1);
             }
+
+            // Look ahead for block content
+            string localModifications;
+            int blockEndIndex = -1;
+            
+            for (size_t j = i + 1; j < lines.size(); ++j) {
+                string nextClean = lines[j];
+                size_t nf = nextClean.find_first_not_of(" \t\r\n");
+                if (nf != string::npos) nextClean.erase(0, nf);
+                else nextClean = "";
+
+                if (nextClean == "IMPORT: END") {
+                    blockEndIndex = j;
+                    break;
+                }
+                if (nextClean.rfind("IMPORT:", 0) == 0) {
+                    break; // Another import started, so previous was single line
+                }
+            }
+
+            if (blockEndIndex != -1) {
+                for (size_t k = i + 1; k < blockEndIndex; ++k) {
+                    localModifications += lines[k] + "\n";
+                }
+                i = blockEndIndex; // Skip consumed lines
+            }
+
             fs::path path = basePath / fname;
             try {
                 if (fs::exists(path)) {
@@ -614,10 +720,14 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
                             stack.push_back(absPath);
                             string nested = resolveImports(content, path.parent_path(), stack);
                             stack.pop_back();
-                            string ext = path.extension().string();
-                            processed += "\n// >>>>>> START MODULE: " + fname + " (" + ext + ") >>>>>>\n";
+                            
+                            processed += "\n// --- IMPORTED FILE: " + fname + " ---\n";
                             processed += nested;
-                            processed += "\n// <<<<<< END MODULE: " + fname + " <<<<<<\n";
+                            if (!localModifications.empty()) {
+                                processed += "// --- LOCAL MODIFICATIONS ---\n";
+                                processed += localModifications;
+                            }
+                            processed += "// --- END IMPORT ---\n";
                             log("INFO", "Imported module: " + fname);
                         }
                     }
@@ -626,7 +736,7 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
                 }
             } catch (...) { processed += "// [ERROR] PATH EXCEPTION\n"; }
         } else {
-            processed += line + "\n";
+            processed += lines[i] + "\n";
         }
     }
     return processed;
@@ -2979,6 +3089,11 @@ int main(int argc, char* argv[]) {
             string raw((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
             
             string cleanRaw = stripMetadata(raw);
+            f.close();
+
+            string decommented = decommentGlupeSyntax(raw);
+
+            string cleanRaw = stripMetadata(decommented);
             string resolved = resolveImports(cleanRaw, p.parent_path(), stack);
             
             // [AUTO-DETECT] Enable makeMode if EXPORT is detected
