@@ -42,7 +42,7 @@ $$ {
 
 *Named Block:*
 ```glupe
-$$ "init_system" {
+$$ init_system {
     Initialize the serial port at 9600 baud.
 }$$
 ```
@@ -67,7 +67,7 @@ Abstract containers define logic or rules that are not generated immediately but
 
 **Syntax:**
 ```glupe
-$$ABSTRACT "security_policy" {
+$$ABSTRACT security_policy {
     1. Always validate input.
     2. Use parameterized queries.
 }$$
@@ -79,7 +79,7 @@ Glupe parses containers inside comments for languages supporting `//` or `/* */`
 
 **Example:**
 ```cpp
-// $$ "refactor_me" { optimize this loop }$$
+// $$ refactor_me { optimize this loop }$$
 for(int i=0; i<100; i++) { ... }
 ```
 
