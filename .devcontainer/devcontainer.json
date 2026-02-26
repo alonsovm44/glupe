@@ -1,0 +1,31 @@
+{
+  "name": "Glupe Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "runArgs": [
+    "--add-host=host.docker.internal:host-gateway"
+  ],
+  "mounts": [
+    "source=glupe-build,target=${containerWorkspaceFolder}/build,type=volume"
+  ],
+  "containerEnv": {
+    "GLUPE_OUT": "build/glupe"
+  },
+  "postCreateCommand": "chmod +x .devcontainer/build.sh .devcontainer/post-build.sh && .devcontainer/build.sh && .devcontainer/post-build.sh",
+  "postStartCommand": "echo 'Glupe built. Use: glupe --help'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "features": {},
+  "remoteUser": "vscode"
+}
