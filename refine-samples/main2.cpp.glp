@@ -1,0 +1,171 @@
+$$ InitializeSystem -> Root {
+    1. Initialize framebuffer request.
+    2. Initialize module request.
+    3. Set global framebuffer pointer to nullptr.
+    4. Set command history pointer to nullptr.
+} $$
+
+$$ HardwareIO -> InitializeSystem {
+    1. Define outb, outw, inb for port I/O.
+    2. Define enable_interrupts, disable_interrupts for interrupt control.
+    3. Define halt_cpu for CPU halting.
+    4. Define sleep_approx for CPU sleep.
+} $$
+
+$$ MouseDriver -> HardwareIO {
+    1. Define mouse buffer and packet size.
+    2. Implement mouse_wait for mouse communication timing.
+    3. Implement mouse_write for writing to mouse.
+    4. Implement mouse_init for initializing mouse.
+} $$
+
+$$ SpeakerDriver -> HardwareIO {
+    1. Implement beep for generating beep sounds.
+} $$
+
+$$ GraphicsEngine -> InitializeSystem {
+    1. Define backbuffer pointer.
+    2. Implement fast_memcpy for memory copying.
+    3. Implement init_graphics for initializing graphics.
+    4. Implement get_backbuffer for getting backbuffer.
+    5. Implement swap_buffers for swapping buffers.
+    6. Implement draw_pixel for drawing pixels.
+    7. Implement draw_char for drawing characters.
+    8. Implement draw_string for drawing strings.
+} $$
+
+$$ StringConversion -> GraphicsEngine {
+    1. Implement u64_to_hex for converting uint64 to hex string.
+    2. Implement itoa for converting integers to strings.
+} $$
+
+$$ SystemControl -> HardwareIO {
+    1. Implement shutdown for system shutdown.
+    2. Implement reboot for system reboot.
+} $$
+
+$$ KeyboardHandling -> HardwareIO {
+    1. Implement scancode_to_char for converting scancodes to characters.
+} $$
+
+$$ CPUOptimization -> HardwareIO {
+    1. Implement enable_sse for enabling SSE.
+} $$
+
+$$ InterruptHandling -> InitializeSystem {
+    1. Define IDT and IDTR.
+    2. Implement remap_pic for remapping PIC.
+    3. Implement set_idt_gate for setting IDT gates.
+    4. Implement init_interrupts for initializing interrupts.
+} $$
+
+$$ ISRs -> InterruptHandling {
+    1. Implement timer_handler for timer interrupts.
+    2. Implement keyboard_handler for keyboard interrupts.
+    3. Implement mouse_handler for mouse interrupts.
+    4. Implement page_fault_handler for page fault exceptions.
+} $$
+
+$$ RingBuffer -> InterruptHandling {
+    1. Define key and mouse buffers.
+    2. Implement has_key, get_key for keyboard buffer.
+    3. Implement has_mouse, get_mouse_byte for mouse buffer.
+} $$
+
+$$ TimeManagement -> InterruptHandling {
+    1. Implement get_ticks for getting tick count.
+    2. Implement sleep_ms for sleeping in milliseconds.
+} $$
+
+$$ TerminalLogic -> GraphicsEngine {
+    1. Implement term_print for printing to terminal.
+    2. Implement start_terminal_mode for starting terminal mode.
+} $$
+
+$$ CommandExecution -> TerminalLogic {
+    1. Implement command parsing and execution logic within start_terminal_mode.
+} $$
+
+Note: The provided code snippet is already a complex and extensive piece of code. The refactored blueprint focuses on breaking down the code into logical sections and defining their relationships. The actual implementation details within each block are not shown here due to the complexity and size of the original code.
+$$ CursorPlacement -> RenderLoop {
+1. Check last_len >= max_chars.
+2. If true: Set cursor_x = 10. Set cursor_y = y + line_height.
+3. If false: Set cursor_x = 10 + last_len * 8. Set cursor_y = y.
+} $$
+
+$$ AdvanceLine -> RenderLoop {
+1. Add line_height to y.
+} $$
+
+$$ EmptyInputCursor -> RenderLoop {
+1. Check input_lines.size == 0.
+2. If true: Set cursor_x = 10. Set cursor_y = y.
+} $$
+
+$$ DrawCursor -> RenderLoop {
+1. Check cursor_visible.
+2. If true: Call draw_string with fb, cursor_x, cursor_y, "_", terminal_color.
+} $$
+
+$$ FinalizeFrame -> RenderLoop {
+1. Set dirty = false.
+2. Check g_backbuffer.
+3. If true: Call swap_buffers with fb.
+4. Set full_refresh = false.
+5. Set cursor_needs_update = false.
+} $$
+
+$$ UpdateCursorOnly -> RenderLoop {
+1. Check cursor_visible.
+2. If true: Call draw_string with fb, cursor_x, cursor_y, "_", terminal_color.
+3. If false: Loop dy from 0 to 7.
+4. Inside dy-loop: Loop dx from 0 to 7.
+5. Inside dx-loop: Call draw_pixel with fb, cursor_x + dx, cursor_y + dy, terminal_bg_color.
+6. Check g_backbuffer.
+7. If true: Call swap_buffers with fb.
+8. Set cursor_needs_update = false.
+} $$
+
+$$ xtoi -> GlobalFunctions {
+1. Set res = 0.
+2. Check str[0] == '0' AND (str[1] == 'x' OR str[1] == 'X').
+3. If true: Increment str by 2.
+4. Loop while *str != 0.
+5. Inside loop: Set v = 0.
+6. Check *str between '0' and '9'. If true: Set v = *str - '0'.
+7. Else check *str between 'a' and 'f'. If true: Set v = *str - 'a' + 10.
+8. Else check *str between 'A' and 'F'. If true: Set v = *str - 'A' + 10.
+9. Else break loop.
+10. Set res = (res << 4) OR v.
+11. Increment str.
+12. Return res.
+} $$
+
+$$ GetModuleFile -> GlobalFunctions {
+1. Check module_request.response == null OR module_request.response->modules == null.
+2. If true: Return null.
+3. Loop i from 0 to module_request.response->module_count - 1.
+4. Inside loop: Set f = modules[i]. Set path = f->path.
+5. If path == null: Continue.
+6. Compute path_len by iterating until null terminator.
+7. Compute name_len by iterating until null terminator.
+8. Check path_len >= name_len.
+9. If true: Set match = true.
+10. Loop j from 0 to name_len - 1.
+11. Inside loop: Check path[path_len - name_len + j] != name[j].
+12. If true: Set match = false. Break.
+13. Check match == true.
+14. If true: If size != null: Set *size = f->size. Return f->address.
+15. After loop: Return null.
+} $$
+
+$$ StartSystem -> EntryPoint {
+1. Check framebuffer_request.response == null OR framebuffer_count < 1.
+2. If true: Enter infinite loop.
+3. Set fb = framebuffer_request.response->framebuffers[0].
+4. Call enable_sse.
+5. Call mouse_init.
+6. Call init_graphics with fb.
+7. Call init_interrupts.
+8. Call start_terminal_mode with fb.
+} $$

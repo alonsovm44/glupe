@@ -1,0 +1,267 @@
+$$ Includes -> None {
+    1. #include <stdint.h>
+    2. #include <stddef.h>
+    3. #include "limine.h"
+    4. #include "font.h"
+    5. #include "idt.hpp"
+    6. #include "vector.hpp"
+    7. #include "string.hpp"
+    8. #include "kernel.hpp"
+    9. #include "3Dgrid.hpp"
+    10. #include "commands.hpp"
+} $$
+
+$$ Globals -> None {
+    1. static volatile struct limine_framebuffer_request framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST, .revision = 0 }
+    2. static volatile struct limine_module_request module_request = { .id = LIMINE_MODULE_REQUEST, .revision = 0 }
+    3. static struct limine_framebuffer *global_fb = nullptr
+    4. Vector<String>* command_history_ptr = nullptr
+} $$
+
+$$ HardwareIO -> None {
+    1. Get Port Byte: inb(uint16_t port) -> uint8_t {
+        1.1 Declare ret variable
+        1.2 Inline assembly to read from port
+        1.3 Return ret
+     }
+    2. Set Port Byte: outb(uint16_t port, uint8_t val) {
+        2.1 Inline assembly to write to port
+     }
+    3. Set Port Word: outw(uint16_t port, uint16_t val) {
+        3.1 Inline assembly to write word to port
+     }
+    4. Enable Interrupts: enable_interrupts() {
+        4.1 Inline assembly "sti"
+     }
+    5. Disable Interrupts: disable_interrupts() {
+        5.1 Inline assembly "cli"
+     }
+    6. Halt CPU: halt_cpu() {
+        6.1 Inline assembly "hlt"
+     }
+    7. Sleep Approx: sleep_approx(uint32_t count) {
+        7.1 Loop with pause instruction
+     }
+} $$
+
+$$ MouseDriver -> None {
+    1. Mouse Wait: mouse_wait(uint8_t type) {
+        1.1 Wait for mouse controller status
+     }
+    2. Mouse Write: mouse_write(uint8_t write) {
+        2.1 Write command to mouse
+     }
+    3. Mouse Init: mouse_init() {
+        3.1 Enable auxiliary device
+        3.2 Set command byte
+        3.3 Enable scroll wheel
+        3.4 Get mouse ID
+        3.5 Enable data reporting
+     }
+} $$
+
+$$ GraphicsEngine -> None {
+    1. Init Graphics: init_graphics(struct limine_framebuffer* fb) {
+        1.1 Set global framebuffer
+        1.2 Allocate backbuffer
+     }
+    2. Get Backbuffer: get_backbuffer() -> uint32_t* {
+        2.1 Return backbuffer pointer
+     }
+    3. Swap Buffers: swap_buffers(struct limine_framebuffer* fb) {
+        3.1 Copy backbuffer to framebuffer
+     }
+    4. Draw Pixel: draw_pixel(struct limine_framebuffer *fb, int x, int y, uint32_t color) {
+        4.1 Bounds check
+        4.2 Write pixel to buffer
+     }
+    5. Draw Char: draw_char(struct limine_framebuffer *fb, int x, int y, char c, uint32_t color) {
+        5.1 Get glyph data
+        5.2 Draw glyph pixels
+     }
+    6. Draw String: draw_string(struct limine_framebuffer *fb, int x, int y, const char* str, uint32_t color) {
+        6.1 Loop through string
+        6.2 Draw each character
+     }
+    7. Fast Memcpy: fast_memcpy(void* dst, const void* src, size_t size) {
+        7.1 Optimized memory copy
+     }
+} $$
+
+$$ StringConversion -> None {
+    1. u64 to Hex: u64_to_hex(uint64_t val, char* dest) {
+        1.1 Convert uint64 to hex string
+     }
+    2. itoa: itoa(int value, char* buffer, int base) {
+        2.1 Convert integer to string
+     }
+} $$
+
+$$ SystemControl -> None {
+    1. Shutdown: shutdown() {
+        1.1 Write to ports for shutdown
+     }
+    2. Reboot: reboot() {
+        2.1 Write to port for reboot
+     }
+} $$
+
+$$ KeyboardHandling -> None {
+    1. Scan Code to Char: scancode_to_char(uint8_t sc, bool shift, bool caps) -> char {
+        1.1 Map scancode to character
+     }
+} $$
+
+$$ CPUConfiguration -> None {
+    1. Enable SSE: enable_sse() {
+        1.1 Modify CR0 and CR4 registers
+     }
+} $$
+
+$$ InterruptHandling -> None {
+    1. Set IDT Gate: set_idt_gate(int n, uint64_t handler) {
+        1.1 Populate IDT entry
+     }
+    2. Init Interrupts: init_interrupts() {
+        2.1 Remap PIC
+        2.2 Set IDT gates
+        2.3 Load IDTR
+        2.4 Configure PIT
+        2.5 Enable interrupts
+     }
+    3. Timer Handler: timer_handler(struct interrupt_frame* frame) {
+        3.1 Increment ticks
+        3.2 Send EOI
+     }
+    4. Keyboard Handler: keyboard_handler(struct interrupt_frame* frame) {
+        4.1 Read scancode
+        4.2 Store in buffer
+        4.3 Send EOI
+     }
+    5. Mouse Handler: mouse_handler(struct interrupt_frame* frame) {
+        5.1 Read mouse byte
+        5.2 Store in buffer
+        5.3 Send EOI
+     }
+    6. Page Fault Handler: page_fault_handler(struct interrupt_frame* frame) {
+        6.1 Get fault address
+        6.2 Display error
+        6.3 Halt system
+     }
+} $$
+
+$$ RingBuffer -> T {
+    1. Key Buffer: key_buffer[RING_BUFFER_SIZE]
+    2. Mouse Buffer: mouse_buffer[RING_BUFFER_SIZE]
+    3. Buffer Operations {
+        3.1 has_key() -> bool
+        3.2 get_key() -> uint8_t
+        3.3 has_mouse() -> bool
+        3.4 get_mouse_byte() -> uint8_t
+     }
+} $$
+
+$$ TerminalLogic -> None {
+    1. Term Print: term_print(Vector<String>& buffer, const char* text, int max_chars) {
+        1.1 Handle line wrapping
+        1.2 Append to buffer
+     }
+    2. Start Terminal Mode: start_terminal_mode(struct limine_framebuffer *fb) {
+        2.1 Initialize terminal state
+        2.2 Main loop {
+            2.2.1 Handle keyboard input
+            2.2.2 Process commands
+            2.2.3 Update display
+            2.2.4 Handle scrolling
+         }
+     }
+} $$
+$$ UpdateCursorPosition -> UpdateCursor {
+    1. Check if last_len >= max_chars
+    1.1 If true, Set cursor_x to 10
+    1.2 Set cursor_y to y + line_height
+    2. If false, Set cursor_x to 10 + last_len * 8
+    3. Set cursor_y to y
+} $$
+
+$$ HandleEmptyInputLines -> HandleInputLines {
+    1. Check if input_lines.size() == 0
+    1.1 If true, Set cursor_x to 10
+    2. Set cursor_y to y
+} $$
+
+$$ DrawCursor -> DrawTerminalElements {
+    1. Check if cursor_visible
+    1.1 If true, Call draw_string(fb, cursor_x, cursor_y, "_", terminal_color)
+    2. If false, Loop dy from 0 to 8
+    2.1 Loop dx from 0 to 8
+    2.2 Call draw_pixel(fb, cursor_x + dx, cursor_y + dy, terminal_bg_color)
+} $$
+
+$$ UpdateDisplay -> RenderTerminal {
+    1. Check if full_refresh
+    1.1 If true, Call RenderTerminalContent
+    1.2 Set dirty to false
+    1.3 Check if g_backbuffer
+    1.4 If true, Call swap_buffers(fb)
+    1.5 Set full_refresh to false
+    1.6 Set cursor_needs_update to false
+    2. If false, Check if cursor_needs_update
+    2.1 If true, Call DrawCursor
+    2.2 Check if g_backbuffer
+    2.3 If true, Call swap_buffers(fb)
+    2.4 Set cursor_needs_update to false
+} $$
+
+$$ RenderTerminalContent -> RenderTerminal {
+    1. Loop through input_lines
+    2. Calculate last_len
+    3. Call UpdateCursorPosition
+    4. Increment y by line_height
+    5. Call HandleEmptyInputLines
+    6. Call DrawCursor
+} $$
+
+$$ xtoi -> StringConversion {
+    1. Initialize res to 0
+    2. Check if str starts with "0x" or "0X"
+    2.1 If true, Increment str by 2
+    3. Loop through str
+    3.1 Convert character to value v
+    3.2 Shift res left by 4
+    3.3 OR res with v
+    4. Return res
+} $$
+
+$$ get_module_file -> ModuleFileRetrieval {
+    1. Check if module_request.response is null
+    1.1 If true, Return nullptr
+    2. Loop through module_request.response->modules
+    3. Get file path and size
+    4. Check if path ends with name
+    4.1 If true, Set size and return file address
+    5. Return nullptr
+} $$
+
+$$ _start -> SystemInitialization {
+    1. Check if framebuffer_request.response is null
+    1.1 If true, Halt
+    2. Get framebuffer fb
+    3. Call enable_sse
+    4. Call mouse_init
+    5. Call init_graphics(fb)
+    6. Call init_interrupts
+    7. Call start_terminal_mode(fb)
+} $$
+
+$$ Globals -> SystemGlobals {
+    1. framebuffer_request
+    2. module_request
+    3. g_backbuffer
+} $$
+
+$$ Includes -> SystemIncludes {
+    1. limine.h
+    2. standard string lib
+    3. standard vector lib
+} $$

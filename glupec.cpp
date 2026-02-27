@@ -53,6 +53,7 @@ int MAX_RETRIES = 15;
 bool VERBOSE_MODE = false;
 
 const string CURRENT_VERSION = "5.8.1";
+const string CURRENT_VERSION = "6.0.0";
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 GenMode CURRENT_MODE = GenMode::CODE;
@@ -794,7 +795,7 @@ void setCachedContent(const string& id, const string& content) {
 }
 
 // [NEW] Pre-process input to handle containers and caching
-string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets) {
+string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode) {
     // [FUTURE v6.0] AST INTEGRATION POINT
     // 1. Normalize: Replace $$...$$ with valid placeholders (e.g. comments or void calls)
     // 2. Parse: auto tree = parser.parse_string(normalized_code);
@@ -1018,14 +1019,44 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
             }
 
             if (!cacheHit) {
-                // Wrap in markers for AI to fill and us to extract later
-                result += "\n// GLUPE_BLOCK_START: " + id + "\n";
-                result += prompt; // The prompt for the AI
-                result += "\n// GLUPE_BLOCK_END: " + id + "\n";
-                
-                // Update lock data (will be saved after successful generation)
-                LOCK_DATA["containers"][id]["hash"] = currentHash;
-                LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
+                if (fillMode) {
+                    // [FILL MODE] Generate immediately to preserve surrounding code
+                    cout << "   [FILL] Generating container: " << id << "..." << endl;
+                    
+                    // Construct context from what we have processed so far + what remains
+                    // This gives the AI the full file view without being able to touch it
+                    string currentContext = result + code.substr(pos);
+                    
+                    stringstream aiPrompt;
+                    aiPrompt << "ROLE: Code Generator.\n";
+                    aiPrompt << "TASK: Implement the code for the container '" << id << "'.\n";
+                    aiPrompt << "LANGUAGE: " << CURRENT_LANG.name << "\n";
+                    aiPrompt << "CONTEXT:\n" << currentContext << "\n";
+                    aiPrompt << "CONTAINER PROMPT:\n" << prompt << "\n";
+                    aiPrompt << "OUTPUT: Only the code implementation. No markdown. No explanations.\n";
+
+                    string generated = callAI(aiPrompt.str());
+                    string cleanGenerated = extractCode(generated);
+                    
+                    result += "\n// GLUPE_BLOCK_START: " + id + "\n";
+                    result += cleanGenerated;
+                    result += "\n// GLUPE_BLOCK_END: " + id + "\n";
+                    
+                    // Update cache immediately
+                    setCachedContent(id, cleanGenerated);
+                    LOCK_DATA["containers"][id]["hash"] = currentHash;
+                    LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
+                    saveCache();
+                } else {
+                    // [STANDARD MODE] Wrap in markers for global pass
+                    result += "\n// GLUPE_BLOCK_START: " + id + "\n";
+                    result += prompt; // The prompt for the AI
+                    result += "\n// GLUPE_BLOCK_END: " + id + "\n";
+                    
+                    // Update lock data (will be saved after successful generation)
+                    LOCK_DATA["containers"][id]["hash"] = currentHash;
+                    LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
+                }
             }
 
             pos = nextPos; 
@@ -2009,6 +2040,30 @@ void startInteractiveHub() {
     }
 }
 
+/*
+$$ test_func{
+function testfunc(x){
+    return x*x    
+}
+// [NEW] Execution Timer for -crono flag
+struct ExecutionTimer {
+    std::chrono::time_point<std::chrono::high_resolution_clock> start;
+    bool enabled = false;
+
+}$$
+    ExecutionTimer() : start(std::chrono::high_resolution_clock::now()) {}
+
+*/
+    ~ExecutionTimer() {
+        if (enabled) {
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> elapsed = end - start;
+            cout << "\n[CRONO] Total execution time: " << fixed << setprecision(3) << elapsed.count() << "s" << endl;
+        }
+    }
+};
+
+
 void showHelp() {
     cout << "GLUPE v" << CURRENT_VERSION << " - The Semantic Compiler\n";
     cout << "Usage: glupe [files...] [options] [\"*instructions\"]\n\n";
@@ -2023,6 +2078,8 @@ void showHelp() {
     cout << "  -refine          : Refine mode (reverse engineer code to .glp blueprint).\n";
     cout << "  -t, --transpile  : Transpile only (do not compile binary).\n";
     cout << "  -run             : Run the output binary after compilation.\n";
+    cout << "  -crono           : Measure execution time.\n";
+    cout << "  -fill            : Fill containers in-place (preserves manual code).\n";
     cout << "  -dry-run         : Show prompt/context without calling AI.\n";
     cout << "  -verbose         : Enable verbose logging.\n";
     cout << "  -3d              : 3D model generation mode.\n";
@@ -2051,10 +2108,170 @@ void showHelp() {
     cout << "  glupe main.glp -o app.exe -cpp\n";
     cout << "  glupe idea.txt -make -series\n";
     cout << "  glupe legacy.c -refine\n";
+    cout << "  glupe fix bug.py \"fix index out of range\"";
     cout << "  glupe fix bug.py \"fix index out of range\"\n";
 }
+
+// [v6.0] Helper to get Tree-sitter query for refinement
+string get_refine_query(const string& lang_id) {
+    if (lang_id == "cpp" || lang_id == "c" || lang_id == "hpp" || lang_id == "h" || lang_id == "cc" || lang_id == "cxx") {
+        return R"(
+            (function_definition) @unit
+            (class_specifier) @unit
+            (struct_specifier) @unit
+            (template_declaration) @unit
+            (preproc_include) @unit
+            (preproc_def) @unit
+            (using_declaration) @unit
+            (namespace_definition) @unit
+        )";
+    }
+    if (lang_id == "py") {
+        return R"(
+            (function_definition) @unit
+            (class_definition) @unit
+            (import_statement) @unit
+            (import_from_statement) @unit
+        )";
+    }
+    if (lang_id == "js" || lang_id == "ts") {
+        return R"(
+            (function_declaration) @unit
+            (class_declaration) @unit
+            (variable_declaration) @unit
+            (lexical_declaration) @unit
+            (import_statement) @unit
+            (export_statement) @unit
+        )";
+    }
+    if (lang_id == "java") {
+        return R"(
+            (class_declaration) @unit
+            (interface_declaration) @unit
+            (enum_declaration) @unit
+            (import_declaration) @unit
+            (method_declaration) @unit
+        )";
+    }
+    if (lang_id == "go") {
+        return R"(
+            (function_declaration) @unit
+            (type_declaration) @unit
+            (import_declaration) @unit
+        )";
+    }
+    return "";
+}
+
+// [NEW] Helper to sanitize container syntax after refinement
+string sanitize_container_syntax(const string& code) {
+    string out = code;
+
+    // 1. Fix malformed starts: "${" -> "$ {"
+    size_t pos = 0;
+    while ((pos = out.find("${", pos)) != string::npos) {
+        out.replace(pos, 2, "$ {");
+        pos += 3;
+    }
+
+    // 2. Fix malformed ends: "}$" -> "} $" (if not }$$)
+    pos = 0;
+    while ((pos = out.find("}$", pos)) != string::npos) {
+        if (pos + 2 < out.length() && out[pos+2] == '$') {
+            pos += 3; 
+        } else {
+            out.replace(pos, 2, "} $");
+            pos += 3;
+        }
+    }
+
+    // 3. Flatten multiline inline containers: $ { \n } $ -> $ { } $
+    pos = 0;
+    while ((pos = out.find("$ {", pos)) != string::npos) {
+        if (pos > 0 && out[pos-1] == '$') { // Skip $$ {
+            pos += 3; continue; 
+        }
+        size_t end_pos = out.find("} $", pos);
+        if (end_pos != string::npos) {
+            for (size_t k = pos; k < end_pos; ++k) {
+                if (out[k] == '\n') out[k] = ' ';
+            }
+            pos = end_pos + 3;
+        } else {
+            pos += 3;
+        }
+    }
+
+    // 4. Fix Block Containers ($$ ... $$)
+    pos = 0;
+    while ((pos = out.find("$$", pos)) != string::npos) {
+        if (pos > 0 && out[pos-1] == '}') { // Closing }$$
+            pos += 2; continue;
+        }
+        
+        // Opener $$
+        // 4.1 Check for {
+        size_t brace_pos = out.find('{', pos);
+        size_t next_double_dollar = out.find("$$", pos + 2);
+        
+        if (brace_pos == string::npos || (next_double_dollar != string::npos && brace_pos > next_double_dollar)) {
+            // Missing {, add it
+            size_t newline_pos = out.find('\n', pos);
+            if (newline_pos != string::npos && (next_double_dollar == string::npos || newline_pos < next_double_dollar)) {
+                out.insert(newline_pos, " {");
+            } else {
+                out.insert(pos + 2, " {");
+            }
+        }
+        
+        // 4.2 Check for closing }$$
+        next_double_dollar = out.find("$$", pos + 2);
+        size_t closer = out.find("}$$", pos + 2);
+        
+        if (closer == string::npos || (next_double_dollar != string::npos && next_double_dollar < closer)) {
+            // Missing closer
+            if (next_double_dollar != string::npos) {
+                size_t insert_point = next_double_dollar;
+                // Backtrack to find a good spot (e.g. before newline)
+                if (insert_point > 0 && out[insert_point-1] == '\n') insert_point--;
+                out.insert(insert_point, "\n}$$");
+            } else {
+                out += "\n}$$";
+            }
+        }
+        pos += 2;
+    }
+
+    // 5. Remove stray single $ (unpaired)
+    string final_out = "";
+    for (size_t i = 0; i < out.size(); ++i) {
+        if (out[i] == '$') {
+            bool is_double = (i + 1 < out.size() && out[i+1] == '$') || (i > 0 && out[i-1] == '$');
+            bool is_inline_start = (i + 2 < out.size() && out[i+1] == ' ' && out[i+2] == '{');
+            bool is_inline_end = (i > 1 && out[i-1] == ' ' && out[i-2] == '}');
+            
+            if (!is_double && !is_inline_start && !is_inline_end) {
+                continue; // Skip stray $
+            }
+        }
+        final_out += out[i];
+    }
+    
+    return final_out;
+}
+
 // --- MAIN ---
 int main(int argc, char* argv[]) {
+    int testx=0;
+    int testy=4;
+    /*$$ test -> test_func {
+    testx = testy
+     print(testfunc(tesx))
+    }$$
+    */
+   //ABSTACT a {all printed messages must end with " glupe!"}
+   // $ test2 -> a{ print("it works")}$
+    ExecutionTimer cronoTimer;
     auto startTime = std::chrono::high_resolution_clock::now();
     initLogger(); 
 
@@ -2808,6 +3025,7 @@ int main(int argc, char* argv[]) {
     vector<string> updateTargets;
     string outputName = "";
     string mode = "local"; 
+    string customBuildCmd = ""; // [NEW] Custom build command override
     string customInstructions = ""; 
     bool explicitLang = false;
     bool dryRun = false;
@@ -2819,6 +3037,7 @@ int main(int argc, char* argv[]) {
     bool seriesMode = false;
     bool refineMode = false;
     bool blindMode = false;
+    bool fillMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -2827,6 +3046,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-local") mode = "local";
         else if (arg == "-dry-run") dryRun = true;
         else if (arg == "-verbose") VERBOSE_MODE = true;
+        else if (arg == "-build" && i+1 < argc) { customBuildCmd = argv[i+1]; i++; }
         else if (arg == "-u" || arg == "--update") updateMode = true;
         else if (arg == "-run" || arg == "--run") runOutput = true;
         else if (arg == "-k" || arg == "--keep") keepSource = true;
@@ -2834,6 +3054,8 @@ int main(int argc, char* argv[]) {
         else if (arg == "-make") makeMode = true;
         else if (arg == "-series") seriesMode = true;
         else if (arg == "-refine") refineMode = true;
+        else if (arg == "-fill") fillMode = true;
+        else if (arg == "-crono") cronoTimer.enabled = true;
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
@@ -2915,17 +3137,28 @@ int main(int argc, char* argv[]) {
 
             // [UPDATED] Sliding Window Logic
             vector<string> chunks = splitSourceCode(content);
+            
             string fullRefinedCode = "";
             string previousContext = "";
 
             cout << "[AI] Semantic compression (" << mode << ") - " << chunks.size() << " chunks..." << endl;
 
             for (size_t i = 0; i < chunks.size(); ++i) {
+               cout << "   -> Processing chunk " << (i + 1) << "/" << chunks.size() << "..." << endl;
                 cout << "   -> Processing chunk " << (i + 1) << "/" << chunks.size() << "..." << endl;
                 
                 bool isSpaghetti = detectIfCodeIsSpaghetti(chunks[i]);
 
+            bool isSpaghetti = detectIfCodeIsSpaghetti(chunks[i]);
                 stringstream prompt;
+
+                // 1. Define contextual variables upfront to avoid messy branching
+                string roleDesc = isSpaghetti ? "Expert Legacy Code Refactorer" : "Senior Systems Architect";
+                string taskDesc = isSpaghetti ? "Refactor MESSY/LEGACY code into a clean semantic blueprint (.glp) DO NOT OVERSIMPLIFY";
+                                            : "Transpile the source code into a high-fidelity semantic blueprint (.glp)";
+                string logicRule = isSpaghetti ? "- Untangle patterns (goto/nesting). Preserve BUSINESS INTENT.";
+                                            : "- 1:1 Functional mapping. DO NOT omit any logic.";
+
                 if (isSpaghetti) {
                     cout << "      [!] Spaghetti Code Detected. Enabling Refactoring Mode." << endl;
                     prompt << "ROLE: Expert Legacy Code Refactorer & Systems Architect.\n";
@@ -2937,6 +3170,25 @@ int main(int argc, char* argv[]) {
                     prompt << "GOAL: Destill the implementation into functional blocks '$$ name -> parent { logic } $$' .\n";
                 }
 
+                // 2. Build the optimized, token-efficient prompt
+                prompt << "ROLE: " << roleDesc << "\n";
+                prompt << "TASK: " << taskDesc << "\n\n";
+                prompt << "[SYNTAX_RULES]\n";
+                prompt << "1. Block: $$ name -> parent1, parent2, ... { logic } $$ or if no parents $$ name { logic }$$\n";
+                prompt << "1.1 includes have their own blocks, GOOD: \"standard map lib\", BAD: #include <map> \n";
+                prompt << "1.2 Globals and constants have their own blocks\n";
+                prompt << "2. Abstract: $$ABSTRACT name -> parent { logic }$$\n. Abstract blocks do not generate code, only influence on other blocks";
+                prompt << "3. Inline: GOOD: $ name -> parent { logic }$, BAD: $ name { logic\\nlogic }$\n";
+                prompt << "4. STRICT: NO NESTING BLOCKS, NO $${$${}$$}$$ or $${${}$}$$.\n";
+                prompt << "5. DO NOT OVER SIMPLIFY. DO NOT OMIT LOGIC. DO NOT REPLACE WITH EXAMPLES or STUBS. every line must have its semantic representation\n";
+                prompt << "Use inheritance (->) for relationships/calls.\n\n";
+                prompt << "[LOGIC_RULES]\n";
+                prompt << "- Format: Numbered algorithmic steps (1, 1.1, 1.2).\n";
+                prompt << "- Style: Imperative verbs (Get, Set, Check). No prose.\n";
+                prompt << logicRule << "\n";
+                prompt << "- Intent Focus: Name blocks by Goal (e.g., 'FilterData') rather than syntax (e.g., 'Loop1').\n";
+                prompt << "- Detail: Rewrite logic inside blocks using technical steps. Do not over-summarize.\n";
+                prompt << "- Includes/Globals: Must have their own independent semantic blocks.\n";
                     if (i > 0) {
                         prompt << "\n[EXTERNAL_CONTEXT_FROM_PREVIOUS_PARTS]\n";
                         // Extraemos solo firmas y globales del contexto previo para no saturar la memoria
@@ -2944,27 +3196,37 @@ int main(int argc, char* argv[]) {
                         prompt << "Maintain strict compatibility with these definitions.\n";
                     }
 
+                if (i > 0) {
+                    prompt << "\n[CONTEXT_SYNC]\n";
+                    prompt << "Existing Signatures/Globals: " << extractSignatures(previousContext) << "\n";
+                    prompt << "Maintain STRICT compatibility with these definitions.\n";
+                }
                     prompt << "\n[STRICT_RULES]\n";
                     if (isSpaghetti) {
                         prompt << "0. REFACTOR BAD PATTERNS. Replace 'goto' with loops/control structures. Flatten deep nesting. Use meaningful names.\n";
                     }
+
+                prompt << "\n[OUTPUT_FORMAT]\n";
+                    prompt << "RETURN ONLY the .glp fragment. NO conversation. NO markdown code blocks.\n\n";
+                    prompt << "[SOURCE_CODE_PART_" << (i + 1) << "]\n";
                     prompt << "When refining code into intent, use a numbered algorithmic format. Use standard indentation for nested logic (1, 1.1, 1.2). Do not use prose. Use imperative verbs (Get, Set, Check, Return).";
                     prompt << "Semantic blocks should represent functions, classes, and logical groupings of code. They should not be arbitrary line groupings.\n";
                     prompt << "Do not nest semantic blocks: BAD: $$ block1 { logic $$ block2 { logic } $$ }$$. GOOD: $$ block1 { logic }$$ $$ block2 { logic }$$\n";
                     prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
                     prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
                     prompt << "For single-line logic, use inline containers: $ name -> parent { logic }. These behave like standard containers but must be on a single line.\n";
-                    prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
-                    if (!isSpaghetti) prompt << "0. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
-                    else prompt << "0. DO NOT OMIT BUSINESS LOGIC. Preserve all functionality, but restructure the implementation details to be clean.\n";
                     
-                    prompt << "1. DO NOT OVER SUMMARIZE. Rewrite the logic inside blocks using technical steps.\n";
-                    prompt << "1.5 PRIORITIZE LOGIC OVER SYNTAX. If code contains nested loops or unclear structure, do NOT just list the variables. Instead, determine the Goal of the loop (e.g., 'Count Items', 'Filter Data') and create a block named after that goal. Ignore individual variable declarations if they are part of a larger algorithm.";
+                    if (!isSpaghetti) prompt << "1. DO NOT OMIT ANY LOGIC. Every line of code must have a representation in the semantic blueprint.\n";
+                    else prompt << "1. DO NOT OMIT BUSINESS LOGIC. Preserve all functionality, but restructure the implementation details to be clean.\n";
+                    
+                    prompt << "2. DO NOT OVER SUMMARIZE. Rewrite the logic inside blocks using technical steps.\n";
+                    prompt << "3. PRIORITIZE LOGIC OVER SYNTAX. If code contains nested loops or unclear structure, do NOT just list the variables. Instead, determine the Goal of the loop (e.g., 'Count Items', 'Filter Data') and create a block named after that goal. Ignore individual variable declarations if they are part of a larger algorithm.";
                     prompt << "   BAD: $$ init { Set up the system } $$ <- too vague\n";
                     prompt << "   GOOD: $$ init { 1. Open database at DB_URL, 2. verify 'users' table exists, 3. and initialize session_map } $$\n";
-                    prompt << "2. Represent each function with a semantic block $$ block_name { ... }$$.\n";
-                    prompt << "3. PRESERVE all #include, constants, and global variable declarations in their own semantic blocks\n";
-                    prompt << "4. Return ONLY the .glp fragment for this part. No conversation. No markdown code blocks.\n";
+                    
+                    prompt << "4. Represent each function with a semantic block $$ block_name { ... }$$.\n";
+                    prompt << "5. PRESERVE all #include, constants, and global variable declarations in their own semantic blocks\n";
+                    prompt << "6. Return ONLY the .glp fragment for this part. No conversation. No markdown code blocks.\n";
 
                     prompt << "\n[SOURCE_CODE_PART_" << (i+1) << "]\n";
                     prompt << chunks[i] << "\n";
@@ -2973,6 +3235,7 @@ int main(int argc, char* argv[]) {
                 bool success = false;
                 int retries = 0;
 
+                while (retries < MAX_ING BLOCKS, "NO $${$${}$$}$$ or $${${}$}$$.\n"; RETRIES) {
                 while (retries < MAX_RETRIES) {
                     string response = callAI(prompt.str());
                     refinedChunk = extractCode(response);
@@ -3010,6 +3273,9 @@ int main(int argc, char* argv[]) {
                 fullRefinedCode += refinedChunk + "\n";
                 previousContext = refinedChunk; // Update context for next iteration
             }
+
+            // [NEW] Sanitize syntax before saving
+            fullRefinedCode = sanitize_container_syntax(fullRefinedCode);
 
             string outputFile = file + ".glp";
             ofstream out(outputFile);
@@ -3153,7 +3419,7 @@ int main(int argc, char* argv[]) {
 
     // [NEW] Process Containers (Cache Check & Injection)
     // If updateMode is true, we try to use cache.
-    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets);
+    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets, fillMode);
 
     // [SERIES MODE] Sequential Generation
     if (seriesMode) {
@@ -3246,6 +3512,12 @@ int main(int argc, char* argv[]) {
     string tempSrc = "temp_build" + CURRENT_LANG.extension;
     string tempBin = "temp_build.exe"; 
     string errorHistory = ""; 
+
+    // [FILL MODE] Skip global generation loop
+    if (fillMode) {
+        cout << "[FILL] Containers processed. Skipping global generation." << endl;
+        ofstream out(tempSrc); out << aggregatedContext; out.close();
+    } else {
 
     // [OPTIMIZATION] Direct Compilation for matching source files
     bool canDirectCompile = false;
@@ -3531,6 +3803,15 @@ int main(int argc, char* argv[]) {
         if (blindMode) {
             cout << "   [WARN] Blind Mode: Skipping verification." << endl;
             build.exitCode = 0;
+        } else if (!customBuildCmd.empty()) {
+            // [NEW] Custom build command execution
+            string cmd = customBuildCmd;
+            // Replace placeholders
+            size_t fPos = cmd.find("%FILE%");
+            if (fPos != string::npos) cmd.replace(fPos, 6, tempSrc);
+            size_t oPos = cmd.find("%OUT%");
+            if (oPos != string::npos) cmd.replace(oPos, 5, tempBin);
+            build = execCmd(cmd);
         } else if (CURRENT_LANG.buildCmd.empty()) {
             build.exitCode = 0;
         } else {
@@ -3628,6 +3909,8 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+    
+    } // End of !fillMode block
 
     cerr << "Failed to build after " << passes << " attempts." << endl;
     return 1;

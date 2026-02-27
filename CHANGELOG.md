@@ -2,6 +2,8 @@
 
 Added:
 
+- added -fill flag to avoid AI rewriting the whole file, and only writing the containers
+- added -build flag to override standard compilation / interpretation internal cmd
 - added embedded glupe code parsing in files supporting // /**/
 - added IMPORT: END blocks
 Removed:

@@ -1,0 +1,472 @@
+$$ includes {
+    #include <stdint.h>
+    #include <stddef.h>
+    #include "limine.h"
+    #include "font.h"
+    #include "idt.hpp"
+    #include "vector.hpp"
+    #include "string.hpp"
+    #include "kernel.hpp"
+    #include "3Dgrid.hpp"
+    #include "commands.hpp"
+}
+
+$$ globals -> includes {
+    static volatile struct limine_framebuffer_request framebuffer_request = {
+        .id = LIMINE_FRAMEBUFFER_REQUEST,
+        .revision = 0
+    };
+
+    static volatile struct limine_module_request module_request = {
+        .id = LIMINE_MODULE_REQUEST,
+        .revision = 0
+    };
+
+    static struct limine_framebuffer *global_fb = nullptr;
+    Vector<String>* command_history_ptr = nullptr;
+}
+
+$$ hardware_io -> globals {
+    $ outb -> globals {
+        void outb(uint16_t port, uint8_t val) {
+            asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+        }
+    }
+
+    $ outw -> globals {
+        void outw(uint16_t port, uint16_t val) {
+            asm volatile ( "outw %0, %1" : : "a"(val), "Nd"(port) );
+        }
+    }
+
+    $ inb -> globals {
+        uint8_t inb(uint16_t port) {
+            uint8_t ret;
+            asm volatile ( "inb %1, %0" : "=a"(ret) : "Nd"(port) );
+            return ret;
+        }
+    }
+
+    $ enable_interrupts -> globals {
+        static inline void enable_interrupts() {
+            asm volatile("sti");
+        }
+    }
+
+    $ disable_interrupts -> globals {
+        static inline void disable_interrupts() {
+            asm volatile("cli");
+        }
+    }
+
+    $ halt_cpu -> globals {
+        void halt_cpu() {
+            asm volatile("hlt");
+        }
+    }
+
+    $ sleep_approx -> globals {
+        void sleep_approx(uint32_t count) {
+            for (volatile uint32_t i = 0; i < count; i++) {
+                asm volatile("pause");
+            }
+        }
+    }
+}
+
+$$ mouse_driver -> hardware_io {
+    static volatile uint8_t mouse_buffer[RING_BUFFER_SIZE];
+    uint8_t mouse_packet_size = 3;
+
+    $ mouse_wait -> hardware_io {
+        void mouse_wait(uint8_t type) {
+            int timeout = 100000;
+            if (type == 0) {
+                while (timeout--) { if ((inb(0x64) & 1) == 1) return; asm volatile("pause"); }
+            } else {
+                while (timeout--) { if ((inb(0x64) & 2) == 0) return; asm volatile("pause"); }
+            }
+        }
+    }
+
+    $ mouse_write -> mouse_wait {
+        void mouse_write(uint8_t write) {
+            mouse_wait(1);
+            outb(0x64, 0xD4);
+            mouse_wait(1);
+            outb(0x60, write);
+            mouse_wait(0); // Wait for ACK
+            inb(0x60);     // Consume ACK
+        }
+    }
+
+    $ mouse_init -> mouse_write {
+        void mouse_init() {
+            1. Enable auxiliary input (mouse)
+            2. Read current "Command Byte"
+            3. Update "Command Byte" to enable mouse interrupts
+            4. Enable scroll wheel (IntelliMouse)
+            5. Determine mouse packet size
+            6. Enable data reporting
+        }
+    }
+}
+
+$$ speaker_driver -> hardware_io {
+    $ beep -> hardware_io {
+        void beep(uint32_t freq, uint32_t duration_ms) {
+            1. Handle zero frequency case
+            2. Calculate divisor for desired frequency
+            3. Set up PIT for sound generation
+            4. Enable speaker
+            5. Wait for duration
+            6. Disable speaker
+        }
+    }
+}
+
+$$ graphics_engine -> globals {
+    static uint32_t* g_backbuffer = nullptr;
+
+    $ fast_memcpy -> globals {
+        void fast_memcpy(void* dst, const void* src, size_t size) {
+            1. Copy data in 64-bit chunks
+            2. Handle remaining bytes
+        }
+    }
+
+    $ init_graphics -> globals {
+        void init_graphics(struct limine_framebuffer* fb) {
+            1. Store global framebuffer reference
+            2. Allocate backbuffer if not already allocated
+        }
+    }
+
+    $ get_backbuffer -> init_graphics {
+        uint32_t* get_backbuffer() {
+            return g_backbuffer;
+        }
+    }
+
+    $ swap_buffers -> init_graphics {
+        void swap_buffers(struct limine_framebuffer* fb) {
+            1. Copy backbuffer to framebuffer using fast_memcpy
+        }
+    }
+
+    $ draw_pixel -> init_graphics {
+        void draw_pixel(struct limine_framebuffer *fb, int x, int y, uint32_t color) {
+            1. Validate coordinates
+            2. Write pixel to appropriate buffer
+        }
+    }
+
+    $ draw_char -> draw_pixel {
+        void draw_char(struct limine_framebuffer *fb, int x, int y, char c, uint32_t color) {
+            1. Validate character
+            2. Retrieve glyph data
+            3. Draw glyph pixel by pixel
+        }
+    }
+
+    $ draw_string -> draw_char {
+        void draw_string(struct limine_framebuffer *fb, int x, int y, const char* str, uint32_t color) {
+            1. Iterate through string
+            2. Draw each character
+        }
+    }
+}
+
+$$ string_conversion -> graphics_engine {
+    $ u64_to_hex -> graphics_engine {
+        void u64_to_hex(uint64_t val, char* dest) {
+            1. Format output as hexadecimal string
+        }
+    }
+
+    $ itoa -> graphics_engine {
+        void itoa(int value, char* buffer, int base) {
+            1. Handle special cases (zero, negative)
+            2. Convert integer to string
+        }
+    }
+}
+
+$$ system_control -> hardware_io {
+    $ shutdown -> hardware_io {
+        extern "C" void shutdown() {
+            1. Attempt shutdown via QEMU, VirtualBox, Bochs
+        }
+    }
+
+    $ reboot -> hardware_io {
+        extern "C" void reboot() {
+            1. Trigger reboot via keyboard controller
+        }
+    }
+}
+
+$$ keyboard_handling -> hardware_io {
+    $ scancode_to_char -> hardware_io {
+        char scancode_to_char(uint8_t sc, bool shift, bool caps) {
+            1. Map scancode to character using lookup tables
+            2. Apply shift and caps lock modifiers
+        }
+    }
+}
+
+$$ sse_enable -> hardware_io {
+    $ enable_sse -> hardware_io {
+        void enable_sse() {
+            1. Modify CR0 to enable SSE
+            2. Modify CR4 to enable SSE and FXSR
+        }
+    }
+}
+
+$$ interrupt_handling -> hardware_io {
+    __attribute__((aligned(0x10))) 
+    static idt_entry idt[256];
+    static idtr idtr_desc;
+
+    $ ring_buffers -> interrupt_handling {
+        #define RING_BUFFER_SIZE 128
+        static volatile uint8_t key_buffer[RING_BUFFER_SIZE];
+        static volatile uint16_t key_head = 0;
+        static volatile uint16_t key_tail = 0;
+
+        static volatile uint16_t mouse_head = 0;
+        static volatile uint16_t mouse_tail = 0;
+    }
+
+    $ system_state -> ring_buffers {
+        static volatile uint64_t ticks = 0;
+        static uint32_t terminal_color = 0xFFFFFFFF;
+        static uint32_t terminal_bg_color = 0xFF000000;
+    }
+
+    $ input_buffers -> ring_buffers {
+        $ has_key -> ring_buffers {
+            bool has_key() {
+                return key_head != key_tail;
+            }
+        }
+
+        $ get_key -> has_key {
+            uint8_t get_key() {
+                1. Check for available key
+                2. Retrieve and remove key from buffer
+            }
+        }
+
+        $ has_mouse -> ring_buffers {
+            bool has_mouse() {
+                return mouse_head != mouse_tail;
+            }
+        }
+
+        $ get_mouse_byte -> has_mouse {
+            uint8_t get_mouse_byte() {
+                1. Check for available mouse byte
+                2. Retrieve and remove byte from buffer
+            }
+        }
+    }
+
+    $ time_handling -> system_state {
+        $ get_ticks -> system_state {
+            uint64_t get_ticks() {
+                return ticks;
+            }
+        }
+
+        $ sleep_ms -> get_ticks {
+            void sleep_ms(uint64_t ms) {
+                1. Calculate target tick count
+                2. Wait until target is reached
+            }
+        }
+    }
+
+    $ terminal_colors -> system_state {
+        $ set_terminal_color -> system_state {
+            void set_terminal_color(uint32_t color) {
+                terminal_color = color;
+            }
+        }
+
+        $ set_terminal_bg_color -> system_state {
+            void set_terminal_bg_color(uint32_t color) {
+                terminal_bg_color = color;
+            }
+        }
+
+        $ get_terminal_bg_color -> set_terminal_bg_color {
+            uint32_t get_terminal_bg_color() {
+                return terminal_bg_color;
+            }
+        }
+    }
+
+    $ isrs -> interrupt_handling {
+        $ timer_handler -> interrupt_handling {
+            __attribute__((interrupt)) void timer_handler(struct interrupt_frame* frame) {
+                1. Increment tick counter
+                2. Send EOI to PIC
+            }
+        }
+
+        $ keyboard_handler -> timer_handler {
+            __attribute__((interrupt)) void keyboard_handler(struct interrupt_frame* frame) {
+                1. Read scancode
+                2. Store in key buffer if space available
+                3. Send EOI to PIC
+            }
+        }
+
+        $ mouse_handler -> keyboard_handler {
+            __attribute__((interrupt)) void mouse_handler(struct interrupt_frame* frame) {
+                1. Read mouse byte
+                2. Store in mouse buffer if space available
+                3. Send EOIs to slave and master PICs
+            }
+        }
+
+        $ page_fault_handler -> timer_handler {
+            __attribute__((interrupt)) void page_fault_handler(struct interrupt_frame* frame) {
+                1. Retrieve fault address
+                2. Display error message if graphics available
+                3. Halt system
+            }
+        }
+    }
+
+    $ pic_remapping -> isrs {
+        $ remap_pic -> isrs {
+            void remap_pic() {
+                1. Remap PIC to standard vectors
+                2. Configure cascade mode
+                3. Set up 8086 mode
+                4. Unmask necessary IRQs
+            }
+        }
+    }
+
+    $ idt_management -> pic_remapping {
+        $ set_idt_gate -> pic_remapping {
+            void set_idt_gate(int n, uint64_t handler) {
+                1. Fill IDT entry with handler information
+            }
+        }
+
+        $ init_interrupts -> set_idt_gate {
+            void init_interrupts() {
+                1. Remap PIC
+                2. Set up IDT entries for ISRs
+                3. Load IDT
+                4. Configure PIT
+                5. Enable interrupts
+            }
+        }
+    }
+}
+
+$$ terminal_logic -> graphics_engine {
+    $ term_print -> graphics_engine {
+        void term_print(Vector<String>& buffer, const char* text, int max_chars) {
+            1. Process input text line by line
+            2. Handle word wrapping
+            3. Store lines in buffer
+        }
+    }
+
+    $ start_terminal_mode -> term_print {
+        void start_terminal_mode(struct limine_framebuffer *fb) {
+            1. Initialize terminal state
+            2. Display initial messages
+            3. Main input loop:
+                - Handle keyboard input
+                - Process commands
+                - Update display
+                - Manage cursor and scrolling
+        }
+    }
+}
+$$ cursor_line_wrap_logic {
+1. Check if last_len >= max_chars.
+2. If true: Set cursor_x = 10; Set cursor_y = y + line_height.
+3. Else: Set cursor_x = 10 + last_len * 8; Set cursor_y = y.
+}$$
+
+$$ advance_line_height {
+1. Increment y by line_height.
+}$$
+
+$$ cursor_fallback_position {
+1. If input_lines.size() == 0: Set cursor_x = 10; Set cursor_y = y.
+}$$
+
+$$ cursor_draw_if_visible {
+1. If cursor_visible: Call draw_string(fb, cursor_x, cursor_y, "_", terminal_color).
+}$$
+
+$$ terminal_frame_finalize {
+1. Set dirty = false.
+2. If g_backbuffer: Call swap_buffers(fb).
+3. Set full_refresh = false.
+4. Set cursor_needs_update = false.
+}$$
+
+$$ cursor_update_only {
+1. If cursor_visible: Call draw_string(fb, cursor_x, cursor_y, "_", terminal_color).
+2. Else: Execute cursor_erase_pixels.
+3. If g_backbuffer: Call swap_buffers(fb).
+4. Set cursor_needs_update = false.
+}$$
+
+$$ cursor_erase_pixels {
+1. Loop dy from 0 to 7.
+2. Loop dx from 0 to 7.
+3. Call draw_pixel(fb, cursor_x + dx, cursor_y + dy, terminal_bg_color).
+}$$
+
+$$ xtoi {
+1. Set res = 0.
+2. If str starts with "0x" or "0X": Advance str by 2.
+3. Loop while *str != 0:
+   3.1 Determine v based on hex digit:
+       - If '0'–'9': v = *str - '0'.
+       - If 'a'–'f': v = *str - 'a' + 10.
+       - If 'A'–'F': v = *str - 'A' + 10.
+       - Else: Break loop.
+   3.2 Set res = (res << 4) | v.
+   3.3 Increment str.
+4. Return res.
+}$$
+
+$$ get_module_file {
+1. If module_request.response == null OR modules == null: Return nullptr.
+2. Loop i from 0 to module_count-1:
+   2.1 Set f = modules[i].
+   2.2 Set path = f->path; If null: continue.
+   2.3 Compute path_len by scanning until null.
+   2.4 Compute name_len by scanning until null.
+   2.5 If path_len >= name_len:
+       2.5.1 Set match = true.
+       2.5.2 Loop j from 0 to name_len-1:
+             - If path[path_len - name_len + j] != name[j]: Set match=false; break.
+       2.5.3 If match:
+             - If size != null: *size = f->size.
+             - Return f->address.
+3. Return nullptr.
+}$$
+
+$$ _start {
+1. If framebuffer_request.response == null OR framebuffer_count < 1: Enter infinite loop.
+2. Set fb = framebuffer_request.response->framebuffers[0].
+3. Call enable_sse().
+4. Call mouse_init().
+5. Call init_graphics(fb).
+6. Call init_interrupts().
+7. Call start_terminal_mode(fb).
+}$$
