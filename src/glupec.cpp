@@ -1,7 +1,7 @@
-/* GLUPE COMPILER ( formerly yori.exe) - v6.0.0*/
+/* GLUPE COMPILER ( formerly yori.exe) - v5.9.0*/
 
 // build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
-/* GLUPE COMPILER ( formerly yori.exe) - v6.0.0*/
+/* GLUPE COMPILER ( formerly yori.exe) - v5.9.0*/
 
 // build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
 
@@ -943,20 +943,21 @@ int main(int argc, char* argv[]) {
             cout << "[AI] Semantic compression (" << mode << ") - " << chunks.size() << " chunks..." << endl;
 
             for (size_t i = 0; i < chunks.size(); ++i) {
-               cout << "   -> Processing chunk " << (i + 1) << "/" << chunks.size() << "..." << endl;
                 cout << "   -> Processing chunk " << (i + 1) << "/" << chunks.size() << "..." << endl;
                 
                 bool isSpaghetti = detectIfCodeIsSpaghetti(chunks[i]);
-
-            bool isSpaghetti = detectIfCodeIsSpaghetti(chunks[i]);
                 stringstream prompt;
 
-                // 1. Define contextual variables upfront to avoid messy branching
+                // 1. Define contextual variables (Corregido: Sin ';' intermedios)
                 string roleDesc = isSpaghetti ? "Expert Legacy Code Refactorer" : "Senior Systems Architect";
-                string taskDesc = isSpaghetti ? "Refactor MESSY/LEGACY code into a clean semantic blueprint (.glp) DO NOT OVERSIMPLIFY";
-                                            : "Transpile the source code into a high-fidelity semantic blueprint (.glp)";
-                string logicRule = isSpaghetti ? "- Untangle patterns (goto/nesting). Preserve BUSINESS INTENT.";
-                                            : "- 1:1 Functional mapping. DO NOT omit any logic.";
+                
+                string taskDesc = isSpaghetti 
+                    ? "Refactor MESSY/LEGACY code into a clean semantic blueprint (.glp) DO NOT OVERSIMPLIFY" 
+                    : "Transpile the source code into a high-fidelity semantic blueprint (.glp)";
+                    
+                string logicRule = isSpaghetti 
+                    ? "- Untangle patterns (goto/nesting). Preserve BUSINESS INTENT." 
+                    : "- 1:1 Functional mapping. DO NOT omit any logic.";
 
                 if (isSpaghetti) {
                     cout << "      [!] Spaghetti Code Detected. Enabling Refactoring Mode." << endl;
@@ -1311,10 +1312,13 @@ int main(int argc, char* argv[]) {
     string tempBin = "temp_build.exe"; 
     string errorHistory = ""; 
 
+    int passes = MAX_RETRIES;
+
     // [FILL MODE] Skip global generation loop
     if (fillMode) {
         cout << "[FILL] Containers processed. Skipping global generation." << endl;
         ofstream out(tempSrc); out << aggregatedContext; out.close();
+        return 0;
     } else {
 
     // [OPTIMIZATION] Direct Compilation for matching source files
@@ -1379,8 +1383,6 @@ int main(int argc, char* argv[]) {
             errorHistory = "PREVIOUS COMPILATION ATTEMPT FAILED:\n" + build.output;
         }
     }
-    
-    int passes = MAX_RETRIES;
     
     for(int gen=1; gen<=passes; gen++) {
         if (makeMode) cout << "   [Pass " << gen << "] Architecting Project..." << endl;

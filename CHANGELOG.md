@@ -5,6 +5,7 @@ Added:
 Removed:
 
 Improved/Fixed:
+- fixed refactoring errors
 - splitted glupe into 10 hpp files, now the project is modular
 - moved source to src/
 
