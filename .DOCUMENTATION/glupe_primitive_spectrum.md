@@ -4,21 +4,21 @@ This table defines the behavior, storage, and architectural "mass" of every prim
 
 Primitive | Syntax | Format | Persistance | Inheritable | Binary mass | Registry Role|
 ---------|--------|--------|-------------|------------|-------------|--------------
-Persistent block| $$x {}$$ | Multiline|Disk (.lock) | Yes | Yes | Architectural Pillar|
-Abstract persisten block | $$ABSTRACT x {}$$ | Multiline |Disk (.lock)| Yes | No |Cached Architectural Blue Print|
-Ephemeral block | $${}$$ | Multiline | RAM | No | Yes | Transient Logic|
-Abstract Ephemeral Block| $$ABSTRACT { }$$| Multiline|RAM|No|No|Scope-limited Rule (Ghost)|
-Persistent Inline|$ x { } $|Inline|Disk (.lock)|Yes|Yes (Snippet)|Semantic Snippet|
-Abstract Named Inline|$ABSTRACT x { } $|Inline|Disk (.lock)|Yes|No|Named Logic Rule|
-Ephemeral Inline|${ }$|Inline|RAM|No|Yes|Transient Expression|
-Abstract Headless Inline| $ABSTRACT { } $|Inline|RAM|No|No|Immediate Context Filter|
-Persistent Variable|$$: x -> p|Inline|Disk (.lock)|Yes|Yes (Var/Const)|Cached State|
-Abstract Persistent Var|$$ABSTRACT: x -> p|Inline|Disk (.lock)|Yes|No|Cached Logical Guardrail|
-Ephemeral Variable|$: x -> p|Inline|RAM|Yes|Yes|Dynamic State|
-Abstract Ephemeral Var|$ABSTRACT: x -> p|Inline|RAM|Yes|No|Volatile Logic Ghost|
-Abstract Persistent Const|$$ABSTRACT CONST: x -> v|Inline|Disk (.lock)|Yes|No|Cached Hard Logic Limit|
-Abstract Ephemeral Const|$ABSTRACT CONST: x -> v|Inline|RAM|Yes|No|Volatile Hard Logic Limit|
-Semantic Constant|$CONST: x -> v|Inline|Disk (.lock)|Yes|Yes (Immutable)|Hard Binary Constraint|
+Persistent block| `$$x {}$$` | Multiline|Disk (.lock) | Yes | Yes | Architectural Pillar|
+Abstract persisten block | `$$ABSTRACT x {}$$` | Multiline |Disk (.lock)| Yes | No |Cached Architectural Blue Print|
+Ephemeral block | `$${}$$` | Multiline | RAM | No | Yes | Transient Logic|
+Abstract Ephemeral Block| `$$ABSTRACT { }$$`| Multiline|RAM|No|No|Scope-limited Rule (Ghost)|
+Persistent Inline|`$ x { } $`|Inline|Disk (.lock)|Yes|Yes (Snippet)|Semantic Snippet|
+Abstract Named Inline|`$ABSTRACT x { } $`|Inline|Disk (.lock)|Yes|No|Named Logic Rule|
+Ephemeral Inline|`${ }$`|Inline|RAM|No|Yes|Transient Expression|
+Abstract Headless Inline|`n  $ABSTRACT { } $`|Inline|RAM|No|No|Immediate Context Filter|
+Persistent Variable|`$$: x -> p`|Inline|Disk (.lock)|Yes|Yes (Var/Const)|Cached State|
+Abstract Persistent Var|`$$ABSTRACT: x -> p`|Inline|Disk (.lock)|Yes|No|Cached Logical Guardrail|
+Ephemeral Variable|`$: x -> p`|Inline|RAM|Yes|Yes|Dynamic State|
+Abstract Ephemeral Var|`$ABSTRACT: x -> p`|Inline|RAM|Yes|No|Volatile Logic Ghost|
+Abstract Persistent Const|`$$ABSTRACT CONST: x -> v`|Inline|Disk (.lock)|Yes|No|Cached Hard Logic Limit|
+Abstract Ephemeral Const|`$ABSTRACT CONST: x -> v`|Inline|RAM|Yes|No|Volatile Hard Logic Limit|
+Semantic Constant|`$CONST: x -> v`|Inline|Disk (.lock)|Yes|Yes (Immutable)|Hard Binary Constraint|
 
 ## Detailed Property Analysis (Extended)
 
