@@ -65,11 +65,20 @@ if (-not (Test-Path $InstallDir)) {
     Write-Host "[OK] Created installation directory: $InstallDir" -ForegroundColor Green
 }
 
+# Create src directory
+$SrcDir = "$InstallDir\src"
+if (-not (Test-Path $SrcDir)) {
+    New-Item -ItemType Directory -Force -Path $SrcDir | Out-Null
+}
+
 # 3. Download Source
 Write-Host "[INFO] Downloading source code..."
 try {
-    Invoke-WebRequest -Uri "$RepoUrl/glupec.cpp" -OutFile "$InstallDir\glupec.cpp"
-    Invoke-WebRequest -Uri $JsonUrl -OutFile "$InstallDir\json.hpp"
+    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp")
+    foreach ($file in $SourceFiles) {
+        Invoke-WebRequest -Uri "$RepoUrl/src/$file" -OutFile "$SrcDir\$file"
+    }
+    Invoke-WebRequest -Uri $JsonUrl -OutFile "$SrcDir\json.hpp"
 } catch {
     Write-Host "[ERROR] Failed to download source files." -ForegroundColor Red
     Write-Host "Ensure you have internet connection and the repository URL is correct."
@@ -80,7 +89,7 @@ try {
 # 4. Compile
 Write-Host "[INFO] Compiling Glupe..."
 # [FIX] Added -static to ensure the exe runs on any machine without DLLs
- $BuildCmd = "g++ `"$InstallDir\glupec.cpp`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3"
+ $BuildCmd = "g++ `"$SrcDir\glupec.cpp`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
 Invoke-Expression $BuildCmd
 
 if (-not (Test-Path $ExePath)) {

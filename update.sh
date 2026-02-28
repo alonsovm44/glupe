@@ -1,6 +1,7 @@
 #!/bin/bash
 
-REPO="M-MACHINE/glupe"
+REPO_URL="https://raw.githubusercontent.com/M-MACHINE/glupe/main"
+JSON_URL="https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
 GLUPE_BIN_NAME="glupe"
 TEMP_BIN="/tmp/${GLUPE_BIN_NAME}.new"
 
@@ -16,32 +17,30 @@ fi
 GLUPE_DIR=$(dirname "$CURRENT_GLUPE_PATH")
 
 echo "Current glupe path: $CURRENT_GLUPE_PATH"
-echo "Fetching latest release information from GitHub..."
+echo "Downloading source code from $REPO_URL..."
 
-# Get the latest release tag
-LATEST_RELEASE_TAG=$(curl -s "https://api.github.com/repos/${REPO}/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+SRC_DIR="$GLUPE_DIR/src"
+mkdir -p "$SRC_DIR"
 
-if [ -z "$LATEST_RELEASE_TAG" ]; then
-    echo "Error: Could not fetch latest release tag from GitHub."
-    exit 1
+SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp"
+for file in $SOURCE_FILES; do
+    if ! curl -fsSL "$REPO_URL/src/$file" -o "$SRC_DIR/$file"; then
+        echo "Error: Failed to download $file"; exit 1
+    fi
+done
+if ! curl -fsSL "$JSON_URL" -o "$SRC_DIR/json.hpp"; then
+    echo "Error: Failed to download json.hpp"; exit 1
 fi
 
-echo "Latest release: $LATEST_RELEASE_TAG"
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${LATEST_RELEASE_TAG}/${GLUPE_BIN_NAME}"
-
-echo "Downloading new glupe binary from $DOWNLOAD_URL to $TEMP_BIN..."
-if ! curl -L -o "$TEMP_BIN" "$DOWNLOAD_URL"; then
-    echo "Error: Failed to download new glupe binary."
-    rm -f "$TEMP_BIN"
+echo "Compiling Glupe..."
+if ! g++ "$SRC_DIR/glupec.cpp" -o "$TEMP_BIN" -std=c++17 -O3 -pthread -I "$SRC_DIR"; then
+    echo "Error: Compilation failed."
     exit 1
 fi
-
-chmod +x "$TEMP_BIN"
-echo "Downloaded and made executable."
 
 echo "Replacing current glupe executable..."
 if mv "$TEMP_BIN" "$CURRENT_GLUPE_PATH"; then
-    echo "Successfully updated glupe to $LATEST_RELEASE_TAG!"
+    echo "Successfully updated glupe to the latest version!"
     echo "Please restart your terminal or shell to ensure the new version is loaded."
 else
     echo "Error: Failed to replace glupe executable."

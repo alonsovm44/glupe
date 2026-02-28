@@ -1,4 +1,5 @@
-$repo = "M-MACHINE/glupe"
+$RepoBaseUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/main"
+$JsonUrl = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
 $glupeBinName = "glupe.exe"
 $tempBin = Join-Path $env:TEMP "$glupeBinName.new"
 
@@ -15,34 +16,32 @@ $glupeDir = Split-Path -Path $currentGlupePath -Parent
 
 Write-Host "Current glupe path: $currentGlupePath"
 
-Write-Host "Fetching latest release information from GitHub..."
+$SrcDir = Join-Path $glupeDir "src"
+if (-not (Test-Path $SrcDir)) { New-Item -ItemType Directory -Force -Path $SrcDir | Out-Null }
+
+Write-Host "Downloading source code from $RepoBaseUrl..."
 try {
-    $latestReleaseJson = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest"
-    $latestReleaseTag = $latestReleaseJson.tag_name
+    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp")
+    foreach ($file in $SourceFiles) {
+        Invoke-WebRequest -Uri "$RepoBaseUrl/src/$file" -OutFile (Join-Path $SrcDir $file) -ErrorAction Stop
+    }
+    Invoke-WebRequest -Uri $JsonUrl -OutFile (Join-Path $SrcDir "json.hpp") -ErrorAction Stop
 } catch {
-    Write-Error "Error: Could not fetch latest release tag from GitHub. $($_.Exception.Message)"
+    Write-Error "Error: Failed to download source files. $($_.Exception.Message)"
     exit 1
 }
 
-if (-not $latestReleaseTag) {
-    Write-Error "Error: Latest release tag is empty."
-    exit 1
-}
-
-Write-Host "Latest release: $latestReleaseTag"
-$downloadUrl = "https://github.com/$repo/releases/download/$latestReleaseTag/$glupeBinName"
-
-Write-Host "Downloading new glupe binary from $downloadUrl to $tempBin..."
+Write-Host "Compiling Glupe..."
+$BuildCmd = "g++ `"$SrcDir\glupec.cpp`" -o `"$tempBin`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
 try {
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $tempBin -ErrorAction Stop
+    Invoke-Expression $BuildCmd
 } catch {
-    Write-Error "Error: Failed to download new glupe binary. $($_.Exception.Message)"
-    Remove-Item $tempBin -ErrorAction SilentlyContinue
+    Write-Error "Error: Compilation failed. $($_.Exception.Message)"
     exit 1
 }
 
 if (-not (Test-Path $tempBin)) {
-    Write-Error "Error: Downloaded file not found: $tempBin"
+    Write-Error "Error: Compilation failed (Output file not found)."
     exit 1
 }
 
@@ -61,7 +60,7 @@ try {
 
 try {
     Move-Item -Path $tempBin -Destination $currentGlupePath -Force -ErrorAction Stop
-    Write-Host "Successfully updated glupe to $latestReleaseTag!" -ForegroundColor Green
+    Write-Host "Successfully updated glupe to the latest version!" -ForegroundColor Green
     Write-Host "The old executable was backed up to '$oldGlupeBackup'."
     Write-Host "Please restart your terminal or shell to ensure the new version is loaded."
     Remove-Item $oldGlupeBackup -ErrorAction SilentlyContinue # Clean up backup if successful

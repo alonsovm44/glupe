@@ -53,21 +53,24 @@ else
 fi
 
 # 3. Create Directory
-mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/src"
 echo -e "${GREEN}[OK] Created installation directory: $INSTALL_DIR${NC}"
 
 # 4. Download Source
 echo "[INFO] Downloading source code..."
-if ! curl -fsSL "$REPO_URL/glupec.cpp" -o "$INSTALL_DIR/glupec.cpp"; then
-    echo -e "${RED}[ERROR] Failed to download glupec.cpp${NC}"; exit 1
-fi
-if ! curl -fsSL "$JSON_URL" -o "$INSTALL_DIR/json.hpp"; then
+SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp"
+for file in $SOURCE_FILES; do
+    if ! curl -fsSL "$REPO_URL/src/$file" -o "$INSTALL_DIR/src/$file"; then
+        echo -e "${RED}[ERROR] Failed to download $file${NC}"; exit 1
+    fi
+done
+if ! curl -fsSL "$JSON_URL" -o "$INSTALL_DIR/src/json.hpp"; then
     echo -e "${RED}[ERROR] Failed to download json.hpp${NC}"; exit 1
 fi
 
 # 5. Compile
 echo "[INFO] Compiling Glupe..."
-COMPILE_CMD="$COMPILER \"$INSTALL_DIR/glupec.cpp\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread"
+COMPILE_CMD="$COMPILER \"$INSTALL_DIR/src/glupec.cpp\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread -I \"$INSTALL_DIR/src\""
 
 # Handle Filesystem linking
 # GCC on Linux usually needs -lstdc++fs for versions < 9, and it doesn't hurt to add it for newer versions.
