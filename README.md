@@ -5,7 +5,7 @@ Glupe is a semantic metaprogramming language. Unlike traditional metaprogramming
 
 Example meta-program:
 ```glupe
-
+% this is a comment
 $$ include {
     standard io library
     vector library

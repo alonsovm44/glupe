@@ -66,6 +66,65 @@ inline string decommentGlupeSyntax(const string& code) {
             if (pos >= processedCode.length()) break;
         }
     }
+
+    // --- Handle Glupe block comments: %{ ... }% ---
+    pos = 0;
+    while ((pos = processedCode.find("%{", pos)) != string::npos) {
+        size_t endPos = processedCode.find("}%", pos + 2);
+        if (endPos == string::npos) break; // Unclosed comment
+
+        string commentContent = processedCode.substr(pos + 2, endPos - (pos + 2));
+        
+        string trimmedContent = commentContent;
+        size_t first = trimmedContent.find_first_not_of(" \t\r\n");
+        if (first == string::npos) { 
+            processedCode.replace(pos, (endPos + 2) - pos, "");
+            continue;
+        }
+        trimmedContent.erase(0, first);
+        size_t last = trimmedContent.find_last_not_of(" \t\r\n");
+        if (last != string::npos) trimmedContent.erase(last + 1);
+
+        bool isBlockContainer = (trimmedContent.rfind("$$", 0) == 0 && trimmedContent.rfind("$$") == trimmedContent.length() - 2);
+        bool isInlineContainer = (trimmedContent.rfind("$", 0) == 0 && trimmedContent.rfind("$") == trimmedContent.length() - 1);
+
+        if (isBlockContainer || isInlineContainer) {
+            processedCode.replace(pos, (endPos + 2) - pos, commentContent);
+            pos += commentContent.length();
+        } else {
+            processedCode.replace(pos, (endPos + 2) - pos, "");
+        }
+    }
+
+    // --- Handle Glupe line comments: % ... ---
+    pos = 0;
+    while ((pos = processedCode.find("%", pos)) != string::npos) {
+        size_t endOfLine = processedCode.find('\n', pos);
+        if (endOfLine == string::npos) endOfLine = processedCode.length();
+
+        string commentContent = processedCode.substr(pos + 1, endOfLine - (pos + 1));
+        
+        string trimmedContent = commentContent;
+        size_t first = trimmedContent.find_first_not_of(" \t\r\n");
+        if (first == string::npos) { 
+            pos = endOfLine;
+            if (pos >= processedCode.length()) break;
+            continue;
+        }
+        trimmedContent.erase(0, first);
+        size_t last = trimmedContent.find_last_not_of(" \t\r\n");
+        if (last != string::npos) trimmedContent.erase(last + 1);
+
+        bool isInlineContainer = (trimmedContent.rfind("$", 0) == 0 && trimmedContent.rfind("$") == trimmedContent.length() - 1);
+
+        if (isInlineContainer) {
+            processedCode.replace(pos, endOfLine - pos, commentContent);
+            pos += commentContent.length();
+        } else {
+            pos = endOfLine;
+            if (pos >= processedCode.length()) break;
+        }
+    }
     return processedCode;
 }
 
@@ -361,6 +420,15 @@ inline bool validateContainers(const string& code, bool* outHasActive = nullptr)
                 // If we advanced (found ID) or didn't (maybe just ->), check next
                 while(check < lineEnd && isspace(code[check])) check++;
                 
+                // [FIX] Handle parameters (...)
+                if (check < lineEnd && code[check] == '(') {
+                    size_t closeP = code.find(')', check);
+                    if (closeP != string::npos && closeP < lineEnd) {
+                        check = closeP + 1;
+                        while(check < lineEnd && isspace(code[check])) check++;
+                    }
+                }
+
                 if (check < lineEnd && code[check] == '{') {
                     isHeader = true; // $ ID {
                     bracePos = check;

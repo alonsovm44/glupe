@@ -2,6 +2,7 @@
 
 Added:
 
+- added -build flag to override default build command
 Removed:
 
 Improved/Fixed:

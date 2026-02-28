@@ -16,10 +16,6 @@
 #include "processor.hpp"
 #include "hub.hpp"
 
-void dummyFunc(){
-    cout << "DEBUG: This is a dummy function to ensure the file is not empty after refactor." << endl;
-}
-
 void showHelp() {
     cout << "GLUPE v" << CURRENT_VERSION << " - The Semantic Compiler\n";
     cout << "Usage: glupe [files...] [options] [\"*instructions\"]\n\n";
@@ -69,7 +65,6 @@ void showHelp() {
 }
 
 int main(int argc, char* argv[]) {
-    dummyFunc(); // Prevent empty file after refactor
     ExecutionTimer cronoTimer;
     auto startTime = std::chrono::high_resolution_clock::now();
     initLogger(); 

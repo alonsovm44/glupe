@@ -1,8 +1,8 @@
-# Intention is all you need
+# Intention is all you need (Glupe v5.9)
 
 **Author:** Alonso Velazquez  
 **Affiliation:** Sinaloa Autonomous University  
-**Date:** February 2026  
+**Date:** February 27, 2026  
 **arXiv Category:** cs.SE (Software Engineering), cs.PL (Programming Languages)
 
 ---
@@ -92,6 +92,11 @@ $$ "my_container" { intent goes here }$$
 - No nesting support (`$${  $${...}$$  }$$` fails)
 - Multi-line handling requires careful parsing
 - No type constraints or formal semantics
+
+**2.1.1 Native Comments**
+Glupe introduces its own comment syntax to annotate semantic logic without affecting the host language:
+- **Line comments**: `% This is a comment`
+- **Block comments**: `%{ This is a multiline comment }%`
 
 ### 2.2 Compilation Pipeline
 
@@ -184,6 +189,41 @@ The first two lines provide architectural context but don't appear in any output
 - Filename extraction via regex for quoted strings
 - Automatic directory creation for nested paths
 - Sequential or parallel file generation (via `-series` flag)
+
+### 2.5 Advanced Semantics: Inheritance and Abstraction (v5.8+)
+
+Glupe v5.8 introduced object-oriented concepts to semantic containers, enabling architectural reuse and policy enforcement.
+
+**1. Abstract Containers**
+Containers marked with `ABSTRACT` do not generate code themselves but serve as templates for other containers.
+
+```glupe
+$$ABSTRACT "style:secure_api" {
+    All database queries must use parameterized statements.
+    All inputs must be sanitized.
+    Use try-catch blocks for all network calls.
+}$$
+```
+
+**2. Container Inheritance**
+Containers can inherit intent from parents using the `->` operator. The child container inherits the "DNA" (instructions) of the parent, automatically applying constraints or logic.
+
+```glupe
+$$ "login_handler" -> "style:secure_api" {
+    Implement the user login function.
+}$$
+```
+
+**3. Multiple Inheritance**
+Glupe supports mixing multiple architectural traits:
+
+```glupe
+$$ "critical_endpoint" -> "arch:logging", "arch:metrics" {
+    Handle the payment processing request.
+}$$
+```
+
+This solves the "Drift" problem: if the security policy changes in the parent, every inheriting container updates automatically upon recompilation.
 
 ---
 
@@ -652,6 +692,14 @@ if (cached_hash == current_hash && output_exists) {
 - Update mode flag (`-u`)
 - Explicit cache cleaning (`glupe clean cache`)
 
+### 7.5 Modular Architecture (v5.9)
+
+As of version 5.9, the Glupe compiler has been refactored from a monolithic source file into a modular header-only architecture (`src/*.hpp`). This improves maintainability and allows for easier extension of core components:
+- `parser.hpp`: Syntax analysis and container extraction
+- `ai.hpp`: LLM provider abstraction
+- `cache.hpp`: Semantic hashing and lockfile management
+- `processor.hpp`: Core transpilation logic
+
 ---
 
 ## 8. Problems that can become more accessible with LLMs and Glupe
@@ -766,7 +814,6 @@ Weak models (e.g., 1B parameter) produce poor code. System requires competent mo
 File locking on Windows requires retry logic. Some toolchains (LaTeX, .NET) have complex setup requirements.
 
 ### 11 Future Directions
-This are theorized features not yet added in Glupe (as of version 5.8)
 1. **Type-aware semantic blocks:**
 ```cpp
 int $${compute factorial}$$ (int n);  // LLM knows return type

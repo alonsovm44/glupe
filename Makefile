@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++17 
+CXXFLAGS = -std=c++17 -O3 -static -static-libgcc -static-libstdc++
 TARGET = glupe
 SRC_DIR = src
 SRCS = $(SRC_DIR)/glupec.cpp
