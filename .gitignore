@@ -34,3 +34,4 @@ glupe_logo.png
 *.vsix
 .yggdrasil/
 .glupe_build.cache
+installer.bat
