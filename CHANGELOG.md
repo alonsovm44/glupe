@@ -1,9 +1,18 @@
+## v5.9.0 2026-02-27
+
+Added:
+
+Removed:
+
+Improved/Fixed:
+- splitted glupe into 10 hpp files, now the project is modular
+- moved source to src/
+
+
 ## v5.8.1 2026-02-25
 
 Added:
 
-- added -fill flag to avoid AI rewriting the whole file, and only writing the containers
-- added -build flag to override standard compilation / interpretation internal cmd
 - added embedded glupe code parsing in files supporting // /**/
 - added IMPORT: END blocks
 Removed:
@@ -58,7 +67,7 @@ Added:
 Removed:
 
 Improved/Fixed:
-- minor bug fixes
+- minor bug fixes 
 
 ## [5.7.2]
 1. Improved readme
