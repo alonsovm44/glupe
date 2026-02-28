@@ -1,0 +1,28 @@
+// 1. ARCHITECTURAL GHOSTS (Abstracts)
+// These guide the AI but generate zero C++ bytes.
+$ABSTRACT: EncryptionPolicy -> { Use AES-256 for all sensitive strings }
+$ABSTRACT: PerformancePolicy -> { Avoid heap allocation; use stack-only buffers }
+
+// 2. SEMANTIC STATE (Variables & Constants)
+$CONST: SERVER_PORT -> 9090
+$: log_level -> { Determine level based on the current DEBUG environment variable }
+
+// A Semantic Variable combining intent:
+// It inherits EncryptionPolicy but adds local formatting intent.
+$: packet_format -> EncryptionPolicy { 
+    JSON format with fields: timestamp, level, and encrypted_payload 
+}
+
+// 3. THE PERSISTENT LOGIC (The Functional Artifact)
+// We inject the packet_format and log_level into this block.
+// We use $$ to ensure the complex initialization logic is cached in .glupe.lock
+$$initialize_logger(packet_format, log_level) {
+    Set up a UDP socket on SERVER_PORT.
+    Implement a logging function that takes a message, 
+    applies packet_format, and filters by log_level.
+    Follow PerformancePolicy strictly.
+}$$
+
+// 4. THE EPHEMERAL EXECUTION (Headless Inline)
+// This is generated fresh every time to handle the main loop.
+${ Call initialize_logger and enter a loop reading sensor data }$

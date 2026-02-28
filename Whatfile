@@ -1,0 +1,4 @@
+SESSION: 1
+
+prompt: "Let's start Phase 1. Refactor the parsing loop in processInputWithCache to detect $: and $$: syntax. ,Make the SemanticNode struct aswel"
+

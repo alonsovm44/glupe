@@ -743,6 +743,29 @@ string resolveImports(string code, fs::path basePath, vector<string>& stack) {
     return processed;
 }
 
+// [v6.0] Semantic Node Structure
+enum class NodeType {
+    CONTAINER,
+    VAR_EPHEMERAL,   // $:
+    VAR_PERSISTENT,  // $$:
+    CONSTANT         // $CONST:
+};
+
+struct SemanticNode {
+    NodeType type;
+    string id;
+    string content; // Prompt or Value
+    vector<string> parents;
+    vector<string> params; // [NEW] Parameters for context injection
+    bool isBlock = false;
+    bool isAbstract = false;
+    bool isCached = false;
+    string hash; // [NEW] Hash for caching
+};
+
+// [NEW] Global Symbol Table
+map<string, SemanticNode> SYMBOL_TABLE;
+
 // [NEW] Cache System Constants
 const string CACHE_DIR = "glupe_cache";
 const string LOCK_FILE = ".glupe.lock";
@@ -766,10 +789,33 @@ void initCache() {
     } else {
         LOCK_DATA = json::object();
         LOCK_DATA["containers"] = json::object();
+        LOCK_DATA["variables"] = json::object();
+    }
+
+    // [NEW] Load persistent variables from lockfile
+    if (LOCK_DATA.contains("variables")) {
+        for (auto& [key, val] : LOCK_DATA["variables"].items()) {
+            SemanticNode node;
+            node.id = key;
+            node.type = NodeType::VAR_PERSISTENT;
+            node.content = val.value("content", "");
+            node.hash = val.value("hash", "");
+            node.isCached = true;
+            SYMBOL_TABLE[key] = node;
+        }
     }
 }
 
 void saveCache() {
+    // [NEW] Save persistent variables
+    json vars = json::object();
+    for (const auto& [key, node] : SYMBOL_TABLE) {
+        if (node.type == NodeType::VAR_PERSISTENT) {
+            vars[key] = { {"content", node.content}, {"hash", node.hash} };
+        }
+    }
+    LOCK_DATA["variables"] = vars;
+
     ofstream f(LOCK_FILE);
     f << LOCK_DATA.dump(4);
 }
@@ -806,7 +852,6 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
     // 7. Unparse: Convert modified AST back to string.
     
     string result;
-    map<string, string> containerPrompts; // [NEW] Store prompts for inheritance
     size_t pos = 0;
     
     while (pos < code.length()) {
@@ -816,14 +861,32 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
             break;
         }
 
+        // [v6.0] Semantic Parsing
         bool isBlock = false;
         bool isInline = false;
+        bool isVarPersistent = false;
+        bool isVarEphemeral = false;
+        bool isConstant = false;
         size_t scan = 0;
 
         if (start + 1 < code.length() && code[start+1] == '$') {
-            isBlock = true;
-            scan = start + 2;
+            if (start + 2 < code.length() && code[start+2] == ':') {
+                // $$: Persistent Variable
+                isVarPersistent = true;
+                scan = start + 3;
+            } else {
+                // $$ Block Container
+                isBlock = true;
+                scan = start + 2;
+            }
         } else {
+            if (start + 1 < code.length() && code[start+1] == ':') {
+                isVarEphemeral = true;
+                scan = start + 2;
+            } else if (start + 7 <= code.length() && code.compare(start, 7, "$CONST:") == 0) {
+                isConstant = true;
+                scan = start + 7;
+            } else {
             // Inline container check: $ ... { ... } ... $ on same line
             size_t lineEnd = code.find('\n', start);
             if (lineEnd == string::npos) lineEnd = code.length();
@@ -845,6 +908,55 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
                     searchPos = closeB + 1;
                 }
             }
+            }
+        }
+
+        // Handle Variables and Constants
+        if (isVarPersistent || isVarEphemeral || isConstant) {
+            // Parse Variable Declaration
+            // Format: $...: ID -> VALUE \n
+            
+            // 1. Parse ID
+            while(scan < code.length() && isspace(code[scan])) scan++;
+            size_t idStart = scan;
+            while(scan < code.length() && (isalnum(code[scan]) || code[scan] == '_')) scan++;
+            string id = code.substr(idStart, scan - idStart);
+            
+            // 2. Parse Arrow ->
+            while(scan < code.length() && isspace(code[scan])) scan++;
+            if (scan + 1 < code.length() && code[scan] == '-' && code[scan+1] == '>') {
+                scan += 2;
+            } 
+
+            // 3. Parse Value (rest of line)
+            while(scan < code.length() && isspace(code[scan]) && code[scan] != '\n') scan++;
+            size_t valStart = scan;
+            size_t lineEnd = code.find('\n', scan);
+            if (lineEnd == string::npos) lineEnd = code.length();
+            
+            string value = code.substr(valStart, lineEnd - valStart);
+            // Trim trailing whitespace
+            size_t last = value.find_last_not_of(" \t\r");
+            if (last != string::npos) value = value.substr(0, last + 1);
+            else value = "";
+
+            // Create SemanticNode (Placeholder for Phase 2)
+            SemanticNode node;
+            if (isVarPersistent) node.type = NodeType::VAR_PERSISTENT;
+            else if (isVarEphemeral) node.type = NodeType::VAR_EPHEMERAL;
+            else node.type = NodeType::CONSTANT;
+            
+            node.id = id;
+            node.content = value;
+            node.hash = getContainerHash(value);
+            
+            SYMBOL_TABLE[id] = node; // [NEW] Store in symbol table
+            
+            if (VERBOSE_MODE) cout << "   [VAR] Detected " << (isConstant ? "CONST" : "VAR") << ": " << id << " = " << value << endl;
+
+            result += code.substr(pos, start - pos);
+            pos = lineEnd; 
+            continue;
         }
 
         if (!isBlock && !isInline) {
@@ -857,6 +969,7 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
         bool isNamed = false;
         bool isAbstract = false; // [NEW] Track abstract status
         string id;
+        vector<string> paramIds;  // [NEW] Context Injection params
         vector<string> parentIds; // [NEW] Parent IDs for inheritance
         size_t contentStart = 0;
         
@@ -871,12 +984,31 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
 
         if (scan < code.length() && code[scan] != '{') {
             size_t idStart = scan;
-            while(scan < code.length() && !isspace(code[scan]) && code[scan] != '{' && !(code[scan] == '-' && scan+1 < code.length() && code[scan+1] == '>')) {
+            // [UPDATED] Stop at '(' for params
+            while(scan < code.length() && !isspace(code[scan]) && code[scan] != '{' && code[scan] != '(' && !(code[scan] == '-' && scan+1 < code.length() && code[scan+1] == '>')) {
                 scan++;
             }
             
             if (scan > idStart) {
                 id = code.substr(idStart, scan - idStart);
+                
+                // [NEW] Parse Parameters (Context Injection)
+                if (scan < code.length() && code[scan] == '(') {
+                    size_t pStart = scan + 1;
+                    size_t pEnd = code.find(')', pStart);
+                    if (pEnd != string::npos) {
+                        string paramStr = code.substr(pStart, pEnd - pStart);
+                        stringstream ss(paramStr);
+                        string segment;
+                        while(getline(ss, segment, ',')) {
+                            segment.erase(0, segment.find_first_not_of(" \t"));
+                            segment.erase(segment.find_last_not_of(" \t") + 1);
+                            if(!segment.empty()) paramIds.push_back(segment);
+                        }
+                        scan = pEnd + 1;
+                    }
+                }
+
                 size_t brace = scan;
                 
                 // [NEW] Check for inheritance ->
@@ -947,22 +1079,44 @@ string processInputWithCache(const string& code, bool useCache, const vector<str
             string prompt = code.substr(contentStart, end - contentStart);
             
             // [NEW] Logic Inheritance
+            string contextStr = "";
             if (!parentIds.empty()) {
-                string combinedParents;
                 for(const auto& pid : parentIds) {
-                    if (containerPrompts.count(pid)) {
-                        combinedParents += "\n--- INHERITED FROM " + pid + " ---\n" + containerPrompts[pid] + "\n";
+                    if (SYMBOL_TABLE.count(pid)) {
+                        contextStr += "\n--- INHERITED FROM " + pid + " ---\n" + SYMBOL_TABLE[pid].content + "\n";
                         cout << "   [INHERIT] Container '" << id << "' inherits from '" << pid << "'" << endl;
                     } else {
                         cout << "   [WARN] Parent container '" << pid << "' not found (must be defined before use)." << endl;
                     }
                 }
-                if (!combinedParents.empty()) {
-                    string childLogic = prompt;
-                    prompt = "CONTEXT: The following logic is inherited from parent containers.\nRESOLUTION RULES:\n1. Child logic overrides parent logic.\n2. If parents contradict, the last listed parent takes precedence.\n" + combinedParents + "\n--- CHILD LOGIC (" + id + ") ---\n" + childLogic;
+            }
+
+            // [NEW] Context Injection (Params)
+            if (!paramIds.empty()) {
+                for(const auto& pid : paramIds) {
+                    if (SYMBOL_TABLE.count(pid)) {
+                        contextStr += "\n--- INJECTED CONTEXT (" + pid + ") ---\n" + SYMBOL_TABLE[pid].content + "\n";
+                        cout << "   [INJECT] Context '" << pid << "' injected into '" << id << "'" << endl;
+                    } else {
+                        // If not in symbol table, treat as a raw parameter name for the AI
+                        contextStr += "\n--- PARAMETER: " + pid + " ---\n";
+                    }
                 }
             }
-            containerPrompts[id] = prompt; // Store resolved prompt
+
+            if (!contextStr.empty()) {
+                string childLogic = prompt;
+                prompt = "CONTEXT:\n" + contextStr + "\nRESOLUTION RULES:\n1. Child logic overrides parent logic.\n2. Use injected context as data/functions.\n\n--- CHILD LOGIC (" + id + ") ---\n" + childLogic;
+            }
+
+            // Store resolved prompt in symbol table for future children
+            SemanticNode containerNode;
+            containerNode.type = NodeType::CONTAINER;
+            containerNode.id = id;
+            containerNode.content = prompt;
+            containerNode.parents = parentIds;
+            containerNode.params = paramIds;
+            SYMBOL_TABLE[id] = containerNode;
 
             // [NEW] Abstract Container Logic
             if (isAbstract) {
@@ -2054,14 +2208,6 @@ struct ExecutionTimer {
     ExecutionTimer() : start(std::chrono::high_resolution_clock::now()) {}
 
 */
-    ~ExecutionTimer() {
-        if (enabled) {
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> elapsed = end - start;
-            cout << "\n[CRONO] Total execution time: " << fixed << setprecision(3) << elapsed.count() << "s" << endl;
-        }
-    }
-};
 
 
 void showHelp() {

@@ -1,4 +1,8 @@
 # FOR 5.9
+## Modularize the project into specialized .hpp files
+Right now we have a 4k line monolith, agents choke on this because they have output windows of 4k tokens. 
+Move logic to modular .hpp files and update Makefil accordingly
+
 ## -Add tree sitter parsing for -refine modelo
 Justification:
 AI is good at filling gaps, not at creating from scratch. Currently refine mode is buggy since it's 100% AI-generated.
