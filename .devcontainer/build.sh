@@ -5,7 +5,15 @@ set -e
 cd "$(dirname "$0")/.."
 mkdir -p build
 sudo chown vscode:vscode build
-make
+
+# Ensure dependencies (json.hpp) are present for v5.9
+if [ ! -f "src/json.hpp" ]; then
+    echo "Downloading json.hpp..."
+    curl -fsSL "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp" -o "src/json.hpp"
+fi
+
+echo "Compiling Glupe v5.9..."
+g++ src/glupec.cpp -o build/glupe -std=c++17 -O3 -pthread -lstdc++fs -I src/
 
 # Make glupe available globally via ~/.local/bin
 mkdir -p ~/.local/bin

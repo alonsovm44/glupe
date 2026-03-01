@@ -5,6 +5,46 @@
 #include "config.hpp"
 #include "languages.hpp"
 
+// [NEW] Helper to substitute variables ($VAR) with their content
+inline string substituteVariables(const string& content) {
+    string result;
+    size_t pos = 0;
+    while (pos < content.length()) {
+        size_t dollar = content.find('$', pos);
+        if (dollar == string::npos) {
+            result += content.substr(pos);
+            break;
+        }
+        
+        result += content.substr(pos, dollar - pos);
+        
+        size_t scan = dollar + 1;
+        if (scan >= content.length()) { result += "$"; pos = scan; continue; }
+        
+        char next = content[scan];
+        // Ignore special syntax ($$, $:, ${, $ {)
+        if (next == '$' || next == ':' || next == '{' || isspace(next)) {
+             result += "$";
+             pos = scan;
+             continue;
+        }
+
+        size_t idStart = scan;
+        while (scan < content.length() && (isalnum(content[scan]) || content[scan] == '_')) scan++;
+        
+        string id = content.substr(idStart, scan - idStart);
+        
+        if (!id.empty() && SYMBOL_TABLE.count(id) && SYMBOL_TABLE[id].type != NodeType::CONTAINER) {
+            result += SYMBOL_TABLE[id].content;
+            pos = scan;
+        } else {
+            result += "$" + id;
+            pos = scan;
+        }
+    }
+    return result;
+}
+
 // [NEW] Pre-process input to handle containers and caching
 inline string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode) {
     // [FUTURE v6.0] AST INTEGRATION POINT
@@ -104,6 +144,9 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             size_t last = value.find_last_not_of(" \t\r");
             if (last != string::npos) value = value.substr(0, last + 1);
             else value = "";
+            
+            // [NEW] Resolve variables inside variable definition
+            value = substituteVariables(value);
 
             // Create SemanticNode (Placeholder for Phase 2)
             SemanticNode node;
@@ -242,6 +285,9 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             }
 
             string prompt = code.substr(contentStart, end - contentStart);
+            
+            // [NEW] Variable Substitution ($VAR -> value)
+            prompt = substituteVariables(prompt);
             
             // [NEW] Logic Inheritance
             string contextStr = "";
