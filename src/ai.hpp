@@ -9,6 +9,13 @@ inline string callAI(string prompt) {
     json body;
     string extraHeaders = "";
 
+    // [FIX] Ensure MODEL_ID has a default if config.json is missing in the current directory
+    if (MODEL_ID.empty()) {
+        if (PROTOCOL == "ollama") MODEL_ID = "qwen2.5-coder:latest";
+        else if (PROTOCOL == "google") MODEL_ID = "gemini-1.5-pro";
+        else MODEL_ID = "gpt-4o";
+    }
+
     if (PROTOCOL == "google") {
         body["contents"][0]["parts"][0]["text"] = prompt;
         if (url.find("?key=") == string::npos) url += "?key=" + API_KEY;

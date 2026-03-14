@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <iostream>
 #include <cctype>
+#include <thread>
+#include <chrono>
 
 // [NEW] Helper to substitute variables ($VAR) with their content
 inline string substituteVariables(const string& content, const string& currentFilePrefix = "global") {
@@ -333,6 +335,7 @@ inline string generateIR(const string& id, const string& intent, const string& c
     irPrompt << "2. Infer and explicitly declare generic data types in the @STATE block (e.g., Int, Float, String, Bool, Byte, Any, List<T>, Map<K,V>, Future<T>).\n";
     irPrompt << "3. Restrict logic to formalized operations: ALLOC, SET, CALL, ASYNC CALL, AWAIT, RETURN, ITER, LOOP, BRANCH IF, OR IF, ELSE, TRY, CATCH, FINALLY, THROW, ASSERT.\n";
     irPrompt << "4. Resolve all ambiguity. Generate a fully deterministic pseudo-code.\n";
+    irPrompt << "5. Observe the /* [GLUPE_INSERTION_POINT: " << id << "] */ in the CONTEXT. If it is inside an existing function block, set @TYPE to SNIPPET.\n";
     irPrompt << "GIR FORMAT:\n";
     irPrompt << "@UNIT " << id << "\n";
     irPrompt << "@TYPE <FUNCTION | CLASS | SNIPPET | GLOBAL>\n";
@@ -348,7 +351,7 @@ inline string generateIR(const string& id, const string& intent, const string& c
 }
 
 // [NEW] Backend Pass: Generate Target Code from IR
-inline string generateTargetCodeFromIR(const string& ir, const string& targetLang, const string& context) {
+inline string generateTargetCodeFromIR(const string& ir, const string& targetLang, const string& context, const string& id) {
     stringstream codePrompt;
     codePrompt << "ROLE: Semantic Backend Compiler.\n";
     codePrompt << "TASK: Translate the following Glupe Intermediate Representation (GIR) into strict " << targetLang << " code.\n";
@@ -357,6 +360,7 @@ inline string generateTargetCodeFromIR(const string& ir, const string& targetLan
     codePrompt << "2. Map generic GIR types (List, Map, Future) to native " << targetLang << " types.\n";
     codePrompt << "3. Map GIR operations (ASYNC CALL, TRY/CATCH) to native " << targetLang << " constructs.\n";
     codePrompt << "4. Do not omit any logic from the GIR.\n";
+    codePrompt << "5. EXTREMELY IMPORTANT: Output ONLY the code intended to replace the /* [GLUPE_INSERTION_POINT: " << id << "] */ marker in the CONTEXT. If the insertion point is inside a function, output ONLY inner statements, NO wrapper functions, NO #includes.\n";
     codePrompt << "\nCONTEXT:\n" << context << "\n";
     codePrompt << "\nGIR:\n" << ir << "\n";
     codePrompt << "OUTPUT: Return ONLY the raw code implementation. No markdown blocks. No explanations.";
@@ -774,10 +778,32 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                     
                     // Construct context from what we have processed so far + what remains
                     // This gives the AI the full file view without being able to touch it
-                    string currentContext = result + code.substr(pos);
+                    string currentContext = result + "/* [GLUPE_INSERTION_POINT: " + id + "] */\n" + code.substr(pos);
                     
                     cout << "      -> Pass 1: Semantic Frontend (Generating GIR)..." << endl;
-                    string generatedIR = generateIR(id, prompt, currentContext);
+                    string generatedIR;
+                    int irRetries = 0;
+                    while (irRetries < MAX_RETRIES) {
+                        generatedIR = generateIR(id, prompt, currentContext);
+                        if (generatedIR.find("ERROR:") == 0) {
+                            cout << "   [!] API Error on GIR (Attempt " << (irRetries + 1) << "/" << MAX_RETRIES << "): " << generatedIR.substr(6) << endl;
+                            int waitTime = 5 * (irRetries + 1);
+                            if (generatedIR.find("Rate limit") != string::npos || generatedIR.find("rate limit") != string::npos || generatedIR.find("429") != string::npos) {
+                                size_t waitPos = generatedIR.find("wait ");
+                                if (waitPos != string::npos) {
+                                    try {
+                                        int parsedWait = stoi(generatedIR.substr(waitPos + 5));
+                                        if (parsedWait > 0) waitTime = parsedWait + 2;
+                                    } catch(...) {}
+                                }
+                                cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                            } else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                            std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                            irRetries++;
+                        } else {
+                            break;
+                        }
+                    }
                     
                     if (SYMBOL_TABLE.count(id)) {
                         SYMBOL_TABLE[id].ir_content = generatedIR;
@@ -785,7 +811,29 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                     }
 
                     cout << "      -> Pass 2: Semantic Backend (Generating " << CURRENT_LANG.name << ")..." << endl;
-                    string cleanGenerated = generateTargetCodeFromIR(generatedIR, CURRENT_LANG.name, currentContext);
+                    string cleanGenerated;
+                    int codeRetries = 0;
+                    while (codeRetries < MAX_RETRIES) {
+                        cleanGenerated = generateTargetCodeFromIR(generatedIR, CURRENT_LANG.name, currentContext, id);
+                        if (cleanGenerated.find("ERROR:") == 0) {
+                            cout << "   [!] API Error on Target Code (Attempt " << (codeRetries + 1) << "/" << MAX_RETRIES << "): " << cleanGenerated.substr(6) << endl;
+                            int waitTime = 5 * (codeRetries + 1);
+                            if (cleanGenerated.find("Rate limit") != string::npos || cleanGenerated.find("rate limit") != string::npos || cleanGenerated.find("429") != string::npos) {
+                                size_t waitPos = cleanGenerated.find("wait ");
+                                if (waitPos != string::npos) {
+                                    try {
+                                        int parsedWait = stoi(cleanGenerated.substr(waitPos + 5));
+                                        if (parsedWait > 0) waitTime = parsedWait + 2;
+                                    } catch(...) {}
+                                }
+                                cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                            } else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                            std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                            codeRetries++;
+                        } else {
+                            break;
+                        }
+                    }
                     
                     result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
                     result += cleanGenerated;

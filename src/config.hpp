@@ -13,6 +13,31 @@ inline int MAX_RETRIES = 15;
 // --- CONFIG & TOOLCHAIN OVERRIDES ---
 inline bool loadConfig(string mode) {
     string configPath = "config.json";
+
+    // [FIX] Auto-generate a local config.json if it doesn't exist
+    if (!fs::exists(configPath)) {
+        string globalConfigPath = "";
+        #ifdef _WIN32
+        const char* userProfile = getenv("USERPROFILE");
+        if (userProfile) globalConfigPath = string(userProfile) + "\\.glupe\\config.json";
+        #else
+        const char* home = getenv("HOME");
+        if (home) globalConfigPath = string(home) + "/.glupe/config.json";
+        #endif
+        
+        if (!globalConfigPath.empty() && fs::exists(globalConfigPath)) {
+            try {
+                fs::copy_file(globalConfigPath, configPath, fs::copy_options::skip_existing);
+                cout << "[INFO] Created local config.json from global settings." << endl;
+            } catch (...) {}
+        } else {
+            ofstream f(configPath);
+            f << "{\n    \"local\": {\n        \"model_id\": \"qwen2.5-coder:latest\",\n        \"api_url\": \"http://localhost:11434/api/generate\"\n    },\n    \"cloud\": {\n        \"protocol\": \"openai\",\n        \"api_key\": \"\",\n        \"model_id\": \"gpt-4o\",\n        \"api_url\": \"https://api.openai.com/v1/chat/completions\"\n    },\n    \"max_retries\": 15\n}\n";
+            f.close();
+            cout << "[INFO] Created default config.json in current directory." << endl;
+        }
+    }
+
     ifstream f(configPath);
     if (!f.is_open()) {
         if(mode == "local") {

@@ -35,7 +35,8 @@ glupe_logo.png
 .yggdrasil/
 .glupe_build.cache
 installer.bat
-
+upg.bat
+upgrade.glp
 # --- VS Code Extension ---
 glupe-vscode/
 glupe.tmLanguage.json

@@ -1209,7 +1209,7 @@ int main(int argc, char* argv[]) {
     // [FIX] Smart default output name:
     // If language produces binary and we are NOT in transpile-only mode, default to executable extension.
     if (outputName.empty()) {
-        string baseName = stripExt(inputFiles[0]);
+        string baseName = !inputFiles.empty() ? stripExt(inputFiles[0]) : "out";
         if (CURRENT_LANG.producesBinary && !transpileMode) {
             #ifdef _WIN32
             outputName = baseName + ".exe";
@@ -1534,8 +1534,7 @@ int main(int argc, char* argv[]) {
     // [OPTIMIZATION] Direct Compilation for matching source files
     bool canDirectCompile = false;
     if (CURRENT_MODE == GenMode::CODE && CURRENT_LANG.producesBinary && 
-        customInstructions.empty() && !updateMode && !transpileMode && !makeMode && !hasActiveContainers) {
-        
+        customInstructions.empty() && !updateMode && !transpileMode && !makeMode && !hasActiveContainers && !inputFiles.empty()) {
         canDirectCompile = true;
         for (const auto& file : inputFiles) {
             if (getExt(file) != CURRENT_LANG.extension) {
@@ -1777,7 +1776,7 @@ int main(int argc, char* argv[]) {
                 if (!explicitLang) {
                     selectTarget();
                     // Update output filename extension if it was defaulted
-                    if (outputName.find(stripExt(inputFiles[0])) != string::npos) {
+                    if (!inputFiles.empty() && outputName.find(stripExt(inputFiles[0])) != string::npos) {
                          string base = stripExt(outputName);
                          if (CURRENT_LANG.producesBinary && !transpileMode) {
                              #ifdef _WIN32
@@ -1941,7 +1940,6 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    
     } // End of !fillMode block
 
     cerr << "Failed to build after " << passes << " attempts." << endl;
