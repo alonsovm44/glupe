@@ -46,6 +46,7 @@ inline map<string, LangProfile> LANG_DB = {
     {"yaml", {"yaml", "YAML", ".yaml", "", "", false}},
     {"json", {"json", "JSON", ".json", "", "", false}},
     {"md",   {"md",   "Markdown", ".md", "", "", false}},
+    {"markdown", {"md",   "Markdown", ".md", "", "", false}},
     {"ps1",  {"ps1", "PowerShell", ".ps1", "pwsh -v", "pwsh -c", false}},
     {"bat",  {"bat", "Batch", ".bat", "cmd /?", "cmd /c", false}},
     {"vue",  {"vue", "Vue", ".vue", "", "", false}},
