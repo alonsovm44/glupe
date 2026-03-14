@@ -1,0 +1,15 @@
+Track:
+    src/
+    install.ps1
+    install.sh
+    update.ps1
+    update.sh
+    CHANGELOG.md
+
+Ignore:
+    src/ref.md
+    src/json.hpp
+
+Style:
+   no emojis
+

@@ -1,0 +1,178 @@
+{
+    "files": [
+        {
+            "dependencies": [
+                "system"
+            ],
+            "doc_path": ".docgen/docs/CHANGELOG.md.md",
+            "hash": "b6912c4422d0d885",
+            "path": "CHANGELOG.md",
+            "summary": "Below is a **clean, structured, comprehensive Markdown documentation** derived from the changelog you provided."
+        },
+        {
+            "dependencies": [],
+            "doc_path": ".docgen/docs/install.ps1.md",
+            "hash": "f52b947fa0c864c6",
+            "path": "install.ps1",
+            "summary": "This PowerShell script automates the installation of Glupe, a C++ application, on Windows systems. It handles dependencies, compilation, and configuration, ensuring a seamless setup experience."
+        },
+        {
+            "dependencies": [],
+            "doc_path": ".docgen/docs/install.sh.md",
+            "hash": "c2defddddd8640dc",
+            "path": "install.sh",
+            "summary": "This Bash script automates the installation of Glupe, a CLI tool, on Linux and macOS systems. It handles dependencies, compilation, and configuration, ensuring a seamless setup process."
+        },
+        {
+            "dependencies": [
+                "config.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/ai.hpp.md",
+            "hash": "40dfd458315c64ab",
+            "path": "src/ai.hpp",
+            "summary": "The AI Core module provides functionality to interact with various AI models and services, including local and cloud-based providers. It handles API calls, response parsing, and error handling, enabling seamless integration with different AI protocols."
+        },
+        {
+            "dependencies": [
+                "common.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/cache.hpp.md",
+            "hash": "3ff141a33d18f067",
+            "path": "src/cache.hpp",
+            "summary": "Below is a comprehensive, purpose‑focused Markdown documentation for the provided code. It avoids restating trivial C++ behavior and instead explains design intent, semantics, and how the components interact."
+        },
+        {
+            "dependencies": [
+                "iostream",
+                "fstream",
+                "string",
+                "vector",
+                "sstream",
+                "array",
+                "cstdio",
+                "cstdlib",
+                "thread",
+                "chrono",
+                "map",
+                "algorithm",
+                "iomanip",
+                "filesystem",
+                "ctime",
+                "functional",
+                "set",
+                "memory",
+                "limits",
+                "windows.h",
+                "unistd.h",
+                "limits.h",
+                "json.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/common.hpp.md",
+            "hash": "4f9f573b5995346b",
+            "path": "src/common.hpp",
+            "summary": "This header provides foundational utilities and shared definitions for a larger C++ codebase. Its purpose is to centralize common includes, platform abstractions, JSON support, and lightweight global configuration. Nothing in this file performs application logic; instead, it establishes the environment that other modules rely on."
+        },
+        {
+            "dependencies": [
+                "utils.hpp",
+                "languages.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/config.hpp.md",
+            "hash": "97119290f2ea54e3",
+            "path": "src/config.hpp",
+            "summary": "This module provides a configuration system for managing settings related to AI providers, protocols, models, and toolchains. It includes functionality to load, update, and display configuration settings from a `config.json` file. The system supports both local and cloud-based AI providers, with customizable parameters for each."
+        },
+        {
+            "dependencies": [
+                "common.hpp",
+                "utils.hpp",
+                "config.hpp",
+                "languages.hpp",
+                "ai.hpp",
+                "cache.hpp",
+                "parser.hpp",
+                "processor.hpp",
+                "hub.hpp",
+                "map",
+                ") != string::npos || err.find("
+            ],
+            "doc_path": ".docgen/docs/src/glupec.cpp.md",
+            "hash": "ac7525eeaf119850",
+            "path": "src/glupec.cpp",
+            "summary": "The GLUPE Compiler is a semantic compiler that translates high-level instructions, blueprints, or requirements into executable code, 3D models, or images. It supports multiple programming languages, 3D modeling formats, and image formats through a unified interface."
+        },
+        {
+            "dependencies": [
+                "utils.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/hub.hpp.md",
+            "hash": "6b35fcb7e478badd",
+            "path": "src/hub.hpp",
+            "summary": "This module provides authentication helpers and an interactive command-line interface (CLI) for interacting with the GlupeHub service. It manages user sessions, executes commands, and handles file operations on the GlupeHub platform."
+        },
+        {
+            "dependencies": [
+                "common.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/languages.hpp.md",
+            "hash": "b09000aa41678e21",
+            "path": "src/languages.hpp",
+            "summary": "This module provides a system for selecting programming languages, 3D model formats, and image formats based on file extensions or user input. It leverages a database of language profiles and format specifications to facilitate code generation, model creation, or image processing tasks."
+        },
+        {
+            "dependencies": [
+                "utils.hpp",
+                "languages.hpp",
+                "cache.hpp",
+                "started",
+                ");\r\n        if (incPos != string::npos) {\r\n            size_t startQuote = line.find_first_of(",
+                " << d << "
+            ],
+            "doc_path": ".docgen/docs/src/parser.hpp.md",
+            "hash": "b60757e25301fe2e",
+            "path": "src/parser.hpp",
+            "summary": "**Purpose:**"
+        },
+        {
+            "dependencies": [
+                "ai.hpp",
+                "parser.hpp",
+                "cache.hpp",
+                "config.hpp",
+                "languages.hpp",
+                "algorithm",
+                "iostream",
+                "cctype"
+            ],
+            "doc_path": ".docgen/docs/src/processor.hpp.md",
+            "hash": "dfa76b5ba8f1b069",
+            "path": "src/processor.hpp",
+            "summary": "**Purpose:**"
+        },
+        {
+            "dependencies": [
+                "common.hpp"
+            ],
+            "doc_path": ".docgen/docs/src/utils.hpp.md",
+            "hash": "78bc83c9b500623b",
+            "path": "src/utils.hpp",
+            "summary": "This documentation covers the functionality provided by `common.hpp` and its associated utilities, focusing on logging, system utilities, and heuristics for code analysis. The code is designed to be modular, reusable, and platform-independent, with specific considerations for Windows and Unix-like systems."
+        },
+        {
+            "dependencies": [],
+            "doc_path": ".docgen/docs/update.ps1.md",
+            "hash": "b6651f55bd244d71",
+            "path": "update.ps1",
+            "summary": "```markdown"
+        },
+        {
+            "dependencies": [],
+            "doc_path": ".docgen/docs/update.sh.md",
+            "hash": "371e68ae53504c6f",
+            "path": "update.sh",
+            "summary": "```markdown"
+        }
+    ],
+    "last_update": "2026-03-08T04:10:31Z",
+    "project_name": "glupe"
+}

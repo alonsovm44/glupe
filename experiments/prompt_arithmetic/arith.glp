@@ -1,0 +1,57 @@
+% arith.glp - Prompt Algebra Showcase
+% Compile with: glupe arith.glp -o arith.exe -cpp
+
+#include <iostream>
+#include <string>
+#include <vector>
+
+% ------------------------------------------------------------------
+% 1. ATOMIC INTENTS (The Variables)
+% ------------------------------------------------------------------
+$: connect   -> "Simulate connecting to DB (print ' [x] Connected')"
+$: download  -> "Simulate downloading 100MB data (print ' [x] Downloaded')"
+$: process   -> "Simulate processing data (print ' [x] Processed')"
+$: notify    -> "Simulate sending email notification (print ' [x] Email Sent')"
+
+% ------------------------------------------------------------------
+% 2. ALGEBRAIC OPERATIONS
+% ------------------------------------------------------------------
+
+% ADDITION (+): Composition
+% Create a standard workflow
+$: workflow -> $connect + $download + $process + $notify
+
+% SUBTRACTION (-): Constraint Removal
+% We want a "Silent Mode" workflow (no email notifications)
+$: silent_workflow -> $workflow - $notify
+
+% DIVISION (/): Inversion / Undo
+% Calculate the cleanup logic automatically. 1 / connect = disconnect.
+$: cleanup -> 1 / $connect
+
+% MULTIPLICATION (*): Iteration
+% Run the silent workflow for 3 batches
+$: batch_job -> $silent_workflow * "3 batches"
+
+% EXPONENTIATION (^): Recursive Refinement
+% Apply optimization recursively to the whole batch job + cleanup
+$: final_plan -> $batch_job + $cleanup ^ "optimize for speed"
+
+% ------------------------------------------------------------------
+% 3. MATERIALIZATION
+% ------------------------------------------------------------------
+
+$$ execute_plan {
+    Define a C++ function 'void run_plan()'.
+    Inside it, implement the following logic:
+    $final_plan
+}$$
+
+int main() {
+    std::cout << "--- GLUPE PROMPT ALGEBRA DEMO ---\n";
+    std::cout << "Formula: ( (Connect + Download + Process + Notify) - Notify ) * 3 + (1/Connect) ) ^ Optimize\n\n";
+    
+    run_plan();
+    
+    return 0;
+}

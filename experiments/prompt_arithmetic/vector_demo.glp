@@ -1,0 +1,40 @@
+% vector_demo.glp
+% Compile with: glupe vector_demo.glp -o vector_demo.exe -cpp
+
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <mutex>
+
+% 1. Define a base constraint (Scalar)
+$: base_constraint -> "Must be thread-safe using std::mutex"
+
+% 2. Define a Semantic Vector of requirements (Vector)
+% Notice we include the scalar variable $base_constraint inside the vector
+$: requirements -> {
+    $base_constraint,
+    "Use std::vector<int> for storage",
+    "Provide a print() method that outputs to std::cout",
+    "Sort data automatically on insertion"
+}
+
+% 3. Define data to initialize (Vector)
+$: init_values -> { "10, 42, 5, 1, 99" }
+
+% 4. Use the vectors in a container
+$$ DataHandler -> requirements {
+    Define a C++ class 'DataHandler'.
+    It should satisfy these requirements: $requirements
+    It should have a constructor that accepts std::initializer_list<int>.
+}$$
+
+int main() {
+    // Use the generated class
+    $${
+        Instantiate DataHandler named 'handler' with values: $init_values
+        Call handler.print()
+    }$$
+
+    return 0;
+}

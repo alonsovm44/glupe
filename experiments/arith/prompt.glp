@@ -1,0 +1,113 @@
+%{
+    GLUPE SEMANTIC VECTOR DEMO
+    --------------------------
+    This program demonstrates "Intent Algebra".
+    We treat prompts as vectors that can be:
+    1. Added (Inheritance/Composition)
+    2. Scaled (Injection/Amplification)
+    3. Subtracted (Constraint Override)
+}%
+
+EXPORT: "main.cpp"
+#include <iostream>
+#include <string>
+#include <vector>
+
+%==========================================
+% 1. BASIS VECTORS (The Coordinate System)
+% ==========================================
+
+% Vector A: The "Persona" Dimension
+$$ABSTRACT Persona_Hacker {
+    Role: Elite Netrunner.
+    Vocabulary: Hex codes, ports, breaches, payload, daemon.
+    Attitude: Paranoid, arrogant, fast.
+}$$
+
+$$ABSTRACT Persona_Butler {
+    Role: Royal AI Assistant.
+    Vocabulary: Sir, Madam, inquiry, schedule, tea.
+    Attitude: Subservient, polite, calm.
+}$$
+
+% Vector B: The "Action" Dimension
+$$ABSTRACT Action_UnlockDoor {
+    Intent: Open a secured electronic door.
+    Success: The door opens.
+    Failure: Access denied.
+}$$
+
+$$ABSTRACT Action_DefendSystem {
+    Intent: Repel an intruder from the network.
+    Success: Intruder disconnected.
+    Failure: Firewall breached.
+}$$
+
+% ==========================================
+% 2. SCALARS (Modifiers)
+% ==========================================
+
+% A scalar that amplifies urgency (Multiplication)
+$: Scalar_Panic -> $ { 
+    URGENCY: CRITICAL. 
+    Time is running out. 
+    Panic level: High. 
+    Stuttering or rapid speech.
+} $
+
+% A scalar that inverts the meaning (Logical NOT)
+$: Scalar_Invert -> $ {
+    Do the OPPOSITE of the intended action.
+    If unlocking, lock it.
+    If defending, let them in.
+} $
+
+% ==========================================
+%  3. THE ALGEBRAIC RESOLUTION
+% ==========================================
+
+void log_event(std::string actor, std::string event) {
+    std::cout << "\n[" << actor << "] >>> " << event << std::endl;
+}
+
+int main() {
+    std::cout << "=== GLUPE INTENT ALGEBRA DEMO ===\n";
+
+    % CASE 1: VECTOR ADDITION (Persona + Action)
+    % Result = Hacker + UnlockDoor
+    % The AI merges the vocabulary of the Hacker with the intent of UnlockDoor.
+    $$ op_breach -> Persona_Hacker, Action_UnlockDoor {
+        Generate a log message describing the attempt to open the door.
+        Call log_event("NETRUNNER", message).
+    }$$
+
+    % CASE 2: VECTOR ADDITION (Different Persona + Same Action)
+    % Result = Butler + UnlockDoor
+    % Same action, but the "Persona" vector rotates the output into a new semantic space.
+    $$ op_welcome -> "Persona_Butler", "Action_UnlockDoor" {
+        Generate a log message describing opening the door for a guest.
+        Call log_event("JARVIS", message).
+    }$$
+
+    % CASE 3: SCALAR MULTIPLICATION (Persona + Action * Panic)
+    % Result = Butler + (DefendSystem * Panic)
+    % We inject the "Panic" scalar to amplify the emotional weight of the vector.
+    $$ op_panic_defense -> "Persona_Butler", "Action_DefendSystem" {
+        Generate a log message defending the system.
+        Apply scalar: $Scalar_Panic. 
+        Call log_event("JARVIS (PANIC)", message).
+    }$$
+
+    % CASE 4: VECTOR SUBTRACTION / INVERSION
+    % Result = Hacker + (UnlockDoor * Invert)
+    % Effectively: Hacker + LockDoor
+    % The "Invert" scalar flips the vector direction of the Action.
+    $$ op_troll -> "Persona:Hacker", "Action:UnlockDoor" {
+        Apply scalar: $Scalar_Invert. % The hacker decides to LOCK the user out instead.
+        Generate a log message.
+        Call log_event("NETRUNNER (TROLL)", message).
+    }$$
+
+    return 0;
+}
+EXPORT: END

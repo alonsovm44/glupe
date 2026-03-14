@@ -15,6 +15,8 @@ struct SemanticNode {
     string content; // Prompt or Value
     vector<string> parents;
     vector<string> params; // [NEW] Parameters for context injection
+    vector<string> vectorContent; // [NEW] For Semantic Vectors
+    bool isVector = false;        // [NEW] Flag
     bool isBlock = false;
     bool isAbstract = false;
     bool isCached = false;

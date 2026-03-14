@@ -1,0 +1,9 @@
+project "glupe" {
+    target: "glupe"
+    sources: ["src/glupec.cpp"]
+    backends: [
+        { name: "cpp", output: ".exe", binary: true, flags: "-std=c++17 -O3 -static -static-libgcc -static-libstdc++" }
+    ]
+    default_backend: "cpp"
+    default_mode: "cloud"
+}

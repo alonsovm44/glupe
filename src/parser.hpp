@@ -107,8 +107,7 @@ inline string decommentGlupeSyntax(const string& code) {
         string trimmedContent = commentContent;
         size_t first = trimmedContent.find_first_not_of(" \t\r\n");
         if (first == string::npos) { 
-            pos = endOfLine;
-            if (pos >= processedCode.length()) break;
+            processedCode.replace(pos, endOfLine - pos, "");
             continue;
         }
         trimmedContent.erase(0, first);
@@ -121,8 +120,7 @@ inline string decommentGlupeSyntax(const string& code) {
             processedCode.replace(pos, endOfLine - pos, commentContent);
             pos += commentContent.length();
         } else {
-            pos = endOfLine;
-            if (pos >= processedCode.length()) break;
+            processedCode.replace(pos, endOfLine - pos, "");
         }
     }
     return processedCode;
@@ -425,6 +423,15 @@ inline bool validateContainers(const string& code, bool* outHasActive = nullptr)
                     size_t closeP = code.find(')', check);
                     if (closeP != string::npos && closeP < lineEnd) {
                         check = closeP + 1;
+                        while(check < lineEnd && isspace(code[check])) check++;
+                    }
+                }
+
+                // [NEW] Handle Vector Syntax { ... }
+                if (check < lineEnd && code[check] == '{') {
+                    size_t closeB = code.find('}', check);
+                    if (closeB != string::npos && closeB < lineEnd) {
+                        check = closeB + 1;
                         while(check < lineEnd && isspace(code[check])) check++;
                     }
                 }

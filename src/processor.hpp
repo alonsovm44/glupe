@@ -4,6 +4,9 @@
 #include "cache.hpp"
 #include "config.hpp"
 #include "languages.hpp"
+#include <algorithm>
+#include <iostream>
+#include <cctype>
 
 // [NEW] Helper to substitute variables ($VAR) with their content
 inline string substituteVariables(const string& content) {
@@ -43,6 +46,275 @@ inline string substituteVariables(const string& content) {
         }
     }
     return result;
+}
+
+// [NEW] Helper to check for semantic contradictions (Prompt Arithmetic Validation)
+inline bool checkSemanticContradiction(const string& a, const string& b) {
+    if (a.empty() || b.empty()) return false;
+    if (a == b) return false; // Tautology is not a contradiction
+
+    stringstream prompt;
+    prompt << "ROLE: Logic Consistency Checker.\n";
+    prompt << "TASK: Analyze the following two instruction sets for logical contradictions.\n";
+    prompt << "SET A: " << a << "\n";
+    prompt << "SET B: " << b << "\n";
+    prompt << "DEFINITION: A contradiction occurs if Set B explicitly forbids what Set A requires, or vice versa (e.g., 'print X' vs 'do not print X').\n";
+    prompt << "OUTPUT: Return ONLY the word 'CONTRADICTION' if they conflict, or 'COMPATIBLE' if they can coexist.\n";
+
+    string response = callAI(prompt.str());
+    
+    string upperRes = response;
+    transform(upperRes.begin(), upperRes.end(), upperRes.begin(), ::toupper);
+    
+    if (upperRes.find("CONTRADICTION") != string::npos) return true;
+    return false;
+}
+
+// [NEW] Helper to perform semantic subtraction via AI
+inline string performSemanticSubtraction(const string& base, const string& subtrahend) {
+    if (subtrahend.empty()) return base;
+
+    stringstream prompt;
+    prompt << "ROLE: Semantic Logic Engine.\n";
+    prompt << "TASK: Perform Prompt Subtraction (Base - Subtrahend).\n";
+    prompt << "INPUTS:\n";
+    prompt << "  BASE: \"" << (base.empty() ? "" : base) << "\"\n";
+    prompt << "  SUBTRAHEND: \"" << subtrahend << "\"\n";
+    prompt << "LOGIC:\n";
+    prompt << "  1. Subset Removal: If Base contains Subtrahend, remove it.\n";
+    prompt << "  2. Negative Remainder: If Subtrahend is NOT in Base, output a constraint forbidding it (e.g., 'Do not " << subtrahend << "').\n";
+    prompt << "  3. Mixed: Remove shared logic, forbid extra logic.\n";
+    prompt << "OUTPUT: Return ONLY the resulting prompt string. No explanations.";
+
+    string response = callAI(prompt.str());
+    
+    // Clean up response
+    size_t first = response.find_first_not_of(" \t\r\n\"'");
+    if (first == string::npos) return "";
+    size_t last = response.find_last_not_of(" \t\r\n\"'");
+    return response.substr(first, (last - first + 1));
+}
+
+// [NEW] Helper to perform semantic multiplication via AI
+inline string performSemanticMultiplication(const string& a, const string& b) {
+    auto is_number = [](const string& s) {
+        return !s.empty() && std::all_of(s.begin(), s.end(), [](unsigned char c){ return ::isdigit(c); });
+    };
+
+    if (is_number(a)) {
+        return "Repeat the following logic " + a + " times: " + b;
+    }
+    if (is_number(b)) {
+        return "Repeat the following logic " + b + " times: " + a;
+    }
+
+    stringstream prompt;
+    prompt << "ROLE: Semantic Logic Engine.\n";
+    prompt << "TASK: Perform Prompt Multiplication (Action * Iterator).\n";
+    prompt << "INPUTS:\n";
+    prompt << "  ACTION (p): \"" << a << "\"\n";
+    prompt << "  ITERATOR (q): \"" << b << "\"\n";
+    prompt << "LOGIC:\n";
+    prompt << "  Map the ACTION over the domain of the ITERATOR.\n";
+    prompt << "  Example: 'print' * 'list items' -> 'print every item in the list'.\n";
+    prompt << "OUTPUT: Return ONLY the resulting merged instruction string. No explanations.";
+
+    string response = callAI(prompt.str());
+    
+    size_t first = response.find_first_not_of(" \t\r\n\"'");
+    if (first == string::npos) return "";
+    size_t last = response.find_last_not_of(" \t\r\n\"'");
+    return response.substr(first, (last - first + 1));
+}
+
+// [NEW] Helper to perform semantic division/inversion via AI
+inline string performSemanticDivision(const string& numerator, const string& denominator) {
+    stringstream prompt;
+    prompt << "ROLE: Semantic Logic Engine.\n";
+    
+    bool isIdentity = (numerator == "1");
+
+    if (isIdentity) {
+        prompt << "TASK: Perform Prompt Inversion (1 / Denominator).\n";
+        prompt << "INPUT: \"" << denominator << "\"\n";
+        prompt << "LOGIC: Generate the semantic opposite or negation of the input. (e.g., 'connect' -> 'disconnect', 'enable' -> 'disable').\n";
+    } else {
+        prompt << "TASK: Perform Prompt Division (Numerator / Denominator).\n";
+        prompt << "INPUTS:\n";
+        prompt << "  NUMERATOR: \"" << numerator << "\"\n";
+        prompt << "  DENOMINATOR: \"" << denominator << "\"\n";
+        prompt << "LOGIC: This represents 'Numerator' combined with the semantic inverse of 'Denominator'.\n";
+    }
+    prompt << "OUTPUT: Return ONLY the resulting instruction string. No explanations.";
+
+    string response = callAI(prompt.str());
+    
+    size_t first = response.find_first_not_of(" \t\r\n\"'");
+    if (first == string::npos) return "";
+    size_t last = response.find_last_not_of(" \t\r\n\"'");
+    return response.substr(first, (last - first + 1));
+}
+
+// [NEW] Helper to perform semantic exponentiation via AI
+inline string performSemanticExponentiation(const string& base, const string& exponent) {
+    auto is_number = [](const string& s) {
+        return !s.empty() && std::all_of(s.begin(), s.end(), [](unsigned char c){ return ::isdigit(c); });
+    };
+
+    if (is_number(exponent)) {
+        return "Perform a recursive loop of " + exponent + " iterations where the output of one iteration becomes the input of the next. Logic: " + base;
+    }
+
+    stringstream prompt;
+    prompt << "ROLE: Semantic Logic Engine.\n";
+    prompt << "TASK: Perform Prompt Exponentiation (Base ^ Exponent).\n";
+    prompt << "INPUTS:\n";
+    prompt << "  BASE: \"" << base << "\"\n";
+    prompt << "  EXPONENT: \"" << exponent << "\"\n";
+    prompt << "LOGIC:\n";
+    prompt << "  Recursive Composition: Apply the BASE logic recursively, modulated by the EXPONENT.\n";
+    prompt << "  Example: 'rewrite' ^ '3 times' -> 'rewrite the text, then rewrite the result, then rewrite that result'.\n";
+    prompt << "OUTPUT: Return ONLY the resulting instruction string. No explanations.";
+
+    string response = callAI(prompt.str());
+    
+    size_t first = response.find_first_not_of(" \t\r\n\"'");
+    if (first == string::npos) return "";
+    size_t last = response.find_last_not_of(" \t\r\n\"'");
+    return response.substr(first, (last - first + 1));
+}
+
+// [UPDATED] Resolve Prompt Arithmetic (Addition & Subtraction)
+inline string resolvePromptArithmetic(string expression) {
+    vector<string> terms;
+    vector<char> ops;
+    
+    string current;
+    bool inQuote = false;
+    bool hasOp = false;
+    
+    for (char c : expression) {
+        if (c == '"') inQuote = !inQuote;
+        
+        if (!inQuote && (c == '+' || c == '-' || c == '*' || c == '/' || c == '^')) {
+            terms.push_back(current);
+            ops.push_back(c);
+            current = "";
+            hasOp = true;
+        } else {
+            current += c;
+        }
+    }
+    terms.push_back(current);
+
+    // If no arithmetic, just substitute and return
+    if (!hasOp) return substituteVariables(expression);
+
+    // Process first term
+    string accumulatedIntent = substituteVariables(terms[0]);
+    // Cleanup first term
+    if (accumulatedIntent.size() >= 2 && accumulatedIntent.front() == '"' && accumulatedIntent.back() == '"') {
+        accumulatedIntent = accumulatedIntent.substr(1, accumulatedIntent.size() - 2);
+    }
+    {
+        size_t first = accumulatedIntent.find_first_not_of(" \t\r\n");
+        if (first != string::npos) {
+            size_t last = accumulatedIntent.find_last_not_of(" \t\r\n");
+            accumulatedIntent = accumulatedIntent.substr(first, (last - first + 1));
+        } else {
+            accumulatedIntent = "";
+        }
+    }
+    
+    // [NEW] Normalize Null State
+    if (accumulatedIntent == "0" || accumulatedIntent == "NULL" || accumulatedIntent == "EMPTY") accumulatedIntent = "0";
+    
+    for (size_t i = 0; i < ops.size(); ++i) {
+        char op = ops[i];
+        string nextTerm = substituteVariables(terms[i+1]);
+        
+        // Cleanup next term
+        if (nextTerm.size() >= 2 && nextTerm.front() == '"' && nextTerm.back() == '"') {
+            nextTerm = nextTerm.substr(1, nextTerm.size() - 2);
+        }
+        {
+            size_t first = nextTerm.find_first_not_of(" \t\r\n");
+            if (first != string::npos) {
+                size_t last = nextTerm.find_last_not_of(" \t\r\n");
+                nextTerm = nextTerm.substr(first, (last - first + 1));
+            } else {
+                nextTerm = "";
+            }
+        }
+
+        // [NEW] Normalize Null State for next term
+        if (nextTerm == "0" || nextTerm == "NULL" || nextTerm == "EMPTY") nextTerm = "0";
+
+        if (nextTerm.empty()) continue;
+
+        if (op == '+') {
+            // Identity: x + 0 = x
+            if (nextTerm == "0") continue;
+            // Identity: 0 + x = x
+            if (accumulatedIntent == "0") { accumulatedIntent = nextTerm; continue; }
+
+            cout << "   [ARITHMETIC] Adding: (" << accumulatedIntent.substr(0, 10) << "...) + (" << nextTerm.substr(0, 10) << "...)" << endl;
+            if (checkSemanticContradiction(accumulatedIntent, nextTerm)) {
+                cerr << "\n[FATAL ERROR] Semantic Contradiction detected in Prompt Arithmetic!" << endl;
+                cerr << "   Term 1: " << accumulatedIntent << endl;
+                cerr << "   Term 2: " << nextTerm << endl;
+                cerr << "   Result: Compile-Time Error (Bottom)" << endl;
+                exit(1);
+            }
+            if (!accumulatedIntent.empty()) accumulatedIntent += "\n";
+            accumulatedIntent += nextTerm;
+        } else if (op == '-') {
+            // Identity: x - 0 = x
+            if (nextTerm == "0") continue;
+            // 0 - x = -x (Inhibitor)
+            if (accumulatedIntent == "0") accumulatedIntent = ""; 
+            // Annihilation: x - x = 0
+            if (accumulatedIntent == nextTerm) { accumulatedIntent = "0"; continue; }
+
+            cout << "   [ARITHMETIC] Subtracting: (" << accumulatedIntent.substr(0, 10) << "...) - (" << nextTerm.substr(0, 10) << "...)" << endl;
+            accumulatedIntent = performSemanticSubtraction(accumulatedIntent, nextTerm);
+        } else if (op == '*') {
+            // Zero Property: x * 0 = 0
+            if (nextTerm == "0" || accumulatedIntent == "0") {
+                accumulatedIntent = "0";
+                continue; 
+            }
+            // Identity: x * 1 = x
+            if (nextTerm == "1") continue;
+            // Identity: 1 * x = x
+            if (accumulatedIntent == "1") { accumulatedIntent = nextTerm; continue; }
+
+            cout << "   [ARITHMETIC] Multiplying: (" << accumulatedIntent.substr(0, 10) << "...) * (" << nextTerm.substr(0, 10) << "...)" << endl;
+            accumulatedIntent = performSemanticMultiplication(accumulatedIntent, nextTerm);
+        } else if (op == '/') {
+            // Identity: x / 1 = x
+            if (nextTerm == "1") continue;
+            // Zero Property: 0 / x = 0
+            if (accumulatedIntent == "0") continue;
+            // Division by Zero
+            if (nextTerm == "0") {
+                 cerr << "\n[FATAL ERROR] Division by Zero (Null State) in Prompt Arithmetic." << endl;
+                 exit(1);
+            }
+
+            cout << "   [ARITHMETIC] Dividing: (" << accumulatedIntent.substr(0, 10) << "...) / (" << nextTerm.substr(0, 10) << "...)" << endl;
+            accumulatedIntent = performSemanticDivision(accumulatedIntent, nextTerm);
+        } else if (op == '^') {
+            // Identity: x ^ 1 = x
+            if (nextTerm == "1") continue;
+            // Zero Property: x ^ 0 = 1 (Identity Element)
+            if (nextTerm == "0") { accumulatedIntent = "1"; continue; }
+
+            cout << "   [ARITHMETIC] Exponentiation: (" << accumulatedIntent.substr(0, 10) << "...) ^ (" << nextTerm.substr(0, 10) << "...)" << endl;
+            accumulatedIntent = performSemanticExponentiation(accumulatedIntent, nextTerm);
+        }
+    }
+    return accumulatedIntent;
 }
 
 // [NEW] Pre-process input to handle containers and caching
@@ -145,8 +417,52 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             if (last != string::npos) value = value.substr(0, last + 1);
             else value = "";
             
-            // [NEW] Resolve variables inside variable definition
-            value = substituteVariables(value);
+            // [NEW] Vector Parsing Logic
+            bool isVector = false;
+            vector<string> vectorElements;
+
+            if (value.size() >= 2 && value.front() == '{' && value.back() == '}') {
+                isVector = true;
+                string inner = value.substr(1, value.size() - 2);
+                
+                string currentElement;
+                bool inQuote = false;
+                for (char c : inner) {
+                    if (c == '"') inQuote = !inQuote;
+                    
+                    if (c == ',' && !inQuote) {
+                        size_t first = currentElement.find_first_not_of(" \t\r\n");
+                        if (first != string::npos) {
+                            size_t lastEl = currentElement.find_last_not_of(" \t\r\n");
+                            string el = currentElement.substr(first, lastEl - first + 1);
+                            // Resolve variables in element
+                            el = resolvePromptArithmetic(el);
+                            vectorElements.push_back(el);
+                        }
+                        currentElement = "";
+                    } else {
+                        currentElement += c;
+                    }
+                }
+                size_t first = currentElement.find_first_not_of(" \t\r\n");
+                if (first != string::npos) {
+                    size_t lastEl = currentElement.find_last_not_of(" \t\r\n");
+                    string el = currentElement.substr(first, lastEl - first + 1);
+                    el = resolvePromptArithmetic(el);
+                    vectorElements.push_back(el);
+                }
+                
+                // [FIX] Reconstruct 'value' from resolved elements so $vector expands to resolved content
+                value = "{ ";
+                for(size_t i=0; i<vectorElements.size(); ++i) {
+                    value += "\"" + vectorElements[i] + "\"";
+                    if(i < vectorElements.size() - 1) value += ", ";
+                }
+                value += " }";
+            } else {
+                // [NEW] Resolve Prompt Arithmetic (Addition & Contradiction Check)
+                value = resolvePromptArithmetic(value);
+            }
 
             // Create SemanticNode (Placeholder for Phase 2)
             SemanticNode node;
@@ -156,11 +472,16 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             
             node.id = id;
             node.content = value;
+            node.isVector = isVector;
+            node.vectorContent = vectorElements;
             node.hash = getContainerHash(value);
             
             SYMBOL_TABLE[id] = node; // [NEW] Store in symbol table
             
-            if (VERBOSE_MODE) cout << "   [VAR] Detected " << (isConstant ? "CONST" : "VAR") << ": " << id << " = " << value << endl;
+            if (VERBOSE_MODE) {
+                cout << "   [VAR] Detected " << (isConstant ? "CONST" : "VAR") << ": " << id << " = " << value << endl;
+                if (isVector) cout << "         Vector with " << vectorElements.size() << " elements." << endl;
+            }
 
             result += code.substr(pos, start - pos);
             pos = lineEnd; 

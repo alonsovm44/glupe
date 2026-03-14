@@ -1,0 +1,17 @@
+{
+    "CHANGELOG.md": "b6912c4422d0d885",
+    "install.ps1": "f52b947fa0c864c6",
+    "install.sh": "c2defddddd8640dc",
+    "src/ai.hpp": "40dfd458315c64ab",
+    "src/cache.hpp": "3ff141a33d18f067",
+    "src/common.hpp": "4f9f573b5995346b",
+    "src/config.hpp": "97119290f2ea54e3",
+    "src/glupec.cpp": "ac7525eeaf119850",
+    "src/hub.hpp": "6b35fcb7e478badd",
+    "src/languages.hpp": "b09000aa41678e21",
+    "src/parser.hpp": "b60757e25301fe2e",
+    "src/processor.hpp": "dfa76b5ba8f1b069",
+    "src/utils.hpp": "78bc83c9b500623b",
+    "update.ps1": "b6651f55bd244d71",
+    "update.sh": "371e68ae53504c6f"
+}

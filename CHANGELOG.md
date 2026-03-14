@@ -2,6 +2,9 @@
 
 Added:
 
+- added -scaffold mode to refine mode, so AI makes export block projects
+- added support for addition, substraction, multiplication, exponentiation, inverse (and therefore division)
+- added semantic vectors
 - added -build flag to override default build command
 Removed:
 
