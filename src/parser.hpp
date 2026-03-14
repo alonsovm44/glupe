@@ -2,6 +2,14 @@
 #include "utils.hpp"
 #include "languages.hpp"
 #include "cache.hpp"
+#include "ast.hpp"
+
+// Flex/Bison interface
+extern int yyparse(ProgramNode** root);
+extern int yylineno; // Expose line counter for resets
+typedef struct yy_buffer_state *YY_BUFFER_STATE;
+extern YY_BUFFER_STATE yy_scan_string(const char *str);
+extern void yy_delete_buffer(YY_BUFFER_STATE buffer);
 
 // [NEW] Pre-processor to extract glupe syntax from comments
 inline string decommentGlupeSyntax(const string& code) {
@@ -226,330 +234,77 @@ inline string resolveImports(string code, fs::path basePath, vector<string>& sta
     return processed;
 }
 
-// [NEW] Helper to strip AI templates ($${...}$$) from code lines
-inline string stripTemplates(const string& line, bool& insideTemplate) {
+
+// [NEW] Global helper to strip all unresolved Glupe containers using AST
+inline string stripAllContainers(const string& code) {
+    YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
+    yylineno = 1; // Reset line counter
+    ProgramNode* root = nullptr;
+    if (yyparse(&root) != 0 || root == nullptr) {
+        if (buffer) yy_delete_buffer(buffer);
+        return code; // Fallback to raw if syntax error
+    }
+
     string result;
-    size_t pos = 0;
-
-    if (insideTemplate) {
-        size_t end = line.find("}$$");
-        if (end != string::npos) {
-            pos = end + 3;
-            insideTemplate = false;
-        } else {
-            return "";
+    for (const auto& el : root->elements) {
+        // Rebuild code specifically ignoring ContainerNodes & VariableNodes
+        if (auto* raw = dynamic_cast<RawCodeNode*>(el.get())) {
+            result += raw->code;
         }
     }
 
-    while (pos < line.length()) {
-        size_t start = line.find("$", pos);
-        if (start == string::npos) {
-            result += line.substr(pos);
-            break;
-        }
-        
-        bool isBlock = false;
-        bool isInline = false;
-        size_t scan = 0;
-
-        if (start + 1 < line.length() && line[start+1] == '$') {
-            isBlock = true;
-            scan = start + 2;
-        } else {
-            // Inline check
-            size_t openB = line.find('{', start);
-            if (openB != string::npos) {
-                size_t searchPos = openB + 1;
-                while (searchPos < line.length()) {
-                    size_t closeB = line.find('}', searchPos);
-                    if (closeB == string::npos) break;
-                    size_t check = closeB + 1;
-                    while (check < line.length() && isspace(line[check])) check++;
-                    if (check < line.length() && line[check] == '$') {
-                        isInline = true;
-                        scan = start + 1;
-                        break;
-                    }
-                    searchPos = closeB + 1;
-                }
-            }
-        }
-
-        if (!isBlock && !isInline) {
-            result += line.substr(pos, start - pos + 1);
-            pos = start + 1;
-            continue;
-        }
-
-        bool isContainer = false;
-        size_t contentStart = 0;
-
-        // Check anonymous $${
-        if (start + 2 < line.length() && line[start+2] == '{') {
-            isContainer = true;
-            contentStart = start + 3;
-        } 
-        // Check named $$ "id" {
-        else {
-            while(scan < line.length() && isspace(line[scan])) scan++;
-            
-            // [NEW] Skip ABSTRACT keyword in stripper
-            if (scan + 8 <= line.length() && line.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == line.length() || isspace(line[scan+8]))) {
-                scan += 8;
-                while(scan < line.length() && isspace(line[scan])) scan++;
-            }
-
-            if (scan < line.length() && line[scan] != '{') {
-                while(scan < line.length() && !isspace(line[scan]) && line[scan] != '{' && !(line[scan] == '-' && scan+1 < line.length() && line[scan+1] == '>')) {
-                    scan++;
-                }
-                
-                size_t brace = scan;
-                while(brace < line.length() && isspace(line[brace])) brace++;
-                
-                // [NEW] Skip inheritance syntax in stripper
-                if (brace + 1 < line.length() && line[brace] == '-' && line[brace+1] == '>') {
-                     size_t pScan = brace + 2;
-                     while(pScan < line.length() && line[pScan] != '{') pScan++; // Skip until {
-                     brace = pScan;
-                }
-
-                while(brace < line.length() && isspace(line[brace])) brace++;
-                if (brace < line.length() && line[brace] == '{') {
-                    isContainer = true;
-                    contentStart = brace + 1;
-                }
-            }
-        }
-
-        if (isContainer) {
-            if (start > pos) {
-                result += line.substr(pos, start - pos);
-            }
-            size_t end = string::npos;
-            size_t nextPos = 0;
-            if (isBlock) {
-                end = line.find("}$$", contentStart);
-                if (end != string::npos) nextPos = end + 3;
-            } else {
-                size_t searchPos = contentStart;
-                while (searchPos < line.length()) {
-                    size_t closeB = line.find('}', searchPos);
-                    if (closeB == string::npos) break;
-                    size_t check = closeB + 1;
-                    while (check < line.length() && isspace(line[check])) check++;
-                    if (check < line.length() && line[check] == '$') {
-                        end = closeB;
-                        nextPos = check + 1;
-                        break;
-                    }
-                    searchPos = closeB + 1;
-                }
-            }
-
-            if (end == string::npos) {
-                insideTemplate = true;
-                break;
-            }
-            pos = nextPos;
-        } else {
-            // Not a container, keep $$
-            result += line.substr(pos, start - pos + (isBlock ? 2 : 1));
-            pos = start + (isBlock ? 2 : 1);
-        }
-    }
+    yy_delete_buffer(buffer);
+    delete root;
     return result;
 }
 
-// [NEW] Validate container names and detect collisions
+// [NEW] Validate container names and detect collisions via AST
 inline bool validateContainers(const string& code, bool* outHasActive = nullptr) {
-    set<string> ids;
-    size_t pos = 0;
-    while ((pos = code.find("$", pos)) != string::npos) {
-        bool isBlock = false;
-        bool isInline = false;
-        size_t scan = 0;
+    YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
+    yylineno = 1; // Reset line counter
+    ProgramNode* root = nullptr;
+    int parse_res = yyparse(&root);
 
-        if (pos + 1 < code.length() && code[pos+1] == '$') {
-            isBlock = true;
-            scan = pos + 2;
-        } else {
-            size_t lineEnd = code.find('\n', pos);
-            if (lineEnd == string::npos) lineEnd = code.length();
-            size_t openB = code.find('{', pos);
-            if (openB != string::npos && openB < lineEnd) {
-                size_t searchPos = openB + 1;
-                while (searchPos < lineEnd) {
-                    size_t closeB = code.find('}', searchPos);
-                    if (closeB == string::npos || closeB >= lineEnd) break;
-                    size_t check = closeB + 1;
-                    while (check < lineEnd && isspace(code[check])) check++;
-                    if (check < lineEnd && code[check] == '$') {
-                        isInline = true;
-                        scan = pos + 1;
-                        break;
-                    }
-                    searchPos = closeB + 1;
-                }
-            }
-        }
-
-        if (!isBlock && !isInline) { 
-            // [NEW] Check for malformed inline container (multiline)
-            size_t lineEnd = code.find('\n', pos);
-            if (lineEnd == string::npos) lineEnd = code.length();
-            
-            size_t check = pos + 1;
-            while(check < lineEnd && isspace(code[check])) check++;
-            
-            bool isHeader = false;
-            size_t bracePos = string::npos;
-
-            // Case: $ {
-            if (check < lineEnd && code[check] == '{') {
-                isHeader = true;
-                bracePos = check;
-            } 
-            // Case: $ ID ... or $ -> ...
-            else {
-                size_t idStart = check;
-                while(check < lineEnd && (isalnum(static_cast<unsigned char>(code[check])) || code[check] == '_')) check++;
-                
-                // If we advanced (found ID) or didn't (maybe just ->), check next
-                while(check < lineEnd && isspace(code[check])) check++;
-                
-                // [FIX] Handle parameters (...)
-                if (check < lineEnd && code[check] == '(') {
-                    size_t closeP = code.find(')', check);
-                    if (closeP != string::npos && closeP < lineEnd) {
-                        check = closeP + 1;
-                        while(check < lineEnd && isspace(code[check])) check++;
-                    }
-                }
-
-                // [NEW] Handle Vector Syntax { ... }
-                if (check < lineEnd && code[check] == '{') {
-                    size_t closeB = code.find('}', check);
-                    if (closeB != string::npos && closeB < lineEnd) {
-                        check = closeB + 1;
-                        while(check < lineEnd && isspace(code[check])) check++;
-                    }
-                }
-
-                if (check < lineEnd && code[check] == '{') {
-                    isHeader = true; // $ ID {
-                    bracePos = check;
-                } else if (check + 1 < lineEnd && code[check] == '-' && code[check+1] == '>') {
-                    // $ ... -> ...
-                    check += 2;
-                    while(check < lineEnd && code[check] != '{') check++; // Skip parents
-                    if (check < lineEnd && code[check] == '{') {
-                        isHeader = true;
-                        bracePos = check;
-                    }
-                }
-            }
-
-            if (isHeader) {
-                // If it looks like a container start but !isInline, check if it lacks closing brace on same line
-                size_t closeB = code.find('}', bracePos);
-                bool hasClosingBrace = (closeB != string::npos && closeB < lineEnd);
-                
-                if (!hasClosingBrace) {
-                     int lineNum = 1;
-                     for(size_t i=0; i<pos; ++i) if(code[i] == '\n') lineNum++;
-                     cerr << "[ERROR] Malformed inline container at line " << lineNum << ".\n        Inline containers ($ ... $) must be closed on the same line.\n        Use block containers ($$ ... $$) for multi-line logic.\n        Context: " << code.substr(pos, min((size_t)50, lineEnd - pos)) << "..." << endl;
-                     return false;
-                }
-            }
-            pos++; continue; 
-        }
-
-        // Check anonymous $${ (skip)
-        if (scan < code.length() && code[scan] == '{') {
-            if (outHasActive) *outHasActive = true;
-            pos = scan + 1; continue;
-        }
-        // Check named $$ "id" {
-        while(scan < code.length() && isspace(code[scan])) scan++;
-        
-        // [NEW] Skip ABSTRACT keyword in validator
-        bool isAbstract = false;
-        if (scan + 8 <= code.length() && code.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == code.length() || isspace(code[scan+8]))) {
-            isAbstract = true;
-            scan += 8;
-            while(scan < code.length() && isspace(code[scan])) scan++;
-        }
-
-        if (scan < code.length() && code[scan] != '{') {
-            size_t idStart = scan;
-            while(scan < code.length() && !isspace(code[scan]) && code[scan] != '{' && !(code[scan] == '-' && scan+1 < code.length() && code[scan+1] == '>')) {
-                scan++;
-            }
-            
-            if (scan > idStart) {
-                string id = code.substr(idStart, scan - idStart);
-                size_t brace = scan;
-                
-                // [NEW] Skip inheritance syntax in validator
-                while(brace < code.length() && isspace(code[brace])) brace++;
-                if (brace + 1 < code.length() && code[brace] == '-' && code[brace+1] == '>') {
-                     size_t pScan = brace + 2;
-                     while(pScan < code.length() && code[pScan] != '{') pScan++; // Skip until {
-                     brace = pScan;
-                }
-
-                while(brace < code.length() && isspace(code[brace])) brace++;
-                if (brace < code.length() && code[brace] == '{') {
-                    if (ids.count(id)) {
-                        cerr << "[ERROR] Duplicate container ID found: \"" << id << "\"" << endl;
-                        return false;
-                    }
-                    ids.insert(id);
-                    if (outHasActive && !isAbstract) *outHasActive = true;
-                    
-                    // [FIX] Check for closing tag and skip content to avoid false positives inside prompts
-                    size_t end = string::npos;
-                    size_t nextPos = 0;
-                    if (isBlock) {
-                        end = code.find("}$$", brace + 1);
-                        if (end != string::npos) nextPos = end + 3;
-                    } else {
-                        size_t searchPos = brace + 1;
-                        while (searchPos < code.length()) {
-                            size_t closeB = code.find('}', searchPos);
-                            if (closeB == string::npos) break;
-                            size_t check = closeB + 1;
-                            while (check < code.length() && isspace(code[check])) check++;
-                            if (check < code.length() && code[check] == '$') {
-                                end = closeB; nextPos = check + 1; break;
-                            }
-                            searchPos = closeB + 1;
-                        }
-                    }
-
-                    if (end == string::npos) {
-                        cerr << "[ERROR] Unclosed container: \"" << id << "\"" << endl;
-                        return false;
-                    }
-                    pos = nextPos;
-                    continue;
-                }
-            }
-        }
-        pos = scan;
+    // Flex/Bison natively tracks unclosed containers and prints syntax errors!
+    if (parse_res != 0 || root == nullptr) {
+        if (buffer) yy_delete_buffer(buffer);
+        return false;
     }
+
+    set<string> ids;
+    bool hasActive = false;
+
+    for (const auto& el : root->elements) {
+        if (auto* contNode = dynamic_cast<ContainerNode*>(el.get())) {
+            if (!contNode->isAbstract) hasActive = true;
+            
+            if (!contNode->id.empty()) {
+                if (ids.count(contNode->id)) {
+                    cerr << "[ERROR] Duplicate container ID found: \"" << contNode->id << "\"" << endl;
+                    yy_delete_buffer(buffer);
+                    delete root;
+                    return false;
+                }
+                ids.insert(contNode->id);
+            }
+        }
+    }
+
+    if (outHasActive) *outHasActive = hasActive;
+
+    yy_delete_buffer(buffer);
+    delete root;
     return true;
 }
 
 // --- EXPORT SYSTEM ---
 inline string processExports(const string& code, const fs::path& basePath) {
-    stringstream ss(code);
+    string cleanedCode = stripAllContainers(code);
+    stringstream ss(cleanedCode);
     string line;
     unique_ptr<ofstream> outFile;
     string remaining;
     bool exportError = false;
-    bool insideTemplate = false; // [FIX] Track template blocks
     
     while (getline(ss, line)) {
         string cleanLine = line;
@@ -564,7 +319,6 @@ inline string processExports(const string& code, const fs::path& basePath) {
         if (cleanLine.rfind("EXPORT:", 0) == 0) {
             outFile.reset(); // Cerrar archivo anterior siempre
             exportError = false; // Resetear estado de error
-            insideTemplate = false; // [FIX] Reset template state
             
             string rawArgs = cleanLine.substr(7);
             string fname;
@@ -630,11 +384,7 @@ inline string processExports(const string& code, const fs::path& basePath) {
             }
         } else {
             if (outFile && outFile->is_open()) {
-                // [FIX] Robust template handling via helper
-                string cleanContent = stripTemplates(line, insideTemplate);
-                if (!cleanContent.empty()) {
-                    *outFile << cleanContent << "\n";
-                }
+                *outFile << line << "\n";
             } else if (!exportError) {
                 remaining += line + "\n";
             }

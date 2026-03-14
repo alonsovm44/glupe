@@ -77,6 +77,7 @@ void showHelp() {
     cout << "  -run             : Run the output binary after compilation.\n";
     cout << "  -crono           : Measure execution time.\n";
     cout << "  -fill            : Fill containers in-place (preserves manual code).\n";
+    cout << "  -i, --interactive: Prompt user to resolve ambiguous containers.\n";
     cout << "  -dry-run         : Show prompt/context without calling AI.\n";
     cout << "  -verbose         : Enable verbose logging.\n";
     cout << "  -3d              : 3D model generation mode.\n";
@@ -880,6 +881,7 @@ int main(int argc, char* argv[]) {
     bool fillMode = false;
     bool useStdin = false;
     bool useStdout = false;
+    bool interactiveMode = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -901,6 +903,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-crono") cronoTimer.enabled = true;
         else if (arg == "--stdin") useStdin = true;
         else if (arg == "--stdout") useStdout = true;
+        else if (arg == "-i" || arg == "--interactive") interactiveMode = true;
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
@@ -1358,7 +1361,7 @@ int main(int argc, char* argv[]) {
 
     // [NEW] Process Containers (Cache Check & Injection)
     // If updateMode is true, we try to use cache.
-    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets, fillMode);
+    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets, fillMode, interactiveMode);
 
     // [SERIES MODE] Sequential Generation
     if (seriesMode) {
@@ -1390,14 +1393,29 @@ int main(int argc, char* argv[]) {
                     irPrompt << "RULES:\n";
                     irPrompt << "1. Implement the full logic in strict GIR pseudo-code. No placeholders.\n";
                     irPrompt << "2. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
+                    if (interactiveMode) {
+                        irPrompt << "3. INTERACTIVE MODE: If the file instructions are highly ambiguous, DO NOT guess. Instead, return ONLY:\nAMBIGUOUS: <Question asking for clarification with numbered options>\n";
+                    }
                     irPrompt << "OUTPUT: Return ONLY the GIR pseudo-code. No markdown blocks if possible.";
 
+                    string userClarifications = "";
                     string generatedIR;
                     int irRetries = 0;
                     while (irRetries < MAX_RETRIES) {
-                        string response = callAI(irPrompt.str());
+                        string currentPrompt = irPrompt.str();
+                        if (!userClarifications.empty()) currentPrompt += "\n[USER CLARIFICATIONS]:\n" + userClarifications;
+                        string response = callAI(currentPrompt);
                         generatedIR = extractCode(response);
                         
+                        if (interactiveMode && generatedIR.find("AMBIGUOUS:") == 0) {
+                            cout << "\n[AI REQUIRES CLARIFICATION FOR '" << item.filename << "']" << endl;
+                            cout << generatedIR.substr(10) << "\n> ";
+                            string answer;
+                            getline(cin, answer);
+                            userClarifications += answer + "\n";
+                            continue;
+                        }
+
                         if (generatedIR.find("ERROR:") == 0) {
                             cout << "   [!] API Error on GIR (Attempt " << (irRetries + 1) << "/" << MAX_RETRIES << "): " << generatedIR.substr(6) << endl;
                             int waitTime = 5 * (irRetries + 1);
@@ -1626,6 +1644,9 @@ int main(int argc, char* argv[]) {
                 irPrompt << "1. Use strict algorithmic steps and generic types. Do not write actual target code.\n";
                 irPrompt << "2. Output must be self-contained pseudo-code.\n";
                 irPrompt << "3. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
+                if (interactiveMode) {
+                    irPrompt << "4. INTERACTIVE MODE: If the input logic is highly ambiguous, DO NOT guess. Instead, return ONLY:\nAMBIGUOUS: <Question asking for clarification with numbered options>\n";
+                }
             }
         
             if (!customInstructions.empty()) irPrompt << "\n[USER INSTRUCTIONS - HIGHEST PRIORITY]:\n" << customInstructions << "\n";
@@ -1641,11 +1662,24 @@ int main(int argc, char* argv[]) {
             if (!errorHistory.empty()) irPrompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
             irPrompt << "\nOUTPUT: Only GIR code.";
 
+            string userClarifications = "";
             string generatedIR;
             int irRetries = 0;
             while (irRetries < MAX_RETRIES) {
-                string response = callAI(irPrompt.str());
+                string currentPrompt = irPrompt.str();
+                if (!userClarifications.empty()) currentPrompt += "\n[USER CLARIFICATIONS]:\n" + userClarifications;
+                string response = callAI(currentPrompt);
                 generatedIR = extractCode(response);
+                
+                if (interactiveMode && generatedIR.find("AMBIGUOUS:") == 0) {
+                    cout << "\n[AI REQUIRES CLARIFICATION]" << endl;
+                    cout << generatedIR.substr(10) << "\n> ";
+                    string answer;
+                    getline(cin, answer);
+                    userClarifications += answer + "\n";
+                    continue;
+                }
+
                 if (generatedIR.find("ERROR:") == 0) {
                     cout << "   [!] API Error on GIR (Attempt " << (irRetries + 1) << "/" << MAX_RETRIES << "): " << generatedIR.substr(6) << endl;
                     int waitTime = 5 * (irRetries + 1);

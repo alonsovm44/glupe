@@ -21,7 +21,7 @@ if (-not (Test-Path $SrcDir)) { New-Item -ItemType Directory -Force -Path $SrcDi
 
 Write-Host "Downloading source code from $RepoBaseUrl..."
 try {
-    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp")
+    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp", "ast.hpp", "glupe.l", "glupe.y")
     foreach ($file in $SourceFiles) {
         Invoke-WebRequest -Uri "$RepoBaseUrl/src/$file" -OutFile (Join-Path $SrcDir $file) -ErrorAction Stop
     }
@@ -31,8 +31,18 @@ try {
     exit 1
 }
 
+Write-Host "Generating parser with Bison..."
+try {
+    Invoke-Expression "bison -d -o `"$SrcDir\glupe.tab.c`" `"$SrcDir\glupe.y`""
+} catch { Write-Warning "Bison generation failed or Bison not found. Ensure w64devkit is in PATH." }
+
+Write-Host "Generating lexer with Flex..."
+try {
+    Invoke-Expression "flex -o `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.l`""
+} catch { Write-Warning "Flex generation failed or Flex not found. Ensure w64devkit is in PATH." }
+
 Write-Host "Compiling Glupe..."
-$BuildCmd = "g++ `"$SrcDir\glupec.cpp`" -o `"$tempBin`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
+$BuildCmd = "g++ `"$SrcDir\glupec.cpp`" `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.tab.c`" -o `"$tempBin`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
 try {
     Invoke-Expression $BuildCmd
 } catch {

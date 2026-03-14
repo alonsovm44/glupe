@@ -27,7 +27,7 @@ inline string substituteVariables(const string& content, const string& currentFi
         if (scan >= content.length()) { result += "$"; pos = scan; continue; }
         
         char next = content[scan];
-        // Ignore special syntax ($$, $:, ${, $ {)
+        // Ignore special syntax (\$\$, $:, \dollar{, \dollar {)
         if (next == '$' || next == ':' || next == '{' || isspace(next)) {
              result += "$";
              pos = scan;
@@ -326,7 +326,7 @@ inline string resolvePromptArithmetic(string expression, const string& currentFi
 }
 
 // [NEW] Frontend Pass: Generate Pseudo-Code IR
-inline string generateIR(const string& id, const string& intent, const string& context) {
+inline string generateIR(const string& id, const string& intent, const string& context, bool interactiveMode = false) {
     stringstream irPrompt;
     irPrompt << "ROLE: Semantic Frontend Compiler.\n";
     irPrompt << "TASK: Translate the following human intent into Glupe Intermediate Representation (GIR).\n";
@@ -336,6 +336,9 @@ inline string generateIR(const string& id, const string& intent, const string& c
     irPrompt << "3. Restrict logic to formalized operations: ALLOC, SET, CALL, ASYNC CALL, AWAIT, RETURN, ITER, LOOP, BRANCH IF, OR IF, ELSE, TRY, CATCH, FINALLY, THROW, ASSERT.\n";
     irPrompt << "4. Resolve all ambiguity. Generate a fully deterministic pseudo-code.\n";
     irPrompt << "5. Observe the /* [GLUPE_INSERTION_POINT: " << id << "] */ in the CONTEXT. If it is inside an existing function block, set @TYPE to SNIPPET.\n";
+    if (interactiveMode) {
+        irPrompt << "6. INTERACTIVE MODE: If the INTENT is highly ambiguous (e.g., 'sort' but no order given), DO NOT guess. Instead, return ONLY:\nAMBIGUOUS: <Question asking the user for clarification, with numbered options>\n";
+    }
     irPrompt << "GIR FORMAT:\n";
     irPrompt << "@UNIT " << id << "\n";
     irPrompt << "@TYPE <FUNCTION | CLASS | SNIPPET | GLOBAL>\n";
@@ -369,122 +372,42 @@ inline string generateTargetCodeFromIR(const string& ir, const string& targetLan
 }
 
 // [NEW] Pre-process input to handle containers and caching
-inline string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode) {
-    // [FUTURE v6.0] AST INTEGRATION POINT
-    // 1. Normalize: Replace $$...$$ with valid placeholders (e.g. comments or void calls)
-    // 2. Parse: auto tree = parser.parse_string(normalized_code);
-    // 3. Traverse: Find placeholder nodes in the AST.
-    // 4. Context: For each node, walk up to find enclosing function/class for prompt context.
-    // 5. Generate: Call LLM with AST-derived context.
-    // 6. Verify: Parse result, ensure tree structure outside container is identical.
-    // 7. Unparse: Convert modified AST back to string.
+inline string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode, bool interactiveMode = false) {
+    // [v6.0] AST-Based Compilation
+    YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
+    yylineno = 1; // Reset lexer line counter
+    ProgramNode* root = nullptr;
+    int parse_res = yyparse(&root);
+
+    if (parse_res != 0 || root == nullptr) {
+        cerr << "[FATAL ERROR] Syntax error parsing Glupe structures." << endl;
+        if (buffer) yy_delete_buffer(buffer);
+        exit(1);
+    }
     
     string result;
-    size_t pos = 0;
     string currentFilePrefix = "global";
-    size_t nextFileMarker = code.find("// --- START FILE: ");
     
-    while (pos < code.length()) {
-        size_t start = code.find("$", pos);
-        if (start == string::npos) {
-            result += code.substr(pos);
-            break;
-        }
+    for (size_t i = 0; i < root->elements.size(); ++i) {
+        auto* node = root->elements[i].get();
 
-        // Update file prefix if we passed a file marker
-        while (nextFileMarker != string::npos && nextFileMarker < start) {
-            size_t fileEnd = code.find(" ---", nextFileMarker + 19);
-            if (fileEnd != string::npos) {
-                currentFilePrefix = code.substr(nextFileMarker + 19, fileEnd - (nextFileMarker + 19));
-                std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '/', '_');
-                std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '\\', '_');
-                std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '.', '_');
-            }
-            nextFileMarker = code.find("// --- START FILE: ", nextFileMarker + 19);
-        }
-
-        // [v6.0] Semantic Parsing
-        bool isBlock = false;
-        bool isInline = false;
-        bool isVarPersistent = false;
-        bool isVarEphemeral = false;
-        bool isConstant = false;
-        size_t scan = 0;
-
-        if (start + 1 < code.length() && code[start+1] == '$') {
-            if (start + 2 < code.length() && code[start+2] == ':') {
-                // $$: Persistent Variable
-                isVarPersistent = true;
-                scan = start + 3;
-            } else {
-                // $$ Block Container
-                isBlock = true;
-                scan = start + 2;
-            }
-        } else {
-            if (start + 1 < code.length() && code[start+1] == ':') {
-                isVarEphemeral = true;
-                scan = start + 2;
-            } else if (start + 7 <= code.length() && code.compare(start, 7, "$CONST:") == 0) {
-                isConstant = true;
-                scan = start + 7;
-            } else {
-            // Inline container check: $ ... { ... } ... $ on same line
-            size_t lineEnd = code.find('\n', start);
-            if (lineEnd == string::npos) lineEnd = code.length();
-            
-            size_t openB = code.find('{', start);
-            if (openB != string::npos && openB < lineEnd) {
-                // Look for } followed by $
-                size_t searchPos = openB + 1;
-                while (searchPos < lineEnd) {
-                    size_t closeB = code.find('}', searchPos);
-                    if (closeB == string::npos || closeB >= lineEnd) break;
-                    size_t check = closeB + 1;
-                    while (check < lineEnd && isspace(code[check])) check++;
-                    if (check < lineEnd && code[check] == '$') {
-                        isInline = true;
-                        scan = start + 1;
-                        break;
-                    }
-                    searchPos = closeB + 1;
+        if (auto* rawNode = dynamic_cast<RawCodeNode*>(node)) {
+            size_t marker = rawNode->code.find("// --- START FILE: ");
+            if (marker != string::npos) {
+                size_t fileEnd = rawNode->code.find(" ---", marker + 19);
+                if (fileEnd != string::npos) {
+                    currentFilePrefix = rawNode->code.substr(marker + 19, fileEnd - (marker + 19));
+                    std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '/', '_');
+                    std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '\\', '_');
+                    std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '.', '_');
                 }
             }
-            }
+            result += rawNode->code;
         }
-
-        // Handle Variables and Constants
-        if (isVarPersistent || isVarEphemeral || isConstant) {
-            // Parse Variable Declaration
-            // Format: $...: ID -> VALUE \n
-            
-            // 1. Parse ID
-            while(scan < code.length() && isspace(code[scan])) scan++;
-            size_t idStart = scan;
-            while(scan < code.length() && (isalnum(code[scan]) || code[scan] == '_')) scan++;
-            string id = code.substr(idStart, scan - idStart);
-            
-            // 2. Parse Arrow ->
-            while(scan < code.length() && isspace(code[scan])) scan++;
-            if (scan + 1 < code.length() && code[scan] == '-' && code[scan+1] == '>') {
-                scan += 2;
-            } 
-
-            // 3. Parse Value (rest of line)
-            while(scan < code.length() && isspace(code[scan]) && code[scan] != '\n') scan++;
-            size_t valStart = scan;
-            size_t lineEnd = code.find('\n', scan);
-            if (lineEnd == string::npos) lineEnd = code.length();
-            
-            string value = code.substr(valStart, lineEnd - valStart);
-            // Trim trailing whitespace
-            size_t last = value.find_last_not_of(" \t\r");
-            if (last != string::npos) value = value.substr(0, last + 1);
-            else value = "";
-            
-            // [NEW] Vector Parsing Logic
+        else if (auto* varNode = dynamic_cast<VariableNode*>(node)) {
             bool isVector = false;
             vector<string> vectorElements;
+            string value = varNode->value;
 
             if (value.size() >= 2 && value.front() == '{' && value.back() == '}') {
                 isVector = true;
@@ -500,7 +423,6 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                         if (first != string::npos) {
                             size_t lastEl = currentElement.find_last_not_of(" \t\r\n");
                             string el = currentElement.substr(first, lastEl - first + 1);
-                            // Resolve variables in element
                             el = resolvePromptArithmetic(el, currentFilePrefix);
                             vectorElements.push_back(el);
                         }
@@ -517,169 +439,49 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                     vectorElements.push_back(el);
                 }
                 
-                // [FIX] Reconstruct 'value' from resolved elements so $vector expands to resolved content
                 value = "{ ";
-                for(size_t i=0; i<vectorElements.size(); ++i) {
-                    value += "\"" + vectorElements[i] + "\"";
-                    if(i < vectorElements.size() - 1) value += ", ";
+                for(size_t vIdx = 0; vIdx < vectorElements.size(); ++vIdx) {
+                    value += "\"" + vectorElements[vIdx] + "\"";
+                    if(vIdx < vectorElements.size() - 1) value += ", ";
                 }
                 value += " }";
             } else {
-                // [NEW] Resolve Prompt Arithmetic (Addition & Contradiction Check)
                 value = resolvePromptArithmetic(value, currentFilePrefix);
             }
 
-            // Create SemanticNode (Placeholder for Phase 2)
-            SemanticNode node;
-            if (isVarPersistent) node.type = NodeType::VAR_PERSISTENT;
-            else if (isVarEphemeral) node.type = NodeType::VAR_EPHEMERAL;
-            else node.type = NodeType::CONSTANT;
+            SemanticNode snode;
+            if (varNode->varType == VarType::PERSISTENT) snode.type = NodeType::VAR_PERSISTENT;
+            else if (varNode->varType == VarType::EPHEMERAL) snode.type = NodeType::VAR_EPHEMERAL;
+            else snode.type = NodeType::CONSTANT;
             
-            string varKey = currentFilePrefix + "_" + id;
-            node.id = varKey;
-            node.content = value;
-            node.isVector = isVector;
-            node.vectorContent = vectorElements;
-            node.hash = getContainerHash(value);
+            string varKey = currentFilePrefix + "_" + varNode->id;
+            snode.id = varKey;
+            snode.content = value;
+            snode.isVector = isVector;
+            snode.vectorContent = vectorElements;
+            snode.hash = getContainerHash(value);
             
-            SYMBOL_TABLE[varKey] = node; // [NEW] Store in symbol table
+            SYMBOL_TABLE[varKey] = snode; 
             
             if (VERBOSE_MODE) {
-                cout << "   [VAR] Detected " << (isConstant ? "CONST" : "VAR") << ": " << id << " = " << value << endl;
+                cout << "   [VAR] Detected " << (varNode->varType == VarType::CONSTANT ? "CONST" : "VAR") << ": " << varNode->id << " = " << value << endl;
                 if (isVector) cout << "         Vector with " << vectorElements.size() << " elements." << endl;
             }
-
-            result += code.substr(pos, start - pos);
-            pos = lineEnd; 
-            continue;
         }
-
-        if (!isBlock && !isInline) {
-            result += code.substr(pos, start - pos + 1);
-            pos = start + 1;
-            continue;
-        }
-
-        // Check named $$ "id" {
-        bool isNamed = false;
-        bool isAbstract = false; // [NEW] Track abstract status
-        string id;
-        vector<string> paramIds;  // [NEW] Context Injection params
-        vector<string> parentIds; // [NEW] Parent IDs for inheritance
-        size_t contentStart = 0;
-        
-        while(scan < code.length() && isspace(code[scan])) scan++;
-        
-        // [NEW] Check for ABSTRACT keyword
-        if (scan + 8 <= code.length() && code.compare(scan, 8, "ABSTRACT") == 0 && (scan + 8 == code.length() || isspace(code[scan+8]))) {
-            isAbstract = true;
-            scan += 8;
-            while(scan < code.length() && isspace(code[scan])) scan++;
-        }
-
-        if (scan < code.length() && code[scan] != '{') {
-            size_t idStart = scan;
-            // [UPDATED] Stop at '(' for params
-            while(scan < code.length() && !isspace(code[scan]) && code[scan] != '{' && code[scan] != '(' && !(code[scan] == '-' && scan+1 < code.length() && code[scan+1] == '>')) {
-                scan++;
-            }
+        else if (auto* contNode = dynamic_cast<ContainerNode*>(node)) {
+            string id = contNode->id;
             
-            if (scan > idStart) {
-                id = code.substr(idStart, scan - idStart);
-                
-                // [NEW] Parse Parameters (Context Injection)
-                if (scan < code.length() && code[scan] == '(') {
-                    size_t pStart = scan + 1;
-                    size_t pEnd = code.find(')', pStart);
-                    if (pEnd != string::npos) {
-                        string paramStr = code.substr(pStart, pEnd - pStart);
-                        stringstream ss(paramStr);
-                        string segment;
-                        while(getline(ss, segment, ',')) {
-                            segment.erase(0, segment.find_first_not_of(" \t"));
-                            segment.erase(segment.find_last_not_of(" \t") + 1);
-                            if(!segment.empty()) paramIds.push_back(segment);
-                        }
-                        scan = pEnd + 1;
-                    }
-                }
-
-                size_t brace = scan;
-                
-                // [NEW] Check for inheritance ->
-                while(brace < code.length() && isspace(code[brace])) brace++;
-                if (brace + 1 < code.length() && code[brace] == '-' && code[brace+1] == '>') {
-                     size_t pScan = brace + 2;
-                     while (pScan < code.length()) {
-                         while(pScan < code.length() && isspace(code[pScan])) pScan++;
-                         if (pScan >= code.length() || code[pScan] == '{') break;
-                         
-                         size_t pStart = pScan;
-                         while(pScan < code.length() && !isspace(code[pScan]) && code[pScan] != ',' && code[pScan] != '{') {
-                             pScan++;
-                         }
-                         if (pScan > pStart) {
-                             parentIds.push_back(code.substr(pStart, pScan - pStart));
-                         }
-                         
-                         while(pScan < code.length() && isspace(code[pScan])) pScan++;
-                         if (pScan < code.length() && code[pScan] == ',') pScan++;
-                         else if (code[pScan] == '{') { brace = pScan; break; }
-                     }
-                     brace = pScan;
-                }
-
-                while(brace < code.length() && isspace(code[brace])) brace++;
-                if (brace < code.length() && code[brace] == '{') {
-                    isNamed = true;
-                    contentStart = brace + 1;
-                }
-            }
-        }
-
-        if (isNamed) {
-            // Find end of container
-            size_t end = string::npos;
-            size_t nextPos = 0;
-
-            if (isBlock) {
-                end = code.find("}$$", contentStart);
-                if (end != string::npos) nextPos = end + 3;
-            } else {
-                // Inline end finding
-                size_t lineEnd = code.find('\n', start);
-                if (lineEnd == string::npos) lineEnd = code.length();
-                size_t searchPos = contentStart;
-                while (searchPos < lineEnd) {
-                    size_t closeB = code.find('}', searchPos);
-                    if (closeB == string::npos || closeB >= lineEnd) break;
-                    size_t check = closeB + 1;
-                    while (check < lineEnd && isspace(code[check])) check++;
-                    if (check < lineEnd && code[check] == '$') {
-                        end = closeB;
-                        nextPos = check + 1;
-                        break;
-                    }
-                    searchPos = closeB + 1;
-                }
-            }
-
-            if (end == string::npos) {
-                // Malformed, just append and continue
-                result += code.substr(pos, (isBlock ? 2 : 1));
-                pos = start + (isBlock ? 2 : 1);
+            if (id.empty()) {
+                if (contNode->isBlock) result += "$$ {\n" + contNode->intent + "\n}$$";
+                else result += "$ { " + contNode->intent + " }$";
                 continue;
             }
 
-            string prompt = code.substr(contentStart, end - contentStart);
-            
-            // [NEW] Variable Substitution ($VAR -> value)
-            prompt = substituteVariables(prompt, currentFilePrefix);
-            
-            // [NEW] Logic Inheritance
+            string prompt = substituteVariables(contNode->intent, currentFilePrefix);
             string contextStr = "";
-            if (!parentIds.empty()) {
-                for(const auto& pid : parentIds) {
+            
+            if (!contNode->parents.empty()) {
+                for(const auto& pid : contNode->parents) {
                     if (SYMBOL_TABLE.count(pid)) {
                         contextStr += "\n--- INHERITED FROM " + pid + " ---\n" + SYMBOL_TABLE[pid].content + "\n";
                         cout << "   [INHERIT] Container '" << id << "' inherits from '" << pid << "'" << endl;
@@ -689,14 +491,12 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                 }
             }
 
-            // [NEW] Context Injection (Params)
-            if (!paramIds.empty()) {
-                for(const auto& pid : paramIds) {
+            if (!contNode->params.empty()) {
+                for(const auto& pid : contNode->params) {
                     if (SYMBOL_TABLE.count(pid)) {
                         contextStr += "\n--- INJECTED CONTEXT (" + pid + ") ---\n" + SYMBOL_TABLE[pid].content + "\n";
                         cout << "   [INJECT] Context '" << pid << "' injected into '" << id << "'" << endl;
                     } else {
-                        // If not in symbol table, treat as a raw parameter name for the AI
                         contextStr += "\n--- PARAMETER: " + pid + " ---\n";
                     }
                 }
@@ -707,32 +507,24 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                 prompt = "CONTEXT:\n" + contextStr + "\nRESOLUTION RULES:\n1. Child logic overrides parent logic.\n2. Use injected context as data/functions.\n\n--- CHILD LOGIC (" + id + ") ---\n" + childLogic;
             }
 
-            // Store resolved prompt in symbol table for future children
-            SemanticNode containerNode;
-            containerNode.type = NodeType::CONTAINER;
-            containerNode.id = id;
-            containerNode.content = prompt;
-            containerNode.parents = parentIds;
-            containerNode.params = paramIds;
-            SYMBOL_TABLE[id] = containerNode;
+            SemanticNode sNode;
+            sNode.type = NodeType::CONTAINER;
+            sNode.id = id;
+            sNode.content = prompt;
+            sNode.parents = contNode->parents;
+            sNode.params = contNode->params;
+            SYMBOL_TABLE[id] = sNode;
 
-            // [NEW] Abstract Container Logic
-            if (isAbstract) {
+            if (contNode->isAbstract) {
                 cout << "   [ABSTRACT] Defined container: " << id << endl;
-                result += code.substr(pos, start - pos); // Append text before container
-                result += "// [ABSTRACT: " + id + "]\n"; // Placeholder comment (no code generation)
-                pos = nextPos;
+                result += "// [ABSTRACT: " + id + "]\n"; 
                 continue;
             }
 
             string currentHash = getContainerHash(prompt);
-            string cacheKey = currentFilePrefix + "_" + id; // [NEW] Prefix container ID to avoid cache collisions
-            
-            result += code.substr(pos, start - pos); // Append text before container
+            string cacheKey = currentFilePrefix + "_" + id;
 
             bool cacheHit = false;
-            
-            // Check if we should skip this container (Selective Update)
             bool skipUpdate = false;
             if (useCache && !updateTargets.empty()) {
                 bool isTarget = false;
@@ -741,7 +533,6 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             }
 
             if (useCache && (skipUpdate || LOCK_DATA["containers"].contains(cacheKey))) {
-                // If skipping, ignore hash check and try to load cache immediately
                 if (skipUpdate) {
                     string content = getCachedContent(cacheKey);
                     if (!content.empty()) {
@@ -754,37 +545,46 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                         cout << "   [WARN] Cache missing for skipped container: " << cacheKey << ". Regenerating." << endl;
                     }
                 }
-                // Standard check: hash comparison
                 else if (LOCK_DATA["containers"].contains(cacheKey)) {
-                string storedHash = LOCK_DATA["containers"][cacheKey]["hash"];
-                if (storedHash == currentHash) {
-                    string content = getCachedContent(cacheKey);
-                    if (!content.empty()) {
-                        cout << "   [CACHE] Using cached container: " << cacheKey << endl;
-                        // [FIX] Wrap cached content in markers so AI preserves it
-                        result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
-                        result += content; 
-                        result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
-                        cacheHit = true;
-                    }
+                    string storedHash = LOCK_DATA["containers"][cacheKey]["hash"];
+                    if (storedHash == currentHash) {
+                        string content = getCachedContent(cacheKey);
+                        if (!content.empty()) {
+                            cout << "   [CACHE] Using cached container: " << cacheKey << endl;
+                            result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
+                            result += content; 
+                            result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
+                            cacheHit = true;
+                        }
                     }
                 }
             }
 
             if (!cacheHit) {
                 if (fillMode) {
-                    // [FILL MODE] Generate immediately to preserve surrounding code
                     cout << "   [FILL] Generating container: " << cacheKey << "..." << endl;
                     
-                    // Construct context from what we have processed so far + what remains
-                    // This gives the AI the full file view without being able to touch it
-                    string currentContext = result + "/* [GLUPE_INSERTION_POINT: " + id + "] */\n" + code.substr(pos);
+                    string remainingCode;
+                    for (size_t j = i + 1; j < root->elements.size(); ++j) {
+                        if (auto* r = dynamic_cast<RawCodeNode*>(root->elements[j].get())) remainingCode += r->code;
+                    }
+                    string currentContext = result + "/* [GLUPE_INSERTION_POINT: " + id + "] */\n" + remainingCode;
                     
                     cout << "      -> Pass 1: Semantic Frontend (Generating GIR)..." << endl;
                     string generatedIR;
                     int irRetries = 0;
                     while (irRetries < MAX_RETRIES) {
-                        generatedIR = generateIR(id, prompt, currentContext);
+                        generatedIR = generateIR(id, prompt, currentContext, interactiveMode);
+                        
+                        if (interactiveMode && generatedIR.find("AMBIGUOUS:") == 0) {
+                            cout << "\n[AI REQUIRES CLARIFICATION FOR '" << id << "']" << endl;
+                            cout << generatedIR.substr(10) << "\n> ";
+                            string answer;
+                            getline(cin, answer);
+                            prompt += "\n[USER CLARIFICATION]: " + answer;
+                            continue; 
+                        }
+
                         if (generatedIR.find("ERROR:") == 0) {
                             cout << "   [!] API Error on GIR (Attempt " << (irRetries + 1) << "/" << MAX_RETRIES << "): " << generatedIR.substr(6) << endl;
                             int waitTime = 5 * (irRetries + 1);
@@ -839,31 +639,26 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                     result += cleanGenerated;
                     result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
                     
-                    // Update cache immediately
                     setCachedContent(cacheKey, cleanGenerated);
-                    setCachedContent(cacheKey + "_ir", generatedIR); // Cache the IR
+                    setCachedContent(cacheKey + "_ir", generatedIR);
                     LOCK_DATA["containers"][cacheKey]["hash"] = currentHash;
                     LOCK_DATA["containers"][cacheKey]["last_run"] = time(nullptr);
                     saveCache();
                 } else {
-                    // [STANDARD MODE] Wrap in markers for global pass
                     result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
-                    result += prompt; // The prompt for the AI
+                    result += prompt;
                     result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
                     
-                    // Update lock data (will be saved after successful generation)
                     LOCK_DATA["containers"][cacheKey]["hash"] = currentHash;
                     LOCK_DATA["containers"][cacheKey]["last_run"] = time(nullptr);
                 }
             }
-
-            pos = nextPos; 
-        } else {
-            // Anonymous or malformed, keep as is (or handle anonymous logic)
-            result += code.substr(pos, start - pos + (isBlock ? 2 : 1));
-            pos = start + (isBlock ? 2 : 1);
         }
     }
+
+    yy_delete_buffer(buffer);
+    delete root;
+
     return result;
 }
 

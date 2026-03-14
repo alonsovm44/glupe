@@ -29,7 +29,6 @@ int main(){
 
 ```
 
-have two syntaxes, one for pure glp files (the standard $${}$$) and one for embedded files, so DX is smoother and adoption is easier.
 
 ## Time stamp detection
 
@@ -45,3 +44,5 @@ Idea 2: -refine modified output file
 - Handle external lib dependancy in GIR @IMPORT
 
 - Add retry logic to `generateTarhetCodeFromIR`just in case AI writes malformed syntax from GIR
+
+- Add flex/bison to make an actual parser for glupe syntax
