@@ -21,14 +21,15 @@ void yyerror(ProgramNode** root, const char* s) {
     bool boolean;
 }
 
-%token <str> T_RAW_CODE T_IDENTIFIER T_VAR_VALUE T_INTENT_TEXT T_STRING_LITERAL
+%token <str> T_RAW_CODE T_IDENTIFIER T_VAR_VALUE T_INTENT_TEXT T_STRING_LITERAL T_NUMBER
 %token T_PERSISTENT_VAR_START T_CONST_VAR_START T_EPHEMERAL_VAR_START
 %token T_BLOCK_START T_INLINE_START T_ABSTRACT T_ARROW T_COMMA T_LPAREN T_RPAREN T_LBRACE T_BLOCK_END T_INLINE_END T_NEWLINE
+%token T_PLUS T_MINUS T_STAR T_SLASH T_CARET
 
 %type <prog> program
 %type <node> element var_decl container_decl
-%type <str_list> identifier_list optional_params optional_parents
-%type <str> intent_body string_or_id opt_var_value
+%type <str_list> expr_list optional_params optional_parents
+%type <str> intent_body string_or_id opt_var_value algebra_expr algebra_term
 %type <boolean> optional_abstract
 
 %%
@@ -89,27 +90,42 @@ optional_abstract:
 
 optional_params:
     /* empty */ { $$ = new std::vector<std::string>(); }
-    | T_LPAREN identifier_list T_RPAREN { $$ = $2; }
+    | T_LPAREN expr_list T_RPAREN { $$ = $2; }
     ;
 
 optional_parents:
     /* empty */ { $$ = new std::vector<std::string>(); }
-    | T_ARROW identifier_list { $$ = $2; }
+    | T_ARROW expr_list { $$ = $2; }
     ;
 
-identifier_list:
-    string_or_id
+expr_list:
+    algebra_expr
     {
         $$ = new std::vector<std::string>();
         $$->push_back(*$1);
         delete $1;
     }
-    | identifier_list T_COMMA string_or_id
+    | expr_list T_COMMA algebra_expr
     {
         $1->push_back(*$3);
         delete $3;
         $$ = $1;
     }
+    ;
+
+algebra_expr:
+    algebra_term { $$ = $1; }
+    | algebra_expr T_PLUS algebra_term { $$ = new std::string(*$1 + " + " + *$3); delete $1; delete $3; }
+    | algebra_expr T_MINUS algebra_term { $$ = new std::string(*$1 + " - " + *$3); delete $1; delete $3; }
+    | algebra_expr T_STAR algebra_term { $$ = new std::string(*$1 + " * " + *$3); delete $1; delete $3; }
+    | algebra_expr T_SLASH algebra_term { $$ = new std::string(*$1 + " / " + *$3); delete $1; delete $3; }
+    | algebra_expr T_CARET algebra_term { $$ = new std::string(*$1 + " ^ " + *$3); delete $1; delete $3; }
+    ;
+
+algebra_term:
+    T_IDENTIFIER { $$ = new std::string("$" + *$1); delete $1; }
+    | T_STRING_LITERAL { $$ = new std::string("\"" + *$1 + "\""); delete $1; }
+    | T_NUMBER { $$ = $1; }
     ;
 
 string_or_id:

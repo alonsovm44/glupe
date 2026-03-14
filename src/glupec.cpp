@@ -882,6 +882,8 @@ int main(int argc, char* argv[]) {
     bool useStdin = false;
     bool useStdout = false;
     bool interactiveMode = false;
+    bool ideMode = false;
+    map<string, string> interactiveAnswers;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -904,6 +906,11 @@ int main(int argc, char* argv[]) {
         else if (arg == "--stdin") useStdin = true;
         else if (arg == "--stdout") useStdout = true;
         else if (arg == "-i" || arg == "--interactive") interactiveMode = true;
+        else if (arg == "--ide") { ideMode = true; interactiveMode = true; }
+        else if (arg == "--answer" && i + 2 < argc) {
+            interactiveAnswers[argv[i+1]] = argv[i+2];
+            i += 2;
+        }
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
@@ -1361,7 +1368,7 @@ int main(int argc, char* argv[]) {
 
     // [NEW] Process Containers (Cache Check & Injection)
     // If updateMode is true, we try to use cache.
-    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets, fillMode, interactiveMode);
+    aggregatedContext = processInputWithCache(aggregatedContext, updateMode, updateTargets, fillMode, interactiveMode, ideMode, interactiveAnswers);
 
     // [SERIES MODE] Sequential Generation
     if (seriesMode) {
@@ -1399,6 +1406,9 @@ int main(int argc, char* argv[]) {
                     irPrompt << "OUTPUT: Return ONLY the GIR pseudo-code. No markdown blocks if possible.";
 
                     string userClarifications = "";
+                    if (interactiveAnswers.count(item.filename)) {
+                        userClarifications += interactiveAnswers.at(item.filename) + "\n";
+                    }
                     string generatedIR;
                     int irRetries = 0;
                     while (irRetries < MAX_RETRIES) {
@@ -1408,12 +1418,17 @@ int main(int argc, char* argv[]) {
                         generatedIR = extractCode(response);
                         
                         if (interactiveMode && generatedIR.find("AMBIGUOUS:") == 0) {
-                            cout << "\n[AI REQUIRES CLARIFICATION FOR '" << item.filename << "']" << endl;
-                            cout << generatedIR.substr(10) << "\n> ";
-                            string answer;
-                            getline(cin, answer);
-                            userClarifications += answer + "\n";
-                            continue;
+                            if (ideMode) {
+                                cerr << "\n[IDE_AMBIGUOUS_PROMPT] " << item.filename << "|" << generatedIR.substr(10) << endl;
+                                exit(2);
+                            } else {
+                                cout << "\n[AI REQUIRES CLARIFICATION FOR '" << item.filename << "']" << endl;
+                                cout << generatedIR.substr(10) << "\n> ";
+                                string answer;
+                                getline(cin, answer);
+                                userClarifications += answer + "\n";
+                                continue;
+                            }
                         }
 
                         if (generatedIR.find("ERROR:") == 0) {
@@ -1663,6 +1678,10 @@ int main(int argc, char* argv[]) {
             irPrompt << "\nOUTPUT: Only GIR code.";
 
             string userClarifications = "";
+            string globalId = makeMode ? "project" : CURRENT_LANG.name;
+            if (interactiveAnswers.count(globalId)) {
+                userClarifications += interactiveAnswers.at(globalId) + "\n";
+            }
             string generatedIR;
             int irRetries = 0;
             while (irRetries < MAX_RETRIES) {
@@ -1672,12 +1691,17 @@ int main(int argc, char* argv[]) {
                 generatedIR = extractCode(response);
                 
                 if (interactiveMode && generatedIR.find("AMBIGUOUS:") == 0) {
-                    cout << "\n[AI REQUIRES CLARIFICATION]" << endl;
-                    cout << generatedIR.substr(10) << "\n> ";
-                    string answer;
-                    getline(cin, answer);
-                    userClarifications += answer + "\n";
-                    continue;
+                    if (ideMode) {
+                        cerr << "\n[IDE_AMBIGUOUS_PROMPT] " << globalId << "|" << generatedIR.substr(10) << endl;
+                        exit(2);
+                    } else {
+                        cout << "\n[AI REQUIRES CLARIFICATION]" << endl;
+                        cout << generatedIR.substr(10) << "\n> ";
+                        string answer;
+                        getline(cin, answer);
+                        userClarifications += answer + "\n";
+                        continue;
+                    }
                 }
 
                 if (generatedIR.find("ERROR:") == 0) {

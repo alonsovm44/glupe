@@ -75,7 +75,13 @@
     ","                     { return T_COMMA; }
     "("                     { return T_LPAREN; }
     ")"                     { return T_RPAREN; }
+    "+"                     { return T_PLUS; }
+    "-"                     { return T_MINUS; }
+    "*"                     { return T_STAR; }
+    "/"                     { return T_SLASH; }
+    "^"                     { return T_CARET; }
     [a-zA-Z_][a-zA-Z0-9_]*  { yylval.str = new std::string(yytext); return T_IDENTIFIER; }
+    [0-9]+                  { yylval.str = new std::string(yytext); return T_NUMBER; }
     \"[^\"]*\"              { 
                               std::string s(yytext); 
                               yylval.str = new std::string(s.substr(1, s.length() - 2)); 

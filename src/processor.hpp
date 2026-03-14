@@ -11,7 +11,7 @@
 #include <chrono>
 
 // [NEW] Helper to substitute variables ($VAR) with their content
-inline string substituteVariables(const string& content, const string& currentFilePrefix = "global") {
+inline string substituteVariables(const string& content, const string& currentFilePrefix = "global", bool allowContainers = false) {
     string result;
     size_t pos = 0;
     while (pos < content.length()) {
@@ -27,7 +27,7 @@ inline string substituteVariables(const string& content, const string& currentFi
         if (scan >= content.length()) { result += "$"; pos = scan; continue; }
         
         char next = content[scan];
-        // Ignore special syntax (\$\$, $:, \dollar{, \dollar {)
+        // Ignore special syntax ($$, $:, ${, $ {)
         if (next == '$' || next == ':' || next == '{' || isspace(next)) {
              result += "$";
              pos = scan;
@@ -41,10 +41,10 @@ inline string substituteVariables(const string& content, const string& currentFi
         
         if (!id.empty()) {
             string prefixedId = currentFilePrefix + "_" + id;
-            if (SYMBOL_TABLE.count(prefixedId) && SYMBOL_TABLE[prefixedId].type != NodeType::CONTAINER) {
+            if (SYMBOL_TABLE.count(prefixedId) && (allowContainers || SYMBOL_TABLE[prefixedId].type != NodeType::CONTAINER)) {
                 result += SYMBOL_TABLE[prefixedId].content;
                 pos = scan;
-            } else if (SYMBOL_TABLE.count(id) && SYMBOL_TABLE[id].type != NodeType::CONTAINER) { // Fallback for globals
+            } else if (SYMBOL_TABLE.count(id) && (allowContainers || SYMBOL_TABLE[id].type != NodeType::CONTAINER)) { // Fallback for globals
                 result += SYMBOL_TABLE[id].content;
                 pos = scan;
             } else {
@@ -193,13 +193,13 @@ inline string performSemanticExponentiation(const string& base, const string& ex
 }
 
 // [UPDATED] Resolve Prompt Arithmetic (Addition & Subtraction)
-inline string resolvePromptArithmetic(string expression, const string& currentFilePrefix = "global") {
+inline string resolvePromptArithmetic(string expression, const string& currentFilePrefix = "global", bool allowContainers = false) {
     vector<string> terms;
     vector<char> ops;
     
-    string current;
     bool inQuote = false;
     bool hasOp = false;
+    string current = "";
     
     for (char c : expression) {
         if (c == '"') inQuote = !inQuote;
@@ -216,22 +216,20 @@ inline string resolvePromptArithmetic(string expression, const string& currentFi
     terms.push_back(current);
 
     // If no arithmetic, just substitute and return
-    if (!hasOp) return substituteVariables(expression, currentFilePrefix);
+    if (!hasOp) return substituteVariables(expression, currentFilePrefix, allowContainers);
 
     // Process first term
-    string accumulatedIntent = substituteVariables(terms[0], currentFilePrefix);
+    string accumulatedIntent = substituteVariables(terms[0], currentFilePrefix, allowContainers);
     // Cleanup first term
     if (accumulatedIntent.size() >= 2 && accumulatedIntent.front() == '"' && accumulatedIntent.back() == '"') {
         accumulatedIntent = accumulatedIntent.substr(1, accumulatedIntent.size() - 2);
     }
-    {
-        size_t first = accumulatedIntent.find_first_not_of(" \t\r\n");
-        if (first != string::npos) {
-            size_t last = accumulatedIntent.find_last_not_of(" \t\r\n");
-            accumulatedIntent = accumulatedIntent.substr(first, (last - first + 1));
-        } else {
-            accumulatedIntent = "";
-        }
+    size_t first = accumulatedIntent.find_first_not_of(" \t\r\n");
+    if (first != string::npos) {
+        size_t last = accumulatedIntent.find_last_not_of(" \t\r\n");
+        accumulatedIntent = accumulatedIntent.substr(first, (last - first + 1));
+    } else {
+        accumulatedIntent = "";
     }
     
     // [NEW] Normalize Null State
@@ -239,20 +237,18 @@ inline string resolvePromptArithmetic(string expression, const string& currentFi
     
     for (size_t i = 0; i < ops.size(); ++i) {
         char op = ops[i];
-        string nextTerm = substituteVariables(terms[i+1], currentFilePrefix);
+        string nextTerm = substituteVariables(terms[i+1], currentFilePrefix, allowContainers);
         
         // Cleanup next term
         if (nextTerm.size() >= 2 && nextTerm.front() == '"' && nextTerm.back() == '"') {
             nextTerm = nextTerm.substr(1, nextTerm.size() - 2);
         }
-        {
-            size_t first = nextTerm.find_first_not_of(" \t\r\n");
-            if (first != string::npos) {
-                size_t last = nextTerm.find_last_not_of(" \t\r\n");
-                nextTerm = nextTerm.substr(first, (last - first + 1));
-            } else {
-                nextTerm = "";
-            }
+        size_t n_first = nextTerm.find_first_not_of(" \t\r\n");
+        if (n_first != string::npos) {
+            size_t n_last = nextTerm.find_last_not_of(" \t\r\n");
+            nextTerm = nextTerm.substr(n_first, (n_last - n_first + 1));
+        } else {
+            nextTerm = "";
         }
 
         // [NEW] Normalize Null State for next term
@@ -372,7 +368,7 @@ inline string generateTargetCodeFromIR(const string& ir, const string& targetLan
 }
 
 // [NEW] Pre-process input to handle containers and caching
-inline string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode, bool interactiveMode = false) {
+inline string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode, bool interactiveMode = false, bool ideMode = false, const map<string, string>& interactiveAnswers = {}) {
     // [v6.0] AST-Based Compilation
     YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
     yylineno = 1; // Reset lexer line counter
@@ -481,23 +477,49 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             string contextStr = "";
             
             if (!contNode->parents.empty()) {
-                for(const auto& pid : contNode->parents) {
-                    if (SYMBOL_TABLE.count(pid)) {
-                        contextStr += "\n--- INHERITED FROM " + pid + " ---\n" + SYMBOL_TABLE[pid].content + "\n";
-                        cout << "   [INHERIT] Container '" << id << "' inherits from '" << pid << "'" << endl;
+                for(const auto& pid_expr : contNode->parents) {
+                    string resolved_parent = resolvePromptArithmetic(pid_expr, currentFilePrefix, true);
+                    string raw_pid = pid_expr;
+                    if (!raw_pid.empty() && raw_pid.front() == '$') raw_pid = raw_pid.substr(1);
+
+                    if (!resolved_parent.empty() && resolved_parent != pid_expr && resolved_parent != "$" + raw_pid) {
+                        contextStr += "\n--- INHERITED INTENT ---\n" + resolved_parent + "\n";
+                        cout << "   [INHERIT] Evaluated inherited intent from: " << raw_pid << endl;
                     } else {
-                        cout << "   [WARN] Parent container '" << pid << "' not found (must be defined before use)." << endl;
+                        string varKey = currentFilePrefix + "_" + raw_pid;
+                        if (SYMBOL_TABLE.count(varKey)) {
+                            contextStr += "\n--- INHERITED FROM " + raw_pid + " ---\n" + SYMBOL_TABLE[varKey].content + "\n";
+                            cout << "   [INHERIT] Container '" << id << "' inherits from '" << raw_pid << "'" << endl;
+                        } else if (SYMBOL_TABLE.count(raw_pid)) {
+                            contextStr += "\n--- INHERITED FROM " + raw_pid + " ---\n" + SYMBOL_TABLE[raw_pid].content + "\n";
+                            cout << "   [INHERIT] Container '" << id << "' inherits from '" << raw_pid << "'" << endl;
+                        } else {
+                            cout << "   [WARN] Parent intent '" << raw_pid << "' could not be resolved." << endl;
+                        }
                     }
                 }
             }
 
             if (!contNode->params.empty()) {
-                for(const auto& pid : contNode->params) {
-                    if (SYMBOL_TABLE.count(pid)) {
-                        contextStr += "\n--- INJECTED CONTEXT (" + pid + ") ---\n" + SYMBOL_TABLE[pid].content + "\n";
-                        cout << "   [INJECT] Context '" << pid << "' injected into '" << id << "'" << endl;
+                for(const auto& param_expr : contNode->params) {
+                    string resolved_param = resolvePromptArithmetic(param_expr, currentFilePrefix, true);
+                    string raw_param = param_expr;
+                    if (!raw_param.empty() && raw_param.front() == '$') raw_param = raw_param.substr(1);
+
+                    if (!resolved_param.empty() && resolved_param != param_expr && resolved_param != "$" + raw_param) {
+                        contextStr += "\n--- INJECTED CONTEXT ---\n" + resolved_param + "\n";
+                        cout << "   [INJECT] Evaluated context from: " << raw_param << endl;
                     } else {
-                        contextStr += "\n--- PARAMETER: " + pid + " ---\n";
+                        string varKey = currentFilePrefix + "_" + raw_param;
+                        if (SYMBOL_TABLE.count(varKey)) {
+                            contextStr += "\n--- INJECTED CONTEXT (" + raw_param + ") ---\n" + SYMBOL_TABLE[varKey].content + "\n";
+                            cout << "   [INJECT] Context '" << raw_param << "' injected into '" << id << "'" << endl;
+                        } else if (SYMBOL_TABLE.count(raw_param)) {
+                            contextStr += "\n--- INJECTED CONTEXT (" + raw_param + ") ---\n" + SYMBOL_TABLE[raw_param].content + "\n";
+                            cout << "   [INJECT] Context '" << raw_param << "' injected into '" << id << "'" << endl;
+                        } else {
+                            contextStr += "\n--- PARAMETER: " + raw_param + " ---\n";
+                        }
                     }
                 }
             }
@@ -523,6 +545,11 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
 
             string currentHash = getContainerHash(prompt);
             string cacheKey = currentFilePrefix + "_" + id;
+            
+            if (interactiveAnswers.count(cacheKey)) {
+                prompt += "\n[USER CLARIFICATION]: " + interactiveAnswers.at(cacheKey);
+                currentHash = getContainerHash(prompt); // Update hash so it matches new prompt
+            }
 
             bool cacheHit = false;
             bool skipUpdate = false;
@@ -577,12 +604,17 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                         generatedIR = generateIR(id, prompt, currentContext, interactiveMode);
                         
                         if (interactiveMode && generatedIR.find("AMBIGUOUS:") == 0) {
-                            cout << "\n[AI REQUIRES CLARIFICATION FOR '" << id << "']" << endl;
-                            cout << generatedIR.substr(10) << "\n> ";
-                            string answer;
-                            getline(cin, answer);
-                            prompt += "\n[USER CLARIFICATION]: " + answer;
-                            continue; 
+                            if (ideMode) {
+                                cerr << "\n[IDE_AMBIGUOUS_PROMPT] " << cacheKey << "|" << generatedIR.substr(10) << endl;
+                                exit(2);
+                            } else {
+                                cout << "\n[AI REQUIRES CLARIFICATION FOR '" << id << "']" << endl;
+                                cout << generatedIR.substr(10) << "\n> ";
+                                string answer;
+                                getline(cin, answer);
+                                prompt += "\n[USER CLARIFICATION]: " + answer;
+                                continue; 
+                            }
                         }
 
                         if (generatedIR.find("ERROR:") == 0) {

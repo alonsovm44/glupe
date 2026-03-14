@@ -43,20 +43,26 @@
      T_VAR_VALUE = 260,
      T_INTENT_TEXT = 261,
      T_STRING_LITERAL = 262,
-     T_PERSISTENT_VAR_START = 263,
-     T_CONST_VAR_START = 264,
-     T_EPHEMERAL_VAR_START = 265,
-     T_BLOCK_START = 266,
-     T_INLINE_START = 267,
-     T_ABSTRACT = 268,
-     T_ARROW = 269,
-     T_COMMA = 270,
-     T_LPAREN = 271,
-     T_RPAREN = 272,
-     T_LBRACE = 273,
-     T_BLOCK_END = 274,
-     T_INLINE_END = 275,
-     T_NEWLINE = 276
+     T_NUMBER = 263,
+     T_PERSISTENT_VAR_START = 264,
+     T_CONST_VAR_START = 265,
+     T_EPHEMERAL_VAR_START = 266,
+     T_BLOCK_START = 267,
+     T_INLINE_START = 268,
+     T_ABSTRACT = 269,
+     T_ARROW = 270,
+     T_COMMA = 271,
+     T_LPAREN = 272,
+     T_RPAREN = 273,
+     T_LBRACE = 274,
+     T_BLOCK_END = 275,
+     T_INLINE_END = 276,
+     T_NEWLINE = 277,
+     T_PLUS = 278,
+     T_MINUS = 279,
+     T_STAR = 280,
+     T_SLASH = 281,
+     T_CARET = 282
    };
 #endif
 
@@ -78,7 +84,7 @@ typedef union YYSTYPE
 
 
 /* Line 1685 of yacc.c  */
-#line 82 "src/glupe.tab.h"
+#line 88 "src/glupe.tab.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
