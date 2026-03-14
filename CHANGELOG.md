@@ -1,3 +1,22 @@
+## v6.0.0 2026-03-13
+
+Added:
+
+- added prefix for persistant variable names in cache to avoid collisions
+- added prefix for container names in cache to avoid name collisions
+- added Glupe IR 
+Removed:
+
+Improved/Fixed:
+
+## v5.9.1 2026-03-13
+
+Added:
+
+Removed:
+
+Improved/Fixed:
+
 ## v5.9.0 2026-02-27
 
 Added:

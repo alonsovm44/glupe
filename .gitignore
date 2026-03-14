@@ -35,3 +35,13 @@ glupe_logo.png
 .yggdrasil/
 .glupe_build.cache
 installer.bat
+
+# --- VS Code Extension ---
+glupe-vscode/
+glupe.tmLanguage.json
+tsconfig.json
+package.json
+node_modules/
+package-lock.json
+extension.ts
+out/

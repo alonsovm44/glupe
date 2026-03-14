@@ -15,6 +15,8 @@ struct SemanticNode {
     string content; // Prompt or Value
     vector<string> parents;
     vector<string> params; // [NEW] Parameters for context injection
+    string ir_content; // [NEW] GIR representation
+    bool is_resolved_to_ir = false; // [NEW] Flag for IR generation
     vector<string> vectorContent; // [NEW] For Semantic Vectors
     bool isVector = false;        // [NEW] Flag
     bool isBlock = false;
@@ -52,6 +54,7 @@ inline void initCache() {
             node.id = key;
             node.type = NodeType::VAR_PERSISTENT;
             node.content = val.value("content", "");
+            node.ir_content = val.value("ir_content", "");
             node.hash = val.value("hash", "");
             node.isCached = true;
             SYMBOL_TABLE[key] = node;
@@ -64,7 +67,7 @@ inline void saveCache() {
     json vars = json::object();
     for (const auto& [key, node] : SYMBOL_TABLE) {
         if (node.type == NodeType::VAR_PERSISTENT) {
-            vars[key] = { {"content", node.content}, {"hash", node.hash} };
+            vars[key] = { {"content", node.content}, {"ir_content", node.ir_content}, {"hash", node.hash} };
         }
     }
     LOCK_DATA["variables"] = vars;

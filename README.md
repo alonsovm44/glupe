@@ -1,5 +1,6 @@
 # Read the White Paper
-https://github.com/alonsovm44/glupe/blob/master/WHITE_PAPER.md
+https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/WHITE_PAPER.md
+
 # Glupe 
 Glupe is a semantic metaprogramming language. Unlike traditional metaprogramming systems that operate within a single language (C++ templates, Lisp macros), Glupe operates at the level of human intent and can materialize that intent into any target programming language. This positions Glupe as a 'meta' language not just in the technical sense of generating code, but in the philosophical sense of being one level above all programming languages.
 

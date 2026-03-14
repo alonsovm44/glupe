@@ -1,42 +1,7 @@
 # FOR 5.9
-## Modularize the project into specialized .hpp files
+## Modularize the project into specialized .hpp files [DONE]
 Right now we have a 4k line monolith, agents choke on this because they have output windows of 4k tokens. 
 Move logic to modular .hpp files and update Makefil accordingly
-
-## -Add tree sitter parsing for -refine modelo
-Justification:
-AI is good at filling gaps, not at creating from scratch. Currently refine mode is buggy since it's 100% AI-generated.
-
-Problems with current AI-only approach:
-- Forgets to close containers (missing $$ or $)
-- Creates multiline inline containers ($ \n $) → syntax error
-- Attempts nested containers ($${ $${} $$ }) → not allowed
-- Loses function signatures and structure
-- Hallucinates imports/dependencies
-- Inconsistent with comment syntax across languages
-
-Solution with Tree-sitter:
-- Deterministically parse source code into AST
-- Extract exact structure (functions, classes, signatures)
-- Generate valid .glp skeleton with placeholders
-- Preserve ALL original structure perfectly
-- Let AI ONLY fill intent descriptions inside containers
-
-Benefits:
-- Zero syntax errors in generated .glp
-- Perfect preservation of original code
-- Faster refinement (less AI work)
-- More reliable (deterministic parts never fail)
-- Scales to 40+ languages (Tree-sitter supports them)
-
-Implementation plan:
-1. Integrate Tree-sitter with C++ wrapper
-2. Start with 5 languages (C++, Python, JS, Rust, Go)
-3. Build structure extractor
-4. Create skeleton generator
-5. AI only writes intent, not code structure
-6. Validate output with Tree-sitter again
-7. Add languages gradually, AI is good at filling gaps not at making from scratch, currently refine is buggy since it is 100% AI generated. 
 
 ## embedded glupe support [DONE]
 
@@ -75,3 +40,8 @@ Idea: Make-like timestamp detection.
 Idea 2: -refine modified output file 
 
 
+# FOR 6.0 
+
+- Handle external lib dependancy in GIR @IMPORT
+
+- Add retry logic to `generateTarhetCodeFromIR`just in case AI writes malformed syntax from GIR

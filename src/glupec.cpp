@@ -1,7 +1,7 @@
-/* GLUPE COMPILER ( formerly yori.exe) - v5.9.0*/
+/* GLUPE COMPILER ( formerly yori.exe) - v5.9.1*/
 
 // build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
-/* GLUPE COMPILER ( formerly yori.exe) - v5.9.0*/
+/* GLUPE COMPILER ( formerly yori.exe) - v5.9.1*/
 
 // build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
 
@@ -16,6 +16,51 @@
 #include "processor.hpp"
 #include "hub.hpp"
 
+void runAutoBuild(bool runOutput, string outputName) {
+    bool buildSuccess = false;
+    if (fs::exists("Makefile")) {
+        cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
+        if (system("make") == 0) buildSuccess = true;
+    } else if (fs::exists("CMakeLists.txt")) {
+        cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
+        if (!fs::exists("build")) fs::create_directory("build");
+        if (system("cd build && cmake .. && cmake --build .") == 0) buildSuccess = true;
+    } else if (fs::exists("build.sh")) {
+        cout << "[MAKE] build.sh detected. Executing..." << endl;
+        #ifndef _WIN32
+        if (system("chmod +x build.sh && ./build.sh") == 0) buildSuccess = true;
+        #else
+        if (system("bash build.sh") == 0) buildSuccess = true;
+        #endif
+    } else if (fs::exists("build.bat")) {
+        cout << "[MAKE] build.bat detected. Executing..." << endl;
+        if (system("build.bat") == 0) buildSuccess = true;
+    } else {
+        cout << "[MAKE] No build script found. Skipping build step." << endl;
+    }
+
+    if (runOutput) {
+        if (buildSuccess) {
+            if (fs::exists(outputName)) {
+                cout << "\n[RUN] Executing " << outputName << "..." << endl;
+                string cmd = outputName;
+                #ifndef _WIN32
+                if (cmd.find('/') == string::npos) cmd = "./" + cmd;
+                std::error_code ec;
+                fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
+                #endif
+                string sysCmd = "\"" + cmd + "\"";
+                system(sysCmd.c_str());
+            } else {
+                cout << "[WARN] Output binary '" << outputName << "' not found." << endl;
+                cout << "       (Hint: Use -o <filename> to specify the expected binary name)" << endl;
+            }
+        } else {
+            cout << "[WARN] Build failed or missing. Skipping execution." << endl;
+        }
+    }
+}
+
 void showHelp() {
     cout << "GLUPE v" << CURRENT_VERSION << " - The Semantic Compiler\n";
     cout << "Usage: glupe [files...] [options] [\"*instructions\"]\n\n";
@@ -25,9 +70,9 @@ void showHelp() {
     cout << "  -cloud           : Use cloud AI provider (configured in config.json).\n";
     cout << "  -local           : Use local AI provider (Ollama).\n";
     cout << "  -u, --update     : Update mode (edits existing file instead of overwriting).\n";
-    cout << "  -make            : Architect mode (generates multi-file projects from blueprints).\n";
-    cout << "  -series          : Series mode (generates files sequentially).\n";
+    cout << "  -make            : Architect mode (generates multi-file projects sequentially).\n";
     cout << "  -refine          : Refine mode (reverse engineer code to .glp blueprint).\n";
+    cout << "  -scaffold        : (with -refine) Generate project structure from requirements.\n";
     cout << "  -t, --transpile  : Transpile only (do not compile binary).\n";
     cout << "  -run             : Run the output binary after compilation.\n";
     cout << "  -crono           : Measure execution time.\n";
@@ -830,8 +875,11 @@ int main(int argc, char* argv[]) {
     bool makeMode = false;
     bool seriesMode = false;
     bool refineMode = false;
+    bool scaffoldMode = false;
     bool blindMode = false;
     bool fillMode = false;
+    bool useStdin = false;
+    bool useStdout = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -845,11 +893,14 @@ int main(int argc, char* argv[]) {
         else if (arg == "-run" || arg == "--run") runOutput = true;
         else if (arg == "-k" || arg == "--keep") keepSource = true;
         else if (arg == "-t" || arg == "--transpile") transpileMode = true;
-        else if (arg == "-make") makeMode = true;
+        else if (arg == "-make") { makeMode = true; seriesMode = true; }
         else if (arg == "-series") seriesMode = true;
         else if (arg == "-refine") refineMode = true;
+        else if (arg == "-scaffold") scaffoldMode = true;
         else if (arg == "-fill") fillMode = true;
         else if (arg == "-crono") cronoTimer.enabled = true;
+        else if (arg == "--stdin") useStdin = true;
+        else if (arg == "--stdout") useStdout = true;
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
         else if (arg == "-code") CURRENT_MODE = GenMode::CODE;
@@ -913,8 +964,22 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (inputFiles.empty()) { cerr << "No input files." << endl; return 1; }
+    if (inputFiles.empty() && !useStdin) { cerr << "No input files." << endl; return 1; }
     if (!loadConfig(mode)) return 1;
+
+    // [NEW] RAII wrapper to redirect cout to cerr if --stdout is used
+    struct CoutRedirector {
+        std::streambuf* orig;
+        bool active;
+        CoutRedirector(bool a) : active(a) {
+            orig = std::cout.rdbuf();
+            if (active) std::cout.rdbuf(std::cerr.rdbuf());
+        }
+        ~CoutRedirector() { if (active) std::cout.rdbuf(orig); }
+        void output(const std::string& str) {
+            if (active) { std::cout.rdbuf(orig); std::cout << str; std::cout.rdbuf(std::cerr.rdbuf()); }
+        }
+    } redirector(useStdout);
 
     // [NEW] Refine Mode: Semantic Compression
     if (refineMode) {
@@ -928,6 +993,41 @@ int main(int argc, char* argv[]) {
             ifstream f(file);
             string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
             f.close();
+
+            if (scaffoldMode) {
+                cout << "[SCAFFOLD] Architecting blueprint from requirements..." << endl;
+                stringstream prompt;
+                prompt << "ROLE: Senior Software Architect.\n";
+                prompt << "TASK: Create a comprehensive Glupe project blueprint (.glp) based on the provided requirements.\n";
+                prompt << "REQUIREMENTS:\n" << content << "\n";
+                prompt << "OUTPUT FORMAT RULES:\n";
+                prompt << "1. Use 'EXPORT: \"filename.ext\"' ... 'EXPORT: END' for every file.\n";
+                prompt << "2. Inside EXPORT blocks, use semantic containers '$$ name { intent }$$' for logic implementation.\n";
+                prompt << "3. CRITICAL: Content inside semantic blocks MUST be step-numbered intent/algorithmic thought (e.g., 1. Initialize X, 2. Loop through Y, 2.1 Check condition). DO NOT write concrete code inside blocks.\n";
+                prompt << "4. Place includes/imports and global variables in their own dedicated semantic blocks.\n";
+                prompt << "5. Use '$$ABSTRACT name { rules }$$' for global policies or style guides.\n";
+                prompt << "6. Use inheritance '$$ name -> parent { ... }$$' where appropriate.\n";
+                prompt << "7. The output must be valid Glupe syntax.\n";
+                prompt << "8. Return ONLY the .glp content. No markdown code blocks.\n";
+
+                string response = callAI(prompt.str());
+                string blueprint = extractCode(response);
+
+                if (blueprint.find("ERROR:") == 0) {
+                    cout << "   [!] API Error: " << blueprint.substr(6) << endl;
+                    return 1;
+                }
+
+                blueprint = sanitize_container_syntax(blueprint);
+
+                string outputFile = file + ".glp";
+                ofstream out(outputFile);
+                out << blueprint;
+                out.close();
+
+                cout << "[SUCCESS] Blueprint generated: " << outputFile << endl;
+                continue;
+            }
 
             // [UPDATED] Sliding Window Logic
             vector<string> chunks = splitSourceCode(content);
@@ -1077,6 +1177,7 @@ int main(int argc, char* argv[]) {
             out.close();
 
             cout << "[SUCCESS] Semantic file generated: " << outputFile << endl;
+            redirector.output(fullRefinedCode + "\n");
         }
         return 0;
     }
@@ -1146,6 +1247,38 @@ int main(int argc, char* argv[]) {
     };
     vector<InputData> loadedInputs;
 
+    if (useStdin) {
+        cout << "[INFO] Reading from stdin..." << endl;
+        string stdinContent((istreambuf_iterator<char>(cin)), istreambuf_iterator<char>());
+        
+        string decommented = decommentGlupeSyntax(stdinContent);
+        string cleanRaw = stripMetadata(decommented);
+        string resolved = resolveImports(cleanRaw, fs::current_path(), stack);
+        
+        // [AUTO-DETECT] Enable makeMode if EXPORT is detected
+        bool hasExportDirective = false;
+        stringstream ss(resolved);
+        string line;
+        while(getline(ss, line)) {
+            size_t first = line.find_first_not_of(" \t\r\n");
+            if (first != string::npos && line.compare(first, 7, "EXPORT:") == 0) {
+                hasExportDirective = true;
+                break;
+            }
+        }
+
+        if (hasExportDirective && !makeMode && !seriesMode) {
+            cout << "[INFO] 'EXPORT:' directive detected in stdin. Auto-enabling Architect Mode (-make)." << endl;
+            makeMode = true;
+            seriesMode = true;
+        }
+
+        loadedInputs.push_back({resolved, fs::current_path()});
+        aggregatedContext += "\n// --- START FILE: stdin ---\n";
+        aggregatedContext += resolved;
+        aggregatedContext += "\n// --- END FILE: stdin ---\n";
+    }
+
     for (const auto& file : inputFiles) {
         fs::path p(file);
         if (fs::exists(p)) {
@@ -1160,9 +1293,21 @@ int main(int argc, char* argv[]) {
             string resolved = resolveImports(cleanRaw, p.parent_path(), stack);
             
             // [AUTO-DETECT] Enable makeMode if EXPORT is detected
-            if (resolved.find("EXPORT:") != string::npos && !makeMode && !seriesMode) {
+            bool hasExportDirective = false;
+            stringstream ss(resolved);
+            string line;
+            while(getline(ss, line)) {
+                size_t first = line.find_first_not_of(" \t\r\n");
+                if (first != string::npos && line.compare(first, 7, "EXPORT:") == 0) {
+                    hasExportDirective = true;
+                    break;
+                }
+            }
+
+            if (hasExportDirective && !makeMode && !seriesMode) {
                 cout << "[INFO] 'EXPORT:' directive detected. Auto-enabling Architect Mode (-make)." << endl;
                 makeMode = true;
+                seriesMode = true;
             }
 
             // [MOVED] processExports call moved after validation
@@ -1232,38 +1377,98 @@ int main(int argc, char* argv[]) {
                 currentItem++;
                 cout << "   [" << currentItem << "/" << totalItems << "] Generating " << item.filename << "..." << endl;
                 
-                stringstream prompt;
-                prompt << "ROLE: " << (CURRENT_MODE == GenMode::CODE ? "Software Architect" : "Asset Generator") << ".\n";
-                prompt << "TASK: Implement the file '" << item.filename << "'.\n";
-                prompt << "CONTEXT:\n" << projectContext << "\n";
-                prompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
-                prompt << "RULES:\n";
-                prompt << "1. Implement the full logic. No placeholders.\n";
-                prompt << "2. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
-                prompt << "OUTPUT: Return ONLY the valid code/content for " << item.filename << ". No markdown blocks if possible.";
-                
                 string code;
                 bool success = false;
-                int retries = 0;
 
-                while (retries < MAX_RETRIES) {
-                    string response = callAI(prompt.str());
-                    code = extractCode(response);
-                    
-                    if (code.find("ERROR:") == 0) {
-                        cout << "   [!] API Error (Attempt " << (retries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl;
+                if (CURRENT_MODE == GenMode::CODE) {
+                    cout << "      -> Pass 1: Semantic Frontend (Generating GIR)..." << endl;
+                    stringstream irPrompt;
+                    irPrompt << "ROLE: Software Architect (Semantic Frontend).\n";
+                    irPrompt << "TASK: Translate the file requirements into Glupe Intermediate Representation (GIR) for the file '" << item.filename << "'.\n";
+                    irPrompt << "CONTEXT:\n" << projectContext << "\n";
+                    irPrompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
+                    irPrompt << "RULES:\n";
+                    irPrompt << "1. Implement the full logic in strict GIR pseudo-code. No placeholders.\n";
+                    irPrompt << "2. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
+                    irPrompt << "OUTPUT: Return ONLY the GIR pseudo-code. No markdown blocks if possible.";
+
+                    string generatedIR;
+                    int irRetries = 0;
+                    while (irRetries < MAX_RETRIES) {
+                        string response = callAI(irPrompt.str());
+                        generatedIR = extractCode(response);
                         
-                        int waitTime = 5 * (retries + 1);
-                        if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) {
-                            cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                        if (generatedIR.find("ERROR:") == 0) {
+                            cout << "   [!] API Error on GIR (Attempt " << (irRetries + 1) << "/" << MAX_RETRIES << "): " << generatedIR.substr(6) << endl;
+                            int waitTime = 5 * (irRetries + 1);
+                            if (generatedIR.find("Rate limit") != string::npos || generatedIR.find("429") != string::npos) cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                            else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                            std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                            irRetries++;
                         } else {
-                            cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                            break;
                         }
-                        std::this_thread::sleep_for(std::chrono::seconds(waitTime));
-                        retries++;
-                    } else {
-                        success = true;
-                        break;
+                    }
+
+                    if (generatedIR.find("ERROR:") == 0) {
+                        cout << "[FATAL] Failed to generate GIR for " << item.filename << " after " << MAX_RETRIES << " attempts. Aborting series." << endl;
+                        return 1;
+                    }
+
+                    cout << "      -> Pass 2: Semantic Backend (Generating " << CURRENT_LANG.name << ")..." << endl;
+                    stringstream codePrompt;
+                    codePrompt << "ROLE: Semantic Backend Compiler.\n";
+                    codePrompt << "TASK: Translate the GIR pseudo-code for '" << item.filename << "' into strict " << CURRENT_LANG.name << " code.\n";
+                    codePrompt << "CONTEXT:\n" << projectContext << "\n";
+                    codePrompt << "GIR INPUT:\n" << generatedIR << "\n";
+                    codePrompt << "RULES:\n";
+                    codePrompt << "1. Map the GIR steps 1:1 to " << CURRENT_LANG.name << " idioms and best practices.\n";
+                    codePrompt << "2. IMPORTANT: PRESERVE all '// GLUPE_BLOCK_START: id' and '// GLUPE_BLOCK_END: id' markers exactly in the output.\n";
+                    codePrompt << "OUTPUT: Return ONLY the raw code implementation. No markdown blocks if possible.";
+
+                    int codeRetries = 0;
+                    while (codeRetries < MAX_RETRIES) {
+                        string response = callAI(codePrompt.str());
+                        code = extractCode(response);
+                        
+                        if (code.find("ERROR:") == 0) {
+                            cout << "   [!] API Error on Target Code (Attempt " << (codeRetries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl;
+                            int waitTime = 5 * (codeRetries + 1);
+                            if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                            else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                            std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                            codeRetries++;
+                        } else {
+                            success = true;
+                            break;
+                        }
+                    }
+                } else {
+                    stringstream prompt;
+                    prompt << "ROLE: Asset Generator.\n";
+                    prompt << "TASK: Implement the file '" << item.filename << "'.\n";
+                    prompt << "CONTEXT:\n" << projectContext << "\n";
+                    prompt << "FILE INSTRUCTIONS:\n" << item.content << "\n";
+                    prompt << "RULES:\n";
+                    prompt << "1. Implement the full logic. No placeholders.\n";
+                    prompt << "OUTPUT: Return ONLY the valid code/content for " << item.filename << ". No markdown blocks if possible.";
+                    
+                    int retries = 0;
+                    while (retries < MAX_RETRIES) {
+                        string response = callAI(prompt.str());
+                        code = extractCode(response);
+                        
+                        if (code.find("ERROR:") == 0) {
+                            cout << "   [!] API Error (Attempt " << (retries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl;
+                            int waitTime = 5 * (retries + 1);
+                            if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                            else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                            std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                            retries++;
+                        } else {
+                            success = true;
+                            break;
+                        }
                     }
                 }
 
@@ -1287,6 +1492,11 @@ int main(int argc, char* argv[]) {
                 projectContext += "\n// --- FILE: " + item.filename + " ---\n" + code + "\n";
             }
             cout << "[SERIES] All tasks completed." << endl;
+            
+            if (makeMode) {
+                runAutoBuild(runOutput, outputName);
+            }
+            
             return 0;
         }
     }
@@ -1312,7 +1522,12 @@ int main(int argc, char* argv[]) {
     // [FILL MODE] Skip global generation loop
     if (fillMode) {
         cout << "[FILL] Containers processed. Skipping global generation." << endl;
-        ofstream out(tempSrc); out << aggregatedContext; out.close();
+        if (useStdout) {
+            redirector.output(aggregatedContext);
+        } else {
+            if (!outputName.empty()) { ofstream out(outputName); out << aggregatedContext; out.close(); cout << "[SUCCESS] Saved to " << outputName << endl; }
+            else { ofstream out(tempSrc); out << aggregatedContext; out.close(); }
+        }
         return 0;
     } else {
 
@@ -1383,92 +1598,152 @@ int main(int argc, char* argv[]) {
         if (makeMode) cout << "   [Pass " << gen << "] Architecting Project..." << endl;
         else cout << "   [Pass " << gen << "] Generating " << CURRENT_LANG.name << "..." << endl;
         
-        stringstream prompt;
-        
-        if (CURRENT_MODE == GenMode::CODE) {
-            if (makeMode) {
-                prompt << "ROLE: Software Architect.\n";
-                if (explicitLang) {
-                    prompt << "TASK: Structure and implement the project files for a " << CURRENT_LANG.name << " project.\n";
-                } else {
-                    prompt << "TASK: Structure and implement the project files based on the provided instructions.\n";
-                }
-                prompt << "RULES:\n";
-                prompt << "1. Use 'EXPORT: \"filename.ext\"' ... 'EXPORT: END' for every file.\n";
-                prompt << "2. The language for each file is determined by its extension (e.g., '.py' for Python, '.c' for C). You MUST generate valid code for that specific language inside its EXPORT block.\n";
-                prompt << "3. Implement the full logic/content. No placeholders.\n";
-                prompt << "4. Process '$${ instructions }$$' templates by implementing the logic inside them.\n";
-                prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
-                prompt << "6. Output ONLY the EXPORT blocks. No conversation or other text.\n";
-                prompt << "7. Do NOT perform web searches. Rely solely on your internal knowledge.\n";
-            } else {
-                // [UPDATED v5.1] STRONGER ROLE DEFINITION AND GUARDRAILS
-                prompt << "ROLE: Semantic Transpiler.\n";
-                prompt << "TASK: Convert input logic to a single valid " << CURRENT_LANG.name << " file.\n";
-                prompt << "RULES:\n";
-                prompt << "1. NO wrappers (e.g. calling other languages via system()). Re-implement logic natively in " << CURRENT_LANG.name << ".\n";
-                prompt << "2. Use standard libraries/modules native to " << CURRENT_LANG.name << ".\n";
-                prompt << "3. Output must be self-contained and runnable.\n";
-                if (CURRENT_LANG.id == "arduino" || CURRENT_LANG.id == "esp32") {
-                    prompt << "4. Use 'setup()' and 'loop()' entry points. Do NOT include 'main()'.\n";
-                } else if (CURRENT_LANG.producesBinary) {
-                    prompt << "4. Include a 'main' entry point.\n";
-                }
-                prompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
-                prompt << "6. No external language headers/imports unless standard.\n";
-                prompt << "7. Preferably use training knowledge on " << CURRENT_LANG.name << "\n";
-            }
-        } else if (CURRENT_MODE == GenMode::MODEL_3D) {
-            prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
-            prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the description provided in the input files.\n";
-            prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content.\n";
-        } else {
-            prompt << "ROLE: Expert Vector Graphics Artist & Technical Illustrator.\n";
-            prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the visual description.\n";
-            prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content (e.g. <svg>...</svg>).\n";
-        }
-        
-        if (!customInstructions.empty()) {
-            prompt << "\n[USER INSTRUCTIONS - HIGHEST PRIORITY]:\n" << customInstructions << "\n";
-        }
-
-        if (updateMode && !existingCode.empty()) {
-            prompt << "TASK: UPDATE existing code.\n";
-            prompt << "\n--- [OLD CODE] ---\n" << existingCode << "\n--- [END OLD CODE] ---\n";
-            prompt << "\n--- [NEW INPUTS] ---\n" << aggregatedContext << "\n--- [END NEW INPUTS] ---\n";
-        } else {
-            prompt << "TASK: Create SINGLE " << CURRENT_LANG.name << " file.\n";
-            prompt << "\n--- INPUT SOURCES ---\n" << aggregatedContext << "\n--- END SOURCES ---\n";
-        }
-        if (!errorHistory.empty()) prompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
-        prompt << "\nOUTPUT: Only code.";
-
         string code;
         bool apiSuccess = false;
         int apiRetries = 0;
-
-        while (apiRetries < MAX_RETRIES) {
-            string response = callAI(prompt.str());
-            code = extractCode(response);
         
-            if (code.find("ERROR:") == 0) { 
-                cout << "   [!] API Error (Attempt " << (apiRetries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl; 
-                log("API_FAIL", code); 
-                if (code.find("JSON Parsing Failed") != string::npos) {
-                     cout << "       (Hint: Check 'glupe config cloud-protocol'. Current: " << PROTOCOL << ", Provider URL: " << API_URL << ")" << endl;
-                }
-                
-                int waitTime = 5 * (apiRetries + 1);
-                if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) {
-                    cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+        if (CURRENT_MODE == GenMode::CODE) {
+            cout << "      -> Pass 1: Semantic Frontend (Generating GIR)..." << endl;
+            stringstream irPrompt;
+            
+            if (makeMode) {
+                irPrompt << "ROLE: Software Architect (Semantic Frontend).\n";
+                if (explicitLang) {
+                    irPrompt << "TASK: Structure and implement the project files for a " << CURRENT_LANG.name << " project using Glupe Intermediate Representation (GIR).\n";
                 } else {
-                    cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                    irPrompt << "TASK: Structure and implement the project files using Glupe Intermediate Representation (GIR) based on the provided instructions.\n";
                 }
-                std::this_thread::sleep_for(std::chrono::seconds(waitTime));
-                apiRetries++;
+                irPrompt << "RULES:\n";
+                irPrompt << "1. Use 'EXPORT: \"filename.ext\"' ... 'EXPORT: END' for every file.\n";
+                irPrompt << "2. Inside EXPORT blocks, generate strict GIR pseudo-code instead of target code.\n";
+                irPrompt << "3. Implement the full logic/content in GIR. No placeholders.\n";
+                irPrompt << "4. Process '$${ instructions }$$' templates by implementing their logic in GIR.\n";
+                irPrompt << "5. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output so they can be cached.\n";
+                irPrompt << "6. Output ONLY the EXPORT blocks. No conversation or other text.\n";
             } else {
-                apiSuccess = true;
-                break;
+                irPrompt << "ROLE: Semantic Frontend Compiler.\n";
+                irPrompt << "TASK: Convert input logic to a single valid GIR (Glupe Intermediate Representation) file.\n";
+                irPrompt << "RULES:\n";
+                irPrompt << "1. Use strict algorithmic steps and generic types. Do not write actual target code.\n";
+                irPrompt << "2. Output must be self-contained pseudo-code.\n";
+                irPrompt << "3. IMPORTANT: If you see '// GLUPE_BLOCK_START: id', IMPLEMENT the logic between it and '// GLUPE_BLOCK_END: id'. PRESERVE these markers exactly in the output.\n";
+            }
+        
+            if (!customInstructions.empty()) irPrompt << "\n[USER INSTRUCTIONS - HIGHEST PRIORITY]:\n" << customInstructions << "\n";
+
+            if (updateMode && !existingCode.empty()) {
+                irPrompt << "TASK: UPDATE existing code into GIR.\n";
+                irPrompt << "\n--- [OLD CODE] ---\n" << existingCode << "\n--- [END OLD CODE] ---\n";
+                irPrompt << "\n--- [NEW INPUTS] ---\n" << aggregatedContext << "\n--- [END NEW INPUTS] ---\n";
+            } else {
+                irPrompt << "TASK: Create SINGLE GIR representation.\n";
+                irPrompt << "\n--- INPUT SOURCES ---\n" << aggregatedContext << "\n--- END SOURCES ---\n";
+            }
+            if (!errorHistory.empty()) irPrompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
+            irPrompt << "\nOUTPUT: Only GIR code.";
+
+            string generatedIR;
+            int irRetries = 0;
+            while (irRetries < MAX_RETRIES) {
+                string response = callAI(irPrompt.str());
+                generatedIR = extractCode(response);
+                if (generatedIR.find("ERROR:") == 0) {
+                    cout << "   [!] API Error on GIR (Attempt " << (irRetries + 1) << "/" << MAX_RETRIES << "): " << generatedIR.substr(6) << endl;
+                    int waitTime = 5 * (irRetries + 1);
+                    if (generatedIR.find("Rate limit") != string::npos || generatedIR.find("429") != string::npos) cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                    else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                    std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                    irRetries++;
+                } else {
+                    break;
+                }
+            }
+
+            if (generatedIR.find("ERROR:") == 0) {
+                cout << "   [FATAL] GIR API failed after " << MAX_RETRIES << " attempts. Aborting." << endl;
+                return 1;
+            }
+
+            cout << "      -> Pass 2: Semantic Backend (Generating " << CURRENT_LANG.name << ")..." << endl;
+            stringstream codePrompt;
+            codePrompt << "ROLE: Semantic Backend Compiler.\n";
+            if (makeMode) {
+                codePrompt << "TASK: Translate the provided multi-file GIR pseudo-code into strict " << CURRENT_LANG.name << " code.\n";
+                codePrompt << "RULES:\n";
+                codePrompt << "1. Preserve all 'EXPORT: \"filename.ext\"' ... 'EXPORT: END' wrappers.\n";
+                codePrompt << "2. Translate the GIR inside the EXPORT blocks into valid " << CURRENT_LANG.name << ".\n";
+                codePrompt << "3. Preserve all '// GLUPE_BLOCK_START: id' and '// GLUPE_BLOCK_END: id' markers exactly.\n";
+                codePrompt << "4. Do not omit any logic. Output ONLY the EXPORT blocks.\n";
+            } else {
+                codePrompt << "TASK: Translate the following Glupe Intermediate Representation (GIR) into strict " << CURRENT_LANG.name << " code.\n";
+                codePrompt << "RULES:\n";
+                codePrompt << "1. Map the GIR steps 1:1 to " << CURRENT_LANG.name << " idioms and best practices.\n";
+                codePrompt << "2. Preserve all '// GLUPE_BLOCK_START: id' and '// GLUPE_BLOCK_END: id' markers exactly.\n";
+                if (CURRENT_LANG.producesBinary && CURRENT_LANG.id != "arduino" && CURRENT_LANG.id != "esp32") {
+                    codePrompt << "3. Include a 'main' entry point.\n";
+                }
+                codePrompt << "\nOUTPUT: Only " << CURRENT_LANG.name << " code.\n";
+            }
+
+            codePrompt << "\n--- GIR INPUT ---\n" << generatedIR << "\n--- END GIR INPUT ---\n";
+            if (!errorHistory.empty()) codePrompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
+
+            while (apiRetries < MAX_RETRIES) {
+                string response = callAI(codePrompt.str());
+                code = extractCode(response);
+            
+                if (code.find("ERROR:") == 0) { 
+                    cout << "   [!] API Error on Target Code (Attempt " << (apiRetries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl; 
+                    int waitTime = 5 * (apiRetries + 1);
+                    if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                    else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                    std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                    apiRetries++;
+                } else {
+                    apiSuccess = true;
+                    break;
+                }
+            }
+        } else {
+            stringstream prompt;
+            if (CURRENT_MODE == GenMode::MODEL_3D) {
+                prompt << "ROLE: Expert 3D Technical Artist & Modeler.\n";
+                prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the description provided in the input files.\n";
+                prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content.\n";
+            } else {
+                prompt << "ROLE: Expert Vector Graphics Artist & Technical Illustrator.\n";
+                prompt << "TASK: Generate a valid " << CURRENT_LANG.name << " file based on the visual description.\n";
+                prompt << "CONSTRAINTS: Ensure valid syntax for " << CURRENT_LANG.extension << ". Output ONLY the file content (e.g. <svg>...</svg>).\n";
+            }
+            
+            if (!customInstructions.empty()) prompt << "\n[USER INSTRUCTIONS - HIGHEST PRIORITY]:\n" << customInstructions << "\n";
+
+            if (updateMode && !existingCode.empty()) {
+                prompt << "TASK: UPDATE existing code.\n";
+                prompt << "\n--- [OLD CODE] ---\n" << existingCode << "\n--- [END OLD CODE] ---\n";
+                prompt << "\n--- [NEW INPUTS] ---\n" << aggregatedContext << "\n--- [END NEW INPUTS] ---\n";
+            } else {
+                prompt << "TASK: Create SINGLE " << CURRENT_LANG.name << " file.\n";
+                prompt << "\n--- INPUT SOURCES ---\n" << aggregatedContext << "\n--- END SOURCES ---\n";
+            }
+            if (!errorHistory.empty()) prompt << "\n[!] PREVIOUS ERRORS:\n" << errorHistory << "\n";
+            prompt << "\nOUTPUT: Only code.";
+
+            while (apiRetries < MAX_RETRIES) {
+                string response = callAI(prompt.str());
+                code = extractCode(response);
+            
+                if (code.find("ERROR:") == 0) { 
+                    cout << "   [!] API Error (Attempt " << (apiRetries + 1) << "/" << MAX_RETRIES << "): " << code.substr(6) << endl; 
+                    int waitTime = 5 * (apiRetries + 1);
+                    if (code.find("Rate limit") != string::npos || code.find("429") != string::npos) cout << "       -> Rate limit detected. Waiting " << waitTime << "s..." << endl;
+                    else cout << "       -> Retrying in " << waitTime << "s..." << endl;
+                    std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+                    apiRetries++;
+                } else {
+                    apiSuccess = true;
+                    break;
+                }
             }
         }
 
@@ -1487,6 +1762,10 @@ int main(int argc, char* argv[]) {
 
         // [MAKE 2.0] Process exports in AI output (Generate files dynamically)
         code = processExports(code, fs::current_path());
+
+        if (useStdout && !makeMode && !CURRENT_LANG.producesBinary) {
+            redirector.output(code + "\n");
+        }
 
         if (makeMode) {
             // Check for content outside exports
@@ -1516,49 +1795,7 @@ int main(int argc, char* argv[]) {
             } else {
                 cout << "[MAKE] Generation complete. Files exported." << endl;
 
-                // [INTELLIGENT BUILD] Auto-detect and run generated build scripts
-                bool buildSuccess = false;
-                if (fs::exists("Makefile")) {
-                    cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
-                    if (system("make") == 0) buildSuccess = true;
-                } else if (fs::exists("CMakeLists.txt")) {
-                    cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
-                    if (!fs::exists("build")) fs::create_directory("build");
-                    if (system("cd build && cmake .. && cmake --build .") == 0) buildSuccess = true;
-                } else if (fs::exists("build.sh")) {
-                    cout << "[MAKE] build.sh detected. Executing..." << endl;
-                    #ifndef _WIN32
-                    if (system("chmod +x build.sh && ./build.sh") == 0) buildSuccess = true;
-                    #else
-                    if (system("bash build.sh") == 0) buildSuccess = true;
-                    #endif
-                } else if (fs::exists("build.bat")) {
-                    cout << "[MAKE] build.bat detected. Executing..." << endl;
-                    if (system("build.bat") == 0) buildSuccess = true;
-                } else {
-                    cout << "[MAKE] No build script found. Skipping build step." << endl;
-                }
-
-                if (runOutput) {
-                    if (buildSuccess) {
-                        if (fs::exists(outputName)) {
-                            cout << "\n[RUN] Executing " << outputName << "..." << endl;
-                            string cmd = outputName;
-                            #ifndef _WIN32
-                            if (cmd.find('/') == string::npos) cmd = "./" + cmd;
-                            std::error_code ec;
-                            fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
-                            #endif
-                            string sysCmd = "\"" + cmd + "\"";
-                            system(sysCmd.c_str());
-                        } else {
-                            cout << "[WARN] Output binary '" << outputName << "' not found." << endl;
-                            cout << "       (Hint: Use -o <filename> to specify the expected binary name)" << endl;
-                        }
-                    } else {
-                        cout << "[WARN] Build failed or missing. Skipping execution." << endl;
-                    }
-                }
+                runAutoBuild(runOutput, outputName);
                 return 0;
             }
         }

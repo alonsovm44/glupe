@@ -9,7 +9,7 @@
 #include <cctype>
 
 // [NEW] Helper to substitute variables ($VAR) with their content
-inline string substituteVariables(const string& content) {
+inline string substituteVariables(const string& content, const string& currentFilePrefix = "global") {
     string result;
     size_t pos = 0;
     while (pos < content.length()) {
@@ -37,12 +37,18 @@ inline string substituteVariables(const string& content) {
         
         string id = content.substr(idStart, scan - idStart);
         
-        if (!id.empty() && SYMBOL_TABLE.count(id) && SYMBOL_TABLE[id].type != NodeType::CONTAINER) {
-            result += SYMBOL_TABLE[id].content;
-            pos = scan;
-        } else {
-            result += "$" + id;
-            pos = scan;
+        if (!id.empty()) {
+            string prefixedId = currentFilePrefix + "_" + id;
+            if (SYMBOL_TABLE.count(prefixedId) && SYMBOL_TABLE[prefixedId].type != NodeType::CONTAINER) {
+                result += SYMBOL_TABLE[prefixedId].content;
+                pos = scan;
+            } else if (SYMBOL_TABLE.count(id) && SYMBOL_TABLE[id].type != NodeType::CONTAINER) { // Fallback for globals
+                result += SYMBOL_TABLE[id].content;
+                pos = scan;
+            } else {
+                result += "$" + id;
+                pos = scan;
+            }
         }
     }
     return result;
@@ -185,7 +191,7 @@ inline string performSemanticExponentiation(const string& base, const string& ex
 }
 
 // [UPDATED] Resolve Prompt Arithmetic (Addition & Subtraction)
-inline string resolvePromptArithmetic(string expression) {
+inline string resolvePromptArithmetic(string expression, const string& currentFilePrefix = "global") {
     vector<string> terms;
     vector<char> ops;
     
@@ -208,10 +214,10 @@ inline string resolvePromptArithmetic(string expression) {
     terms.push_back(current);
 
     // If no arithmetic, just substitute and return
-    if (!hasOp) return substituteVariables(expression);
+    if (!hasOp) return substituteVariables(expression, currentFilePrefix);
 
     // Process first term
-    string accumulatedIntent = substituteVariables(terms[0]);
+    string accumulatedIntent = substituteVariables(terms[0], currentFilePrefix);
     // Cleanup first term
     if (accumulatedIntent.size() >= 2 && accumulatedIntent.front() == '"' && accumulatedIntent.back() == '"') {
         accumulatedIntent = accumulatedIntent.substr(1, accumulatedIntent.size() - 2);
@@ -231,7 +237,7 @@ inline string resolvePromptArithmetic(string expression) {
     
     for (size_t i = 0; i < ops.size(); ++i) {
         char op = ops[i];
-        string nextTerm = substituteVariables(terms[i+1]);
+        string nextTerm = substituteVariables(terms[i+1], currentFilePrefix);
         
         // Cleanup next term
         if (nextTerm.size() >= 2 && nextTerm.front() == '"' && nextTerm.back() == '"') {
@@ -317,6 +323,47 @@ inline string resolvePromptArithmetic(string expression) {
     return accumulatedIntent;
 }
 
+// [NEW] Frontend Pass: Generate Pseudo-Code IR
+inline string generateIR(const string& id, const string& intent, const string& context) {
+    stringstream irPrompt;
+    irPrompt << "ROLE: Semantic Frontend Compiler.\n";
+    irPrompt << "TASK: Translate the following human intent into Glupe Intermediate Representation (GIR).\n";
+    irPrompt << "RULES:\n";
+    irPrompt << "1. Use strict algorithmic steps. Do not write actual target code.\n";
+    irPrompt << "2. Infer and explicitly declare generic data types in the @STATE block (e.g., Int, Float, String, Bool, Byte, Any, List<T>, Map<K,V>, Future<T>).\n";
+    irPrompt << "3. Restrict logic to formalized operations: ALLOC, SET, CALL, ASYNC CALL, AWAIT, RETURN, ITER, LOOP, BRANCH IF, OR IF, ELSE, TRY, CATCH, FINALLY, THROW, ASSERT.\n";
+    irPrompt << "4. Resolve all ambiguity. Generate a fully deterministic pseudo-code.\n";
+    irPrompt << "GIR FORMAT:\n";
+    irPrompt << "@UNIT " << id << "\n";
+    irPrompt << "@TYPE <FUNCTION | CLASS | SNIPPET | GLOBAL>\n";
+    irPrompt << "@SIGNATURE\n  IN: <Type> <name>, ...\n  OUT: <Type>\n";
+    irPrompt << "@DEPS\n  <abstract dependencies>\n";
+    irPrompt << "@STATE\n  <Type> <var>\n";
+    irPrompt << "@LOGIC\n  1. <OPERATION> ...\n";
+    irPrompt << "\nCONTEXT:\n" << context << "\n";
+    irPrompt << "\nINTENT:\n" << intent << "\n";
+    irPrompt << "OUTPUT: Return ONLY the GIR representation. No markdown blocks. No explanations.";
+
+    return extractCode(callAI(irPrompt.str()));
+}
+
+// [NEW] Backend Pass: Generate Target Code from IR
+inline string generateTargetCodeFromIR(const string& ir, const string& targetLang, const string& context) {
+    stringstream codePrompt;
+    codePrompt << "ROLE: Semantic Backend Compiler.\n";
+    codePrompt << "TASK: Translate the following Glupe Intermediate Representation (GIR) into strict " << targetLang << " code.\n";
+    codePrompt << "RULES:\n";
+    codePrompt << "1. Map the GIR steps 1:1 to " << targetLang << " idioms and best practices.\n";
+    codePrompt << "2. Map generic GIR types (List, Map, Future) to native " << targetLang << " types.\n";
+    codePrompt << "3. Map GIR operations (ASYNC CALL, TRY/CATCH) to native " << targetLang << " constructs.\n";
+    codePrompt << "4. Do not omit any logic from the GIR.\n";
+    codePrompt << "\nCONTEXT:\n" << context << "\n";
+    codePrompt << "\nGIR:\n" << ir << "\n";
+    codePrompt << "OUTPUT: Return ONLY the raw code implementation. No markdown blocks. No explanations.";
+
+    return extractCode(callAI(codePrompt.str()));
+}
+
 // [NEW] Pre-process input to handle containers and caching
 inline string processInputWithCache(const string& code, bool useCache, const vector<string>& updateTargets, bool fillMode) {
     // [FUTURE v6.0] AST INTEGRATION POINT
@@ -330,12 +377,26 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
     
     string result;
     size_t pos = 0;
+    string currentFilePrefix = "global";
+    size_t nextFileMarker = code.find("// --- START FILE: ");
     
     while (pos < code.length()) {
         size_t start = code.find("$", pos);
         if (start == string::npos) {
             result += code.substr(pos);
             break;
+        }
+
+        // Update file prefix if we passed a file marker
+        while (nextFileMarker != string::npos && nextFileMarker < start) {
+            size_t fileEnd = code.find(" ---", nextFileMarker + 19);
+            if (fileEnd != string::npos) {
+                currentFilePrefix = code.substr(nextFileMarker + 19, fileEnd - (nextFileMarker + 19));
+                std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '/', '_');
+                std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '\\', '_');
+                std::replace(currentFilePrefix.begin(), currentFilePrefix.end(), '.', '_');
+            }
+            nextFileMarker = code.find("// --- START FILE: ", nextFileMarker + 19);
         }
 
         // [v6.0] Semantic Parsing
@@ -436,7 +497,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                             size_t lastEl = currentElement.find_last_not_of(" \t\r\n");
                             string el = currentElement.substr(first, lastEl - first + 1);
                             // Resolve variables in element
-                            el = resolvePromptArithmetic(el);
+                            el = resolvePromptArithmetic(el, currentFilePrefix);
                             vectorElements.push_back(el);
                         }
                         currentElement = "";
@@ -448,7 +509,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                 if (first != string::npos) {
                     size_t lastEl = currentElement.find_last_not_of(" \t\r\n");
                     string el = currentElement.substr(first, lastEl - first + 1);
-                    el = resolvePromptArithmetic(el);
+                    el = resolvePromptArithmetic(el, currentFilePrefix);
                     vectorElements.push_back(el);
                 }
                 
@@ -461,7 +522,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                 value += " }";
             } else {
                 // [NEW] Resolve Prompt Arithmetic (Addition & Contradiction Check)
-                value = resolvePromptArithmetic(value);
+                value = resolvePromptArithmetic(value, currentFilePrefix);
             }
 
             // Create SemanticNode (Placeholder for Phase 2)
@@ -470,13 +531,14 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             else if (isVarEphemeral) node.type = NodeType::VAR_EPHEMERAL;
             else node.type = NodeType::CONSTANT;
             
-            node.id = id;
+            string varKey = currentFilePrefix + "_" + id;
+            node.id = varKey;
             node.content = value;
             node.isVector = isVector;
             node.vectorContent = vectorElements;
             node.hash = getContainerHash(value);
             
-            SYMBOL_TABLE[id] = node; // [NEW] Store in symbol table
+            SYMBOL_TABLE[varKey] = node; // [NEW] Store in symbol table
             
             if (VERBOSE_MODE) {
                 cout << "   [VAR] Detected " << (isConstant ? "CONST" : "VAR") << ": " << id << " = " << value << endl;
@@ -608,7 +670,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             string prompt = code.substr(contentStart, end - contentStart);
             
             // [NEW] Variable Substitution ($VAR -> value)
-            prompt = substituteVariables(prompt);
+            prompt = substituteVariables(prompt, currentFilePrefix);
             
             // [NEW] Logic Inheritance
             string contextStr = "";
@@ -660,6 +722,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             }
 
             string currentHash = getContainerHash(prompt);
+            string cacheKey = currentFilePrefix + "_" + id; // [NEW] Prefix container ID to avoid cache collisions
             
             result += code.substr(pos, start - pos); // Append text before container
 
@@ -669,35 +732,35 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             bool skipUpdate = false;
             if (useCache && !updateTargets.empty()) {
                 bool isTarget = false;
-                for(const auto& t : updateTargets) if(t == id) isTarget = true;
+                for(const auto& t : updateTargets) if(t == id || t == cacheKey) isTarget = true;
                 if (!isTarget) skipUpdate = true;
             }
 
-            if (useCache && (skipUpdate || LOCK_DATA["containers"].contains(id))) {
+            if (useCache && (skipUpdate || LOCK_DATA["containers"].contains(cacheKey))) {
                 // If skipping, ignore hash check and try to load cache immediately
                 if (skipUpdate) {
-                    string content = getCachedContent(id);
+                    string content = getCachedContent(cacheKey);
                     if (!content.empty()) {
-                        cout << "   [SKIP] Keeping container: " << id << endl;
-                        result += "\n// GLUPE_BLOCK_START: " + id + "\n";
+                        cout << "   [SKIP] Keeping container: " << cacheKey << endl;
+                        result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
                         result += content; 
-                        result += "\n// GLUPE_BLOCK_END: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
                         cacheHit = true;
                     } else {
-                        cout << "   [WARN] Cache missing for skipped container: " << id << ". Regenerating." << endl;
+                        cout << "   [WARN] Cache missing for skipped container: " << cacheKey << ". Regenerating." << endl;
                     }
                 }
                 // Standard check: hash comparison
-                else if (LOCK_DATA["containers"].contains(id)) {
-                string storedHash = LOCK_DATA["containers"][id]["hash"];
+                else if (LOCK_DATA["containers"].contains(cacheKey)) {
+                string storedHash = LOCK_DATA["containers"][cacheKey]["hash"];
                 if (storedHash == currentHash) {
-                    string content = getCachedContent(id);
+                    string content = getCachedContent(cacheKey);
                     if (!content.empty()) {
-                        cout << "   [CACHE] Using cached container: " << id << endl;
+                        cout << "   [CACHE] Using cached container: " << cacheKey << endl;
                         // [FIX] Wrap cached content in markers so AI preserves it
-                        result += "\n// GLUPE_BLOCK_START: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
                         result += content; 
-                        result += "\n// GLUPE_BLOCK_END: " + id + "\n";
+                        result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
                         cacheHit = true;
                     }
                     }
@@ -707,41 +770,42 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             if (!cacheHit) {
                 if (fillMode) {
                     // [FILL MODE] Generate immediately to preserve surrounding code
-                    cout << "   [FILL] Generating container: " << id << "..." << endl;
+                    cout << "   [FILL] Generating container: " << cacheKey << "..." << endl;
                     
                     // Construct context from what we have processed so far + what remains
                     // This gives the AI the full file view without being able to touch it
                     string currentContext = result + code.substr(pos);
                     
-                    stringstream aiPrompt;
-                    aiPrompt << "ROLE: Code Generator.\n";
-                    aiPrompt << "TASK: Implement the code for the container '" << id << "'.\n";
-                    aiPrompt << "LANGUAGE: " << CURRENT_LANG.name << "\n";
-                    aiPrompt << "CONTEXT:\n" << currentContext << "\n";
-                    aiPrompt << "CONTAINER PROMPT:\n" << prompt << "\n";
-                    aiPrompt << "OUTPUT: Only the code implementation. No markdown. No explanations.\n";
-
-                    string generated = callAI(aiPrompt.str());
-                    string cleanGenerated = extractCode(generated);
+                    cout << "      -> Pass 1: Semantic Frontend (Generating GIR)..." << endl;
+                    string generatedIR = generateIR(id, prompt, currentContext);
                     
-                    result += "\n// GLUPE_BLOCK_START: " + id + "\n";
+                    if (SYMBOL_TABLE.count(id)) {
+                        SYMBOL_TABLE[id].ir_content = generatedIR;
+                        SYMBOL_TABLE[id].is_resolved_to_ir = true;
+                    }
+
+                    cout << "      -> Pass 2: Semantic Backend (Generating " << CURRENT_LANG.name << ")..." << endl;
+                    string cleanGenerated = generateTargetCodeFromIR(generatedIR, CURRENT_LANG.name, currentContext);
+                    
+                    result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
                     result += cleanGenerated;
-                    result += "\n// GLUPE_BLOCK_END: " + id + "\n";
+                    result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
                     
                     // Update cache immediately
-                    setCachedContent(id, cleanGenerated);
-                    LOCK_DATA["containers"][id]["hash"] = currentHash;
-                    LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
+                    setCachedContent(cacheKey, cleanGenerated);
+                    setCachedContent(cacheKey + "_ir", generatedIR); // Cache the IR
+                    LOCK_DATA["containers"][cacheKey]["hash"] = currentHash;
+                    LOCK_DATA["containers"][cacheKey]["last_run"] = time(nullptr);
                     saveCache();
                 } else {
                     // [STANDARD MODE] Wrap in markers for global pass
-                    result += "\n// GLUPE_BLOCK_START: " + id + "\n";
+                    result += "\n// GLUPE_BLOCK_START: " + cacheKey + "\n";
                     result += prompt; // The prompt for the AI
-                    result += "\n// GLUPE_BLOCK_END: " + id + "\n";
+                    result += "\n// GLUPE_BLOCK_END: " + cacheKey + "\n";
                     
                     // Update lock data (will be saved after successful generation)
-                    LOCK_DATA["containers"][id]["hash"] = currentHash;
-                    LOCK_DATA["containers"][id]["last_run"] = time(nullptr);
+                    LOCK_DATA["containers"][cacheKey]["hash"] = currentHash;
+                    LOCK_DATA["containers"][cacheKey]["last_run"] = time(nullptr);
                 }
             }
 
@@ -799,12 +863,12 @@ inline string updateCacheFromOutput(string code) {
         size_t idEnd = code.find('\n', idStart);
         if (idEnd == string::npos) break; // Should not happen
         
-        string id = code.substr(idStart, idEnd - idStart);
-        // Trim id
-        id.erase(0, id.find_first_not_of(" \t\r"));
-        id.erase(id.find_last_not_of(" \t\r") + 1);
+        string cacheKey = code.substr(idStart, idEnd - idStart);
+        // Trim cacheKey
+        cacheKey.erase(0, cacheKey.find_first_not_of(" \t\r"));
+        cacheKey.erase(cacheKey.find_last_not_of(" \t\r") + 1);
 
-        size_t blockEnd = code.find("// GLUPE_BLOCK_END: " + id, idEnd);
+        size_t blockEnd = code.find("// GLUPE_BLOCK_END: " + cacheKey, idEnd);
         if (blockEnd == string::npos) {
             // Marker broken by AI, just keep going
             cleanCode += code.substr(start); 
@@ -815,8 +879,8 @@ inline string updateCacheFromOutput(string code) {
         string content = code.substr(idEnd + 1, blockEnd - (idEnd + 1));
         
         // Save to cache
-        setCachedContent(id, content);
-        cout << "   [CACHE] Updated container: " << id << endl;
+        setCachedContent(cacheKey, content);
+        cout << "   [CACHE] Updated container: " << cacheKey << endl;
 
         cleanCode += content; // Keep content in final file
         
