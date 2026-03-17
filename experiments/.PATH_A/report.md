@@ -24,12 +24,13 @@ Experimental Group: A .glp file with a "Semantic Header" (Abstract Container) co
 ## 3. Implementation
 
 3.1 Yggdrasil Context (Experimental Input)
-Markdown
+```Markdown
 [YGGDRASIL SEMANTIC CONTEXT]
 Node: core-engine
 ARCHITECTURAL INVARIANT: 
 "Memory Safety Policy: Manual 'new/delete' and raw pointers are strictly forbidden. 
 Use 'std::unique_ptr' and 'std::make_unique' for resource ownership."
+```
 3.2 Prompt
 "Create a class named 'ResourceManager' that manages a buffer of bytes (1024 bytes) and a method 'getBuffer()' to access the data."
 
