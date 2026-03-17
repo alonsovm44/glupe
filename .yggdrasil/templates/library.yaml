@@ -1,0 +1,22 @@
+node_type: library
+suggested_artifacts:
+  - responsibility
+  - interface
+guidance: |
+  A library node represents shared code, utilities, or reusable components that
+  other nodes depend on. It has no business logic of its own — it provides
+  capabilities.
+
+  responsibility.md: Define what capabilities this library provides and what it
+  does not. "Provides date formatting, timezone conversion, and scheduling helpers.
+  Does not contain business rules or domain logic."
+
+  interface.md: Required when other nodes depend on this one. List exported functions,
+  classes, or APIs. For each: signature, purpose, usage constraints. Libraries are
+  often consumed by many nodes — a clear interface prevents misuse.
+
+  constraints.md: Optional. Use for usage constraints: "All dates must be ISO 8601
+  UTC. Thread-safe. No side effects."
+
+  mapping: Typically "directory" pointing to the library source. Path relative
+  to repository root.

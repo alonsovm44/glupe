@@ -58,7 +58,7 @@ echo -e "${GREEN}[OK] Created installation directory: $INSTALL_DIR${NC}"
 
 # 4. Download Source
 echo "[INFO] Downloading source code..."
-SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp"
+SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp ast.hpp glupe.l glupe.y"
 for file in $SOURCE_FILES; do
     if ! curl -fsSL "$REPO_URL/src/$file" -o "$INSTALL_DIR/src/$file"; then
         echo -e "${RED}[ERROR] Failed to download $file${NC}"; exit 1
@@ -68,9 +68,15 @@ if ! curl -fsSL "$JSON_URL" -o "$INSTALL_DIR/src/json.hpp"; then
     echo -e "${RED}[ERROR] Failed to download json.hpp${NC}"; exit 1
 fi
 
+# 4.5 Generate Parser and Lexer
+echo "[INFO] Generating parser and lexer with Bison and Flex..."
+if ! bison -d -o "$INSTALL_DIR/src/glupe.tab.c" "$INSTALL_DIR/src/glupe.y" || ! flex -o "$INSTALL_DIR/src/lex.yy.c" "$INSTALL_DIR/src/glupe.l"; then
+    echo -e "${YELLOW}[WARN] Parser/Lexer generation failed. Compilation might fail if C files are missing. (Try: sudo apt install flex bison)${NC}"
+fi
+
 # 5. Compile
 echo "[INFO] Compiling Glupe..."
-COMPILE_CMD="$COMPILER \"$INSTALL_DIR/src/glupec.cpp\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread -I \"$INSTALL_DIR/src\""
+COMPILE_CMD="$COMPILER \"$INSTALL_DIR/src/glupec.cpp\" \"$INSTALL_DIR/src/lex.yy.c\" \"$INSTALL_DIR/src/glupe.tab.c\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread -I \"$INSTALL_DIR/src\""
 
 # Handle Filesystem linking
 # GCC on Linux usually needs -lstdc++fs for versions < 9, and it doesn't hurt to add it for newer versions.

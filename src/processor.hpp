@@ -378,6 +378,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
     if (parse_res != 0 || root == nullptr) {
         cerr << "[FATAL ERROR] Syntax error parsing Glupe structures." << endl;
         if (buffer) yy_delete_buffer(buffer);
+        if (root) delete root;
         exit(1);
     }
     

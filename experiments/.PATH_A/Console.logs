@@ -1,0 +1,119 @@
+PS C:\Users\diego\.projects\M-MACHINE> glupe experiments/.PATH_A/patha.glp -o experiments/.PATH_A/patha.cpp -t -cloud 
+[CHECK] Toolchain for C++...
+   [OK] Ready.
+   [Pass 1] Generating C++...
+      -> Pass 1: Semantic Frontend (Generating GIR)...
+      -> Pass 2: Semantic Backend (Generating C++)...
+   [CACHE] Updated container: experiments__PATH_A_patha_glp_testcont
+   [OPTIMIZE] Tree shaking (removing unused code)...
+   Verifying...
+
+BUILD SUCCESSFUL: experiments/.PATH_A/patha.cpp
+   [Source]: experiments/.PATH_A/patha.cpp
+
+   PS C:\Users\diego\.projects\M-MACHINE> glupe experiments/.PATH_A/patha_control.glp -o experiments/.PATH_A/patha_control.cpp -t -cloud  
+[CHECK] Toolchain for C++...
+   [OK] Ready.
+   [Pass 1] Generating C++...
+      -> Pass 1: Semantic Frontend (Generating GIR)...
+      -> Pass 2: Semantic Backend (Generating C++)...
+   [CACHE] Updated container: experiments__PATH_A_patha_control_glp_testcont
+   [OPTIMIZE] Tree shaking (removing unused code)...
+   Verifying...
+   [!] Error (Line 1): temp_build.cpp:6:17: error: 'uint8_t' was not declared in this scope
+    6 |     std::vector<uint8_t> buffer;
+      |                 ^~~~~~~
+temp_build.cpp:3:1: note: 'uint8_t' is defined in header '<cstdint>'; did you forget to '#include <cstdint>'?
+    2 | #include <vector>
+  +++ |+#include <cstd...
+   [Pass 2] Generating C++...
+      -> Pass 1: Semantic Frontend (Generating GIR)...
+      -> Pass 2: Semantic Backend (Generating C++)...
+   [CACHE] Updated container: experiments__PATH_A_patha_control_glp_testcont
+   [OPTIMIZE] Tree shaking (removing unused code)...
+   Verifying...
+
+BUILD SUCCESSFUL: experiments/.PATH_A/patha_control.cpp
+   [Source]: experiments/.PATH_A/patha_control.cpp
+
+   PS C:\Users\diego\.projects\M-MACHINE> cat experiments/.PATH_A/patha_control.cpp
+#include <vector>
+#include <cstdint>
+#include <iostream>
+
+
+class ResourceManager {
+private:
+    std::vector<uint8_t> buffer;
+
+public:
+    ResourceManager() {
+        buffer.resize(1024);
+    }
+
+    std::vector<uint8_t> getBuffer() const {
+        return buffer;
+};
+
+
+int main() {
+    ResourceManager rm;
+    auto buf = rm.getBuffer();
+    std::cout << "Buffer size: " << buf.size() << std::endl;
+    return 0;
+}
+PS C:\Users\diego\.projects\M-MACHINE> cat experiments/.PATH_A/patha.cpp        
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <cstring>
+
+
+// A fixedâ€‘size byte buffer abstraction.
+template<std::size_t N>
+class ByteBuffer {
+public:
+    ByteBuffer() {
+        data.fill(0);
+    }
+
+    std::uint8_t* ptr() {
+        return data.data();
+    }
+
+private:
+    std::array<std::uint8_t, N> data;
+};
+
+using BytePointer = std::uint8_t*;
+
+class ResourceManager {
+public:
+    // Constructor
+    ResourceManager()
+    {
+        // STEP 1: Allocate generic byte buffer of size 1024 into member 'buffer'.
+        // STEP 2: Initialize buffer memory to default zero state.
+        // (Handled by ByteBuffer constructor)
+    }
+
+    // Method: getBuffer
+    BytePointer getBuffer()
+    {
+        // STEP 1: Return pointer-like accessor to internal byte buffer.
+        return buffer.ptr();
+    }
+
+private:
+    ByteBuffer<1024> buffer; // Represents a fixedâ€‘size generic byte buffer of length 1024
+};
+
+
+int main()
+{
+    ResourceManager rm;
+    BytePointer p = rm.getBuffer();
+    (void)p; // suppress unused variable warning
+    return 0;
+}

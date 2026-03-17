@@ -1,0 +1,18 @@
+node_type: module
+suggested_artifacts:
+  - responsibility
+guidance: |
+  A module node represents a domain or subsystem that groups child components.
+  It provides domain context that all descendants inherit during context assembly.
+
+  responsibility.md: Define the business domain this module owns. What is in scope
+  (e.g. "orders, order lifecycle, order state transitions") and what is out of scope
+  (e.g. "payment processing belongs to payments module"). Child nodes inherit this
+  context — a service under this module is understood within this domain.
+
+  Modules typically have no mapping (they are organizational, not implementation units).
+  If the module maps to a directory, that directory contains the implementation of
+  all child nodes collectively.
+
+  Keep responsibility concise but precise. The agent uses it to understand boundaries
+  when implementing or modifying child nodes.

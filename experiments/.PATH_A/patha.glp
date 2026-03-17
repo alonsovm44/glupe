@@ -1,0 +1,15 @@
+
+[YGGDRASIL SEMANTIC CONTEXT]
+Node: core-engine
+Status: Production
+ ARCHITECTURAL INVARIANT: 
+  "Memory Safety Policy: The project has migrated to modern C++ memory management. 
+  Manual 'new/delete' and raw pointers are strictly forbidden for resource ownership. 
+  Use 'std::unique_ptr' for single ownership and 'std::make_unique' for instantiation."
+ 
+
+ $$ testcont {
+  Create a class named 'ResourceManager' that manages a buffer of bytes. 
+  It should have a constructor that allocates 1024 bytes and a method 
+  'getBuffer()' to access the data.
+}$$

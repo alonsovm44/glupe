@@ -1,0 +1,3 @@
+name: PatternOrDecisionName
+scope:
+  tags: [service, controller]

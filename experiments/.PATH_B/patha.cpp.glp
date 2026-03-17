@@ -1,0 +1,36 @@
+$$ StandardLibraryIncludes {
+    1. Include <array>,
+    2. Include <cstddef>,
+    3. Include <cstdint>,
+    4. Include <memory>,
+    5. Include <cstring>
+} $$
+
+$$ Constants {
+    Define N as template parameter
+} 
+$$ Globals {
+    Declare BytePointer as alias for std::uint8_t*
+} 
+
+$$ ByteBuffer -> StandardLibraryIncludes {
+    1. Initialize data array with size N,
+    2. Fill data array with zeros in constructor,
+    3. Provide ptr() method to return pointer to data array
+} 
+
+$$ ResourceManager -> ByteBuffer {
+    1. Allocate ByteBuffer with size 1024 in constructor,
+    2. Initialize buffer memory to zero state (handled by ByteBuffer constructor)
+} 
+
+$$ getBuffer -> ResourceManager {
+    1. Return pointer to internal byte buffer using ptr() method
+} 
+
+$$ main -> ResourceManager, getBuffer {
+    1. Create ResourceManager instance,
+    2. Get buffer pointer from ResourceManager instance,
+    3. Suppress unused variable warning for buffer pointer,
+    4. Return 0 from main
+} $$

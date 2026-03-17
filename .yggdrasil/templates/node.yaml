@@ -1,0 +1,17 @@
+name: ComponentName
+type: service
+tags: []
+blackbox: false
+
+relations:
+  - target: other/module-path
+    type: calls
+    consumes: [methodA, methodB]
+    failure: 'retry 3x, then circuit-break'
+
+knowledge:
+  - decisions/001-choice-name
+
+mapping:
+  paths:
+    - src/modules/component/

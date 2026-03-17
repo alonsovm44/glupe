@@ -22,7 +22,7 @@ echo "Downloading source code from $REPO_URL..."
 SRC_DIR="$GLUPE_DIR/src"
 mkdir -p "$SRC_DIR"
 
-SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp"
+SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp ast.hpp glupe.l glupe.y"
 for file in $SOURCE_FILES; do
     if ! curl -fsSL "$REPO_URL/src/$file" -o "$SRC_DIR/$file"; then
         echo "Error: Failed to download $file"; exit 1
@@ -32,8 +32,13 @@ if ! curl -fsSL "$JSON_URL" -o "$SRC_DIR/json.hpp"; then
     echo "Error: Failed to download json.hpp"; exit 1
 fi
 
+echo "Generating parser and lexer with Bison and Flex..."
+if ! bison -d -o "$SRC_DIR/glupe.tab.c" "$SRC_DIR/glupe.y" || ! flex -o "$SRC_DIR/lex.yy.c" "$SRC_DIR/glupe.l"; then
+    echo "Warning: Parser/Lexer generation failed. Ensure flex and bison are installed."
+fi
+
 echo "Compiling Glupe..."
-if ! g++ "$SRC_DIR/glupec.cpp" -o "$TEMP_BIN" -std=c++17 -O3 -pthread -I "$SRC_DIR"; then
+if ! g++ "$SRC_DIR/glupec.cpp" "$SRC_DIR/lex.yy.c" "$SRC_DIR/glupe.tab.c" -o "$TEMP_BIN" -std=c++17 -O3 -pthread -I "$SRC_DIR"; then
     echo "Error: Compilation failed."
     exit 1
 fi

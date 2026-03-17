@@ -10,6 +10,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed refine mode prompting empty containers
 - fixed currentContext marker in vscode mode
 
 ## v5.9.0 2026-02-27

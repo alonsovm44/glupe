@@ -465,10 +465,10 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    39,    39,    43,    53,    58,    59,    60,    64,    65,
-      69,    74,    79,    87,    88,    92,    93,    97,    98,   102,
-     108,   117,   118,   119,   120,   121,   122,   126,   127,   128,
-     132,   133,   137,   138,   146,   154,   160,   168
+       0,    41,    41,    45,    55,    60,    61,    62,    66,    67,
+      71,    76,    81,    89,    90,    94,    95,    99,   100,   104,
+     110,   119,   120,   121,   122,   123,   124,   128,   129,   130,
+     134,   135,   139,   140,   148,   156,   162,   170
 };
 #endif
 
@@ -1124,6 +1124,159 @@ yydestruct (yymsg, yytype, yyvaluep, root)
 
   switch (yytype)
     {
+      case 3: /* "T_RAW_CODE" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1135 "src/glupe.tab.c"
+	break;
+      case 4: /* "T_IDENTIFIER" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1144 "src/glupe.tab.c"
+	break;
+      case 5: /* "T_VAR_VALUE" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1153 "src/glupe.tab.c"
+	break;
+      case 6: /* "T_INTENT_TEXT" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1162 "src/glupe.tab.c"
+	break;
+      case 7: /* "T_STRING_LITERAL" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1171 "src/glupe.tab.c"
+	break;
+      case 8: /* "T_NUMBER" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1180 "src/glupe.tab.c"
+	break;
+      case 30: /* "element" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->node); };
+
+/* Line 1009 of yacc.c  */
+#line 1189 "src/glupe.tab.c"
+	break;
+      case 31: /* "opt_var_value" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1198 "src/glupe.tab.c"
+	break;
+      case 32: /* "var_decl" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->node); };
+
+/* Line 1009 of yacc.c  */
+#line 1207 "src/glupe.tab.c"
+	break;
+      case 34: /* "optional_params" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str_list); };
+
+/* Line 1009 of yacc.c  */
+#line 1216 "src/glupe.tab.c"
+	break;
+      case 35: /* "optional_parents" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str_list); };
+
+/* Line 1009 of yacc.c  */
+#line 1225 "src/glupe.tab.c"
+	break;
+      case 36: /* "expr_list" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str_list); };
+
+/* Line 1009 of yacc.c  */
+#line 1234 "src/glupe.tab.c"
+	break;
+      case 37: /* "algebra_expr" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1243 "src/glupe.tab.c"
+	break;
+      case 38: /* "algebra_term" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1252 "src/glupe.tab.c"
+	break;
+      case 39: /* "string_or_id" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1261 "src/glupe.tab.c"
+	break;
+      case 40: /* "intent_body" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->str); };
+
+/* Line 1009 of yacc.c  */
+#line 1270 "src/glupe.tab.c"
+	break;
+      case 41: /* "container_decl" */
+
+/* Line 1009 of yacc.c  */
+#line 24 "src/glupe.y"
+	{ delete (yyvaluep->node); };
+
+/* Line 1009 of yacc.c  */
+#line 1279 "src/glupe.tab.c"
+	break;
 
       default:
 	break;
@@ -1427,7 +1580,7 @@ yyreduce:
         case 2:
 
 /* Line 1464 of yacc.c  */
-#line 39 "src/glupe.y"
+#line 41 "src/glupe.y"
     {
         *root = new ProgramNode();
         (yyval.prog) = *root;
@@ -1437,7 +1590,7 @@ yyreduce:
   case 3:
 
 /* Line 1464 of yacc.c  */
-#line 44 "src/glupe.y"
+#line 46 "src/glupe.y"
     {
         if ((yyvsp[(2) - (2)].node)) {
             (yyvsp[(1) - (2)].prog)->addElement(std::unique_ptr<ASTNode>((yyvsp[(2) - (2)].node)));
@@ -1449,7 +1602,7 @@ yyreduce:
   case 4:
 
 /* Line 1464 of yacc.c  */
-#line 54 "src/glupe.y"
+#line 56 "src/glupe.y"
     {
         (yyval.node) = new RawCodeNode(*(yyvsp[(1) - (1)].str));
         delete (yyvsp[(1) - (1)].str);
@@ -1459,42 +1612,42 @@ yyreduce:
   case 5:
 
 /* Line 1464 of yacc.c  */
-#line 58 "src/glupe.y"
+#line 60 "src/glupe.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 6:
 
 /* Line 1464 of yacc.c  */
-#line 59 "src/glupe.y"
+#line 61 "src/glupe.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 7:
 
 /* Line 1464 of yacc.c  */
-#line 60 "src/glupe.y"
+#line 62 "src/glupe.y"
     { (yyval.node) = nullptr; ;}
     break;
 
   case 8:
 
 /* Line 1464 of yacc.c  */
-#line 64 "src/glupe.y"
+#line 66 "src/glupe.y"
     { (yyval.str) = new std::string(""); ;}
     break;
 
   case 9:
 
 /* Line 1464 of yacc.c  */
-#line 65 "src/glupe.y"
+#line 67 "src/glupe.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 10:
 
 /* Line 1464 of yacc.c  */
-#line 70 "src/glupe.y"
+#line 72 "src/glupe.y"
     {
         (yyval.node) = new VariableNode(*(yyvsp[(2) - (4)].str), *(yyvsp[(3) - (4)].str), VarType::PERSISTENT);
         delete (yyvsp[(2) - (4)].str); delete (yyvsp[(3) - (4)].str);
@@ -1504,7 +1657,7 @@ yyreduce:
   case 11:
 
 /* Line 1464 of yacc.c  */
-#line 75 "src/glupe.y"
+#line 77 "src/glupe.y"
     {
         (yyval.node) = new VariableNode(*(yyvsp[(2) - (4)].str), *(yyvsp[(3) - (4)].str), VarType::CONSTANT);
         delete (yyvsp[(2) - (4)].str); delete (yyvsp[(3) - (4)].str);
@@ -1514,7 +1667,7 @@ yyreduce:
   case 12:
 
 /* Line 1464 of yacc.c  */
-#line 80 "src/glupe.y"
+#line 82 "src/glupe.y"
     {
         (yyval.node) = new VariableNode(*(yyvsp[(2) - (4)].str), *(yyvsp[(3) - (4)].str), VarType::EPHEMERAL);
         delete (yyvsp[(2) - (4)].str); delete (yyvsp[(3) - (4)].str);
@@ -1524,49 +1677,49 @@ yyreduce:
   case 13:
 
 /* Line 1464 of yacc.c  */
-#line 87 "src/glupe.y"
+#line 89 "src/glupe.y"
     { (yyval.boolean) = false; ;}
     break;
 
   case 14:
 
 /* Line 1464 of yacc.c  */
-#line 88 "src/glupe.y"
+#line 90 "src/glupe.y"
     { (yyval.boolean) = true; ;}
     break;
 
   case 15:
 
 /* Line 1464 of yacc.c  */
-#line 92 "src/glupe.y"
+#line 94 "src/glupe.y"
     { (yyval.str_list) = new std::vector<std::string>(); ;}
     break;
 
   case 16:
 
 /* Line 1464 of yacc.c  */
-#line 93 "src/glupe.y"
+#line 95 "src/glupe.y"
     { (yyval.str_list) = (yyvsp[(2) - (3)].str_list); ;}
     break;
 
   case 17:
 
 /* Line 1464 of yacc.c  */
-#line 97 "src/glupe.y"
+#line 99 "src/glupe.y"
     { (yyval.str_list) = new std::vector<std::string>(); ;}
     break;
 
   case 18:
 
 /* Line 1464 of yacc.c  */
-#line 98 "src/glupe.y"
+#line 100 "src/glupe.y"
     { (yyval.str_list) = (yyvsp[(2) - (2)].str_list); ;}
     break;
 
   case 19:
 
 /* Line 1464 of yacc.c  */
-#line 103 "src/glupe.y"
+#line 105 "src/glupe.y"
     {
         (yyval.str_list) = new std::vector<std::string>();
         (yyval.str_list)->push_back(*(yyvsp[(1) - (1)].str));
@@ -1577,7 +1730,7 @@ yyreduce:
   case 20:
 
 /* Line 1464 of yacc.c  */
-#line 109 "src/glupe.y"
+#line 111 "src/glupe.y"
     {
         (yyvsp[(1) - (3)].str_list)->push_back(*(yyvsp[(3) - (3)].str));
         delete (yyvsp[(3) - (3)].str);
@@ -1588,91 +1741,91 @@ yyreduce:
   case 21:
 
 /* Line 1464 of yacc.c  */
-#line 117 "src/glupe.y"
+#line 119 "src/glupe.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 22:
 
 /* Line 1464 of yacc.c  */
-#line 118 "src/glupe.y"
+#line 120 "src/glupe.y"
     { (yyval.str) = new std::string(*(yyvsp[(1) - (3)].str) + " + " + *(yyvsp[(3) - (3)].str)); delete (yyvsp[(1) - (3)].str); delete (yyvsp[(3) - (3)].str); ;}
     break;
 
   case 23:
 
 /* Line 1464 of yacc.c  */
-#line 119 "src/glupe.y"
+#line 121 "src/glupe.y"
     { (yyval.str) = new std::string(*(yyvsp[(1) - (3)].str) + " - " + *(yyvsp[(3) - (3)].str)); delete (yyvsp[(1) - (3)].str); delete (yyvsp[(3) - (3)].str); ;}
     break;
 
   case 24:
 
 /* Line 1464 of yacc.c  */
-#line 120 "src/glupe.y"
+#line 122 "src/glupe.y"
     { (yyval.str) = new std::string(*(yyvsp[(1) - (3)].str) + " * " + *(yyvsp[(3) - (3)].str)); delete (yyvsp[(1) - (3)].str); delete (yyvsp[(3) - (3)].str); ;}
     break;
 
   case 25:
 
 /* Line 1464 of yacc.c  */
-#line 121 "src/glupe.y"
+#line 123 "src/glupe.y"
     { (yyval.str) = new std::string(*(yyvsp[(1) - (3)].str) + " / " + *(yyvsp[(3) - (3)].str)); delete (yyvsp[(1) - (3)].str); delete (yyvsp[(3) - (3)].str); ;}
     break;
 
   case 26:
 
 /* Line 1464 of yacc.c  */
-#line 122 "src/glupe.y"
+#line 124 "src/glupe.y"
     { (yyval.str) = new std::string(*(yyvsp[(1) - (3)].str) + " ^ " + *(yyvsp[(3) - (3)].str)); delete (yyvsp[(1) - (3)].str); delete (yyvsp[(3) - (3)].str); ;}
     break;
 
   case 27:
 
 /* Line 1464 of yacc.c  */
-#line 126 "src/glupe.y"
+#line 128 "src/glupe.y"
     { (yyval.str) = new std::string("$" + *(yyvsp[(1) - (1)].str)); delete (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 28:
 
 /* Line 1464 of yacc.c  */
-#line 127 "src/glupe.y"
+#line 129 "src/glupe.y"
     { (yyval.str) = new std::string("\"" + *(yyvsp[(1) - (1)].str) + "\""); delete (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 29:
 
 /* Line 1464 of yacc.c  */
-#line 128 "src/glupe.y"
+#line 130 "src/glupe.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 30:
 
 /* Line 1464 of yacc.c  */
-#line 132 "src/glupe.y"
+#line 134 "src/glupe.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 31:
 
 /* Line 1464 of yacc.c  */
-#line 133 "src/glupe.y"
+#line 135 "src/glupe.y"
     { (yyval.str) = (yyvsp[(1) - (1)].str); ;}
     break;
 
   case 32:
 
 /* Line 1464 of yacc.c  */
-#line 137 "src/glupe.y"
+#line 139 "src/glupe.y"
     { (yyval.str) = new std::string(""); ;}
     break;
 
   case 33:
 
 /* Line 1464 of yacc.c  */
-#line 139 "src/glupe.y"
+#line 141 "src/glupe.y"
     {
         (yyval.str) = new std::string(*(yyvsp[(1) - (2)].str) + *(yyvsp[(2) - (2)].str));
         delete (yyvsp[(1) - (2)].str); delete (yyvsp[(2) - (2)].str);
@@ -1682,7 +1835,7 @@ yyreduce:
   case 34:
 
 /* Line 1464 of yacc.c  */
-#line 147 "src/glupe.y"
+#line 149 "src/glupe.y"
     {
         auto* cont = new ContainerNode(*(yyvsp[(3) - (8)].str), *(yyvsp[(7) - (8)].str), true, (yyvsp[(2) - (8)].boolean));
         cont->params = *(yyvsp[(4) - (8)].str_list);
@@ -1695,7 +1848,7 @@ yyreduce:
   case 35:
 
 /* Line 1464 of yacc.c  */
-#line 155 "src/glupe.y"
+#line 157 "src/glupe.y"
     {
         auto* cont = new ContainerNode("", *(yyvsp[(4) - (5)].str), true, (yyvsp[(2) - (5)].boolean));
         (yyval.node) = cont;
@@ -1706,7 +1859,7 @@ yyreduce:
   case 36:
 
 /* Line 1464 of yacc.c  */
-#line 161 "src/glupe.y"
+#line 163 "src/glupe.y"
     {
         auto* cont = new ContainerNode(*(yyvsp[(3) - (8)].str), *(yyvsp[(7) - (8)].str), false, (yyvsp[(2) - (8)].boolean));
         cont->params = *(yyvsp[(4) - (8)].str_list);
@@ -1719,7 +1872,7 @@ yyreduce:
   case 37:
 
 /* Line 1464 of yacc.c  */
-#line 169 "src/glupe.y"
+#line 171 "src/glupe.y"
     {
         auto* cont = new ContainerNode("", *(yyvsp[(4) - (5)].str), false, (yyvsp[(2) - (5)].boolean));
         (yyval.node) = cont;
@@ -1730,7 +1883,7 @@ yyreduce:
 
 
 /* Line 1464 of yacc.c  */
-#line 1734 "src/glupe.tab.c"
+#line 1887 "src/glupe.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1942,5 +2095,5 @@ yyreturn:
 
 
 /* Line 1684 of yacc.c  */
-#line 176 "src/glupe.y"
+#line 178 "src/glupe.y"
 

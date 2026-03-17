@@ -1,0 +1,1 @@
+Do not write AI generated code outside concrete containers

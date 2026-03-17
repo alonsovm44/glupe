@@ -1,0 +1,2 @@
+type: service
+description: "Central Engine in C++. Manages logic of RAG and communication with Ollama."

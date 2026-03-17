@@ -21,6 +21,8 @@ void yyerror(ProgramNode** root, const char* s) {
     bool boolean;
 }
 
+%destructor { delete $$; } <str> <node> <str_list>
+
 %token <str> T_RAW_CODE T_IDENTIFIER T_VAR_VALUE T_INTENT_TEXT T_STRING_LITERAL T_NUMBER
 %token T_PERSISTENT_VAR_START T_CONST_VAR_START T_EPHEMERAL_VAR_START
 %token T_BLOCK_START T_INLINE_START T_ABSTRACT T_ARROW T_COMMA T_LPAREN T_RPAREN T_LBRACE T_BLOCK_END T_INLINE_END T_NEWLINE

@@ -242,6 +242,7 @@ inline string stripAllContainers(const string& code) {
     ProgramNode* root = nullptr;
     if (yyparse(&root) != 0 || root == nullptr) {
         if (buffer) yy_delete_buffer(buffer);
+        if (root) delete root;
         return code; // Fallback to raw if syntax error
     }
 
@@ -268,6 +269,7 @@ inline bool validateContainers(const string& code, bool* outHasActive = nullptr)
     // Flex/Bison natively tracks unclosed containers and prints syntax errors!
     if (parse_res != 0 || root == nullptr) {
         if (buffer) yy_delete_buffer(buffer);
+        if (root) delete root;
         return false;
     }
 
@@ -620,6 +622,26 @@ inline string sanitize_container_syntax(const string& code) {
         } else {
             pos += 3;
         }
+    }
+
+     // 3.5 Fix detached block closers: "} \n $$" -> "}$$"
+    pos = 0;
+    while ((pos = out.find("$$", pos)) != string::npos) {
+        size_t temp = pos;
+        
+        // Scan backwards to consume any whitespace
+        while (temp > 0 && isspace(static_cast<unsigned char>(out[temp - 1]))) {
+            temp--;
+        }
+        
+        // If the $$ is preceded by a }, remove the whitespace between them
+        if (temp > 0 && out[temp - 1] == '}') {
+            if (temp < pos) {
+                out.erase(temp, pos - temp);
+                pos = temp; // Adjust pos to the new location of $$
+            }
+        }
+        pos += 2;
     }
 
     // 4. Fix Block Containers ($$ ... $$)

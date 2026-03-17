@@ -1,0 +1,5 @@
+ $$ testcont {
+  Create a class named 'ResourceManager' that manages a buffer of bytes. 
+  It should have a constructor that allocates 1024 bytes and a method 
+  'getBuffer()' to access the data.
+}$$

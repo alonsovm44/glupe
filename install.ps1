@@ -74,7 +74,7 @@ if (-not (Test-Path $SrcDir)) {
 # 3. Download Source
 Write-Host "[INFO] Downloading source code..."
 try {
-    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp")
+    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp", "ast.hpp", "glupe.l", "glupe.y")
     foreach ($file in $SourceFiles) {
         Invoke-WebRequest -Uri "$RepoUrl/src/$file" -OutFile "$SrcDir\$file"
     }
@@ -86,10 +86,19 @@ try {
     exit 1
 }
 
+# 3.5 Generate Parser and Lexer
+Write-Host "[INFO] Generating parser and lexer with Bison and Flex..."
+try {
+    Invoke-Expression "bison -d -o `"$SrcDir\glupe.tab.c`" `"$SrcDir\glupe.y`""
+    Invoke-Expression "flex -o `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.l`""
+} catch {
+    Write-Host "[WARN] Parser/Lexer generation failed. Compilation might fail if C files are missing." -ForegroundColor Yellow
+}
+
 # 4. Compile
 Write-Host "[INFO] Compiling Glupe..."
 # [FIX] Added -static to ensure the exe runs on any machine without DLLs
- $BuildCmd = "g++ `"$SrcDir\glupec.cpp`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
+ $BuildCmd = "g++ `"$SrcDir\glupec.cpp`" `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.tab.c`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
 Invoke-Expression $BuildCmd
 
 if (-not (Test-Path $ExePath)) {

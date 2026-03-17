@@ -1,0 +1,30 @@
+node_type: service
+suggested_artifacts:
+  - responsibility
+  - interface
+  - constraints
+  - errors
+guidance: |
+  A service node represents a component with a public API that other components depend on.
+  It is the primary implementation unit for business logic.
+
+  responsibility.md: State clearly what this service does and what it does NOT do.
+  Define boundaries: "Creates and validates orders; does not process payments."
+  Include edge cases: "Handles partial fulfillment; does not handle refunds."
+
+  interface.md: Required when other nodes depend on this one (has_incoming_relations).
+  List every public method with: name, parameters (types), return type, contract.
+  For each method: preconditions, postconditions, idempotency, error conditions.
+  Example: "createOrder(items: OrderItem[]): Promise<Order> — creates order in pending
+  state; items must have positive quantity; returns order with generated id."
+
+  constraints.md: Validation rules, business rules, invariants this service enforces.
+  Be explicit: "Order must have at least 1 item, max 100 items. Total must be > 0."
+  Include rate limits, quotas, or SLA constraints if applicable.
+
+  errors.md: Required when others depend on this node. Document error conditions,
+  error codes, and recovery behavior. "INSUFFICIENT_STOCK: retry after inventory
+  refresh. PAYMENT_FAILED: order marked payment-failed, manual intervention."
+
+  mapping: Use type "directory" for a service implemented in one folder, or "file"
+  for a single-file service. Path relative to repository root.
