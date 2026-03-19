@@ -52,4 +52,4 @@ struct CmdResult {
 
 // Global Flags (Inline for C++17 header-only support)
 inline bool VERBOSE_MODE = false;
-inline const string CURRENT_VERSION = "6.0.0";
+inline const string CURRENT_VERSION = "6.1.0";

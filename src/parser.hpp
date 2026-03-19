@@ -3,6 +3,7 @@
 #include "languages.hpp"
 #include "cache.hpp"
 #include "ast.hpp"
+#include "ast_utils.hpp"
 
 // Flex/Bison interface
 extern int yyparse(ProgramNode** root);
@@ -512,6 +513,161 @@ inline vector<string> splitSourceCode(const string& code, int targetLines = 500)
     return chunks;
 }
 
+// [NEW v6.1] AST-Driven Source Code Slicing
+inline vector<string> sliceSourceCodeAST(const string& code, const string& lang_id) {
+    vector<string> chunks;
+    
+    TSASTParser parser;
+    if (!parser.set_language(lang_id)) {
+        // Fallback to heuristic if language grammar isn't loaded (e.g., Python, JS)
+        return splitSourceCode(code);
+    }
+
+    TSASTTree tree = parser.parse_string(code);
+    TSASTNode root = tree.root_node();
+    
+    string currentHeaderChunk = "";
+    
+    // Walk the top-level nodes of the file
+    for (uint32_t i = 0; i < root.child_count(); ++i) {
+        TSASTNode child = root.child(i);
+        string type = child.type();
+        string text = child.get_text(code);
+        
+        // If it's a major structural block, give it its own chunk
+        if (type == "function_definition" || type == "class_specifier" || 
+            type == "struct_specifier" || type == "template_declaration" || 
+            type == "namespace_definition") {
+            
+            if (!currentHeaderChunk.empty()) {
+                chunks.push_back(currentHeaderChunk);
+                currentHeaderChunk = "";
+            }
+            chunks.push_back(text);
+        } else {
+            // Group smaller nodes (macros, includes, using declarations) together
+            currentHeaderChunk += text + "\n";
+        }
+    }
+    if (!currentHeaderChunk.empty()) chunks.push_back(currentHeaderChunk);
+    return chunks;
+}
+
+// [NEW v6.2] Helper to extract a symbol's identifier from an AST Node
+inline string extractSymbolName(TSASTNode node, const string& code) {
+    if (node.is_null()) return "";
+    
+    for (uint32_t i = 0; i < node.child_count(); ++i) {
+        TSASTNode child = node.child(i);
+        string type = child.type();
+        
+        if (type == "identifier" || type == "type_identifier" || type == "field_identifier") {
+            return child.get_text(code);
+        }
+        if (type == "function_declarator" || type == "pointer_declarator" || 
+            type == "reference_declarator" || type == "template_type") {
+            string name = extractSymbolName(child, code);
+            if (!name.empty()) return name;
+        }
+    }
+    return "";
+}
+
+// [NEW v6.2] Phase 2: Build Global Symbol Graph
+inline map<string, string> buildGlobalSymbolGraph(const string& code, const string& lang_id) {
+    map<string, string> symbolGraph;
+    
+    TSASTParser parser;
+    if (!parser.set_language(lang_id)) {
+        return symbolGraph; // Return empty if language not supported by tree-sitter yet
+    }
+
+    TSASTTree tree = parser.parse_string(code);
+    TSASTNode root = tree.root_node();
+    
+    for (uint32_t i = 0; i < root.child_count(); ++i) {
+        TSASTNode child = root.child(i);
+        string type = child.type();
+        string text = child.get_text(code);
+        
+        string sig = "";
+        string name = "";
+
+        if (type == "function_definition") {
+            uint32_t count = child.child_count();
+            if (count > 0) {
+                TSASTNode last_child = child.child(count - 1);
+                if (last_child.type() == "compound_statement") {
+                    uint32_t start_byte = child.start_byte();
+                    uint32_t end_byte = last_child.start_byte();
+                    if (start_byte < end_byte && end_byte <= code.length()) {
+                        sig = code.substr(start_byte, end_byte - start_byte) + ";";
+                    }
+                }
+            }
+            if (sig.empty()) sig = text;
+            
+            for (uint32_t j = 0; j < count; ++j) {
+                TSASTNode c = child.child(j);
+                if (c.type() == "function_declarator" || c.type() == "pointer_declarator" || c.type() == "reference_declarator") {
+                    name = extractSymbolName(c, code);
+                    break;
+                }
+            }
+        } else if (type == "class_specifier" || type == "struct_specifier") {
+            size_t brace = text.find('{');
+            if (brace != string::npos) {
+                sig = text.substr(0, brace) + "{ ... };";
+            } else {
+                sig = text;
+            }
+            name = extractSymbolName(child, code);
+        } else if (type == "template_declaration") {
+            size_t brace = text.find('{');
+            if (brace != string::npos) {
+                sig = text.substr(0, brace) + "{ ... };";
+            } else {
+                sig = text;
+            }
+            for (uint32_t j = 0; j < child.child_count(); ++j) {
+                TSASTNode c = child.child(j);
+                if (c.type() == "class_specifier" || c.type() == "struct_specifier" || c.type() == "function_definition") {
+                    name = extractSymbolName(c, code);
+                    break;
+                }
+            }
+        } else if (type == "declaration") {
+             sig = text;
+             name = extractSymbolName(child, code);
+        }
+
+        if (!name.empty() && !sig.empty()) {
+            symbolGraph[name] = sig;
+        }
+    }
+    
+    return symbolGraph;
+}
+
+// [NEW v6.2] Get relevant context based on global graph by searching the chunk for symbol usage
+inline string getRelevantContext(const string& chunk, const map<string, string>& globalGraph) {
+    string relevantContext;
+    for (const auto& [name, sig] : globalGraph) {
+        // Simple heuristic: if the exact symbol name appears in the chunk, inject its signature.
+        size_t pos = chunk.find(name);
+        while (pos != string::npos) {
+            bool left_ok = (pos == 0) || (!isalnum(static_cast<unsigned char>(chunk[pos - 1])) && chunk[pos - 1] != '_');
+            bool right_ok = (pos + name.length() == chunk.length()) || (!isalnum(static_cast<unsigned char>(chunk[pos + name.length()])) && chunk[pos + name.length()] != '_');
+            if (left_ok && right_ok) {
+                relevantContext += sig + "\n";
+                break; // Found it once, no need to check further occurrences
+            }
+            pos = chunk.find(name, pos + 1);
+        }
+    }
+    return relevantContext;
+}
+
 // [NEW] Helper to extract signatures for context
 inline string extractSignatures(const string& code) {
     stringstream ss(code);
@@ -629,8 +785,8 @@ inline string sanitize_container_syntax(const string& code) {
     while ((pos = out.find("$$", pos)) != string::npos) {
         size_t temp = pos;
         
-        // Scan backwards to consume any whitespace
-        while (temp > 0 && isspace(static_cast<unsigned char>(out[temp - 1]))) {
+        // Scan backwards to consume ONLY spaces/tabs (do not cross lines and steal next block's opener)
+        while (temp > 0 && (out[temp - 1] == ' ' || out[temp - 1] == '\t')) {
             temp--;
         }
         

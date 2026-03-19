@@ -44,7 +44,8 @@ inline string callAI(string prompt) {
         file << body.dump(-1, ' ', false, json::error_handler_t::replace); 
         file.close();
         
-        string verbosity = VERBOSE_MODE ? " -v" : " -s";
+        // [FIX] Always use -s to prevent curl from outputting progress meters or connection logs to stdout
+        string verbosity = " -s";
         string cmd = "curl" + verbosity + " -X POST -H \"Content-Type: application/json\"" + extraHeaders + " -d @request_temp.json \"" + url + "\"";
         
         CmdResult res = execCmd(cmd);
@@ -73,6 +74,12 @@ inline string callAI(string prompt) {
 inline string extractCode(string jsonResponse) {
     if (jsonResponse.empty()) return "ERROR: Empty response from API";
     if (jsonResponse.find("ERROR:") == 0) return jsonResponse;
+
+    // [FIX] Strip any extraneous text (like cURL notes or API prefixes) before the JSON payload
+    size_t jsonStart = jsonResponse.find_first_of("{[");
+    if (jsonStart != string::npos) {
+        jsonResponse = jsonResponse.substr(jsonStart);
+    }
 
     try {
         json j = json::parse(jsonResponse);

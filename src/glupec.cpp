@@ -1,12 +1,7 @@
 /* GLUPE COMPILER ( formerly yori.exe) - v5.9.1*/
 
-// build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
-/* GLUPE COMPILER ( formerly yori.exe) - v5.9.1*/
-
-// build with this: g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs -static-libgcc -static-libstdc++
-
 //REFACTORED V 5.9
-#include "common.hpp"
+ #include "common.hpp"
 #include "utils.hpp"
 #include "config.hpp"
 #include "languages.hpp"
@@ -14,6 +9,7 @@
 #include "cache.hpp"
 #include "parser.hpp"
 #include "processor.hpp"
+#include "ast_utils.hpp"
 #include "hub.hpp"
 
 void runAutoBuild(bool runOutput, string outputName) {
@@ -134,6 +130,7 @@ int main(int argc, char* argv[]) {
         cout << "  push <file> [tags] : Upload file to GlupeHub (requires login)\n";
         cout << "  hub                : Enter interactive hub mode\n";
         cout << "  pull <file> <user> : Download file from GlupeHub\n";
+        cout << "  ast-test <file>    : Test Tree-sitter AST parsing\n";
         return 0;
     }
 
@@ -191,6 +188,46 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
+    // AST TEST COMMAND
+    if (cmd == "ast-test") {
+        if (argc < 3) {
+            cout << "Usage: glupe ast-test <file.cpp>" << endl;
+            return 1;
+        }
+        string targetFile = argv[2];
+        if (!fs::exists(targetFile)) {
+            cout << "[ERROR] File not found: " << targetFile << endl;
+            return 1;
+        }
+
+        ifstream f(targetFile);
+        string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+        f.close();
+
+        cout << "[AST-TEST] Parsing " << targetFile << " in RAM..." << endl;
+        try {
+            TSASTParser parser;
+            if (!parser.set_language("cpp")) {
+                cout << "[ERROR] Failed to set C++ language grammar." << endl;
+                return 1;
+            }
+            
+            TSASTTree tree = parser.parse_string(content);
+            TSASTNode root = tree.root_node();
+            
+            cout << "Root Node Type: " << root.type() << " (Children: " << root.child_count() << ")\n\n";
+            cout << "--- Top Level Nodes ---\n";
+            for (uint32_t i = 0; i < root.child_count(); ++i) {
+                TSASTNode child = root.child(i);
+                cout << "- " << child.type() << " [Bytes " << child.start_byte() << " to " << child.end_byte() << "]\n";
+            }
+            cout << "\n[SUCCESS] Tree-sitter is fully operational!" << endl;
+        } catch (const exception& e) {
+            cout << "[ERROR] " << e.what() << endl;
+        }
+        return 0;
+    }
+
     // UTILS COMMANDS
     if (cmd == "get-key" || cmd == "new-key") {
         openApiKeyPage();
@@ -1039,11 +1076,13 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            // [UPDATED] Sliding Window Logic
-            vector<string> chunks = splitSourceCode(content);
+            // [v6.1] AST-Driven Slicing
+            vector<string> chunks = sliceSourceCodeAST(content, CURRENT_LANG.id);
+            
+            // [v6.2] Phase 2: Build Global Symbol Graph
+            map<string, string> globalSymbolGraph = buildGlobalSymbolGraph(content, CURRENT_LANG.id);
             
             string fullRefinedCode = "";
-            string previousContext = "";
 
             cout << "[AI] Semantic compression (" << mode << ") - " << chunks.size() << " chunks..." << endl;
 
@@ -1080,31 +1119,37 @@ int main(int argc, char* argv[]) {
                 prompt << "TASK: " << taskDesc << "\n\n";
                 prompt << "[SYNTAX_RULES]\n";
                 prompt << "1. Block: $$ name -> parent1, parent2, ... { logic } $$ or if no parents $$ name { logic }$$\n";
-                prompt << "1.1 includes have their own blocks, GOOD: \"standard map lib\", BAD: #include <map> \n";
-                prompt << "1.2 Globals and constants have their own blocks\n";
-                prompt << "2. Abstract: $$ABSTRACT name -> parent { logic }$$\n. Abstract blocks do not generate code, only influence on other blocks";
-                prompt << "3. Inline: GOOD: $ name -> parent { logic }$, BAD: $ name { logic\\nlogic }$\n";
-                prompt << "4. STRICT: NO NESTING BLOCKS, NO $${$${}$$}$$ or $${${}$}$$.\n";
-                prompt << "5. DO NOT OVER SIMPLIFY. DO NOT OMIT LOGIC. DO NOT REPLACE WITH EXAMPLES or STUBS. every line must have its semantic representation\n";
+                prompt << "1.1 Group all #include statements inside a single named block. Example: $$ StandardIncGudesr{ 1. Include map } $$\n";
+                prompt << "1.2 Globals and constants must have their own named blocks.\n";
+                prompt << "2. Abstract: $ #include statements inside a single named block. Example: $$ StandardIncludes { 1. Include map } $$\n";
+                prompt << "1.2 Globals and constants must have their own named blocks.\n";
+                prompt << "2. Abstract: $$ABSTRACT name -> parent { logic }$$\nAbstract blocks do not generate code, only influence on other blocks.\n";
+                prompt << "3. Inline Block: $ name -> parent { logic } $. Same rules apply\n";
+                prompt << "4. STRICT: NO NESTING BLOCKS NOT MIXED LOGIC.\n";
+                prompt << "5. STRICT: EVERY block MUST have a namecalls.\n\n";
+                prompt << "[LOGIC_RULES]\n";
+                prompt << "- Format: Numbered algorithmic steps (1, 1.1, 1.2).\n";
+                prompt << "- Style: Imperative verbs (Get, Set, Check before the brace. DO NOT output anonymous blocks (e.g., $$ { logic }$$) or empty blocks.\n";
+                prompt << "6. DO NOT OVER SIMPLIFY. DO NOT OMIT LOGIC. DO NOT REPLACE WITH EXAMPLES or STUBS. every line must have its semantic representation\n";
                 prompt << "Use inheritance (->) for relationships/calls.\n\n";
                 prompt << "[LOGIC_RULES]\n";
                 prompt << "- Format: Numbered algorithmic steps (1, 1.1, 1.2).\n";
                 prompt << "- Style: Imperative verbs (Get, Set, Check). No prose.\n";
                 prompt << logicRule << "\n";
                 prompt << "- Intent Focus: Name blocks by Goal (e.g., 'FilterData') rather than syntax (e.g., 'Loop1').\n";
-                prompt << "- Detail: Rewrite logic inside blocks using technical steps. Do not over-summarize.\n";
-                prompt << "- Includes/Globals: Must have their own independent semantic blocks.\n";
-                    if (i > 0) {
-                        prompt << "\n[EXTERNAL_CONTEXT_FROM_PREVIOUS_PARTS]\n";
-                        // Extraemos solo firmas y globales del contexto previo para no saturar la memoria
-                        prompt << "Existing Signatures/Globals: " << extractSignatures(previousContext) << "\n";
-                        prompt << "Maintain strict compatibility with these definitions.\n";
-                    }
+                prompt << "write logic inside blocks using technical steps. Do not over-summarize.\n";
+                prompt << "\n[EXTERNAL_DEPENDENCIES]\n";
+                prompt << "- Includes/Globals: Group them logically into named blocks (e.g., 'Includes', 'Constants').\n";
 
-                if (i > 0) {
-                    prompt << "\n[CONTEXT_SYNC]\n";
-                    prompt << "Existing Signatures/Globals: " << extractSignatures(previousContext) << "\n";
-                    prompt << "Maintain STRICT compatibility with these definitions.\n";
+                // [v6.1] Inject precise Context using Global Symbol Graph
+                string relevantContext = getRelevantContext(chunks[i], globalSymbolGraph);
+                if (!relevantContext.empty()) {
+                    prompt << "\n[EXTERNAL_DEPENDENCIES]\n";
+                    prompt << "The following global symbols are used in this chunk. Maintain STRICT compatibility with them:\n";
+                    prompt << relevantContext << "\n";
+                    if (VERBOSE_MODE) {
+                        cout << "      [+] Injected Dependencies:\n" << relevantContext << endl;
+                    }
                 }
                     prompt << "\n[STRICT_RULES]\n";
                     if (isSpaghetti) {
@@ -1116,6 +1161,7 @@ int main(int argc, char* argv[]) {
                     prompt << "[SOURCE_CODE_PART_" << (i + 1) << "]\n";
                     prompt << "When refining code into intent, use a numbered algorithmic format. Use standard indentation for nested logic (1, 1.1, 1.2). Do not use prose. Use imperative verbs (Get, Set, Check, Return).";
                     prompt << "Semantic blocks should represent functions, classes, and logical groupings of code. They should not be arbitrary line groupings.\n";
+                    prompt << "EVERY block MUST be named. NO anonymous blocks. NO empty blocks.\n";
                     prompt << "Do not nest semantic blocks: BAD: $$ block1 { logic $$ block2 { logic } $$ }$$. GOOD: $$ block1 { logic }$$ $$ block2 { logic }$$\n";
                     prompt << "Semantic blocks support inheritence throguh this syntax $$ child -> parent { logic }$$. Use it to express function calls, class inheritance";
                     prompt << "Blocks can be abstract, express them though '$$ABSTRACT name -> parent {logic}$$, abstract blocks do not produce code, only influence other blockss\n";
@@ -1175,7 +1221,6 @@ int main(int argc, char* argv[]) {
                 }
 
                 fullRefinedCode += refinedChunk + "\n";
-                previousContext = refinedChunk; // Update context for next iteration
             }
 
             // [NEW] Sanitize syntax before saving

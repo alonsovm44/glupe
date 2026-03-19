@@ -1,0 +1,428 @@
+$$ Includes -> {
+1. #include "common.hpp"
+2. #include "utils.hpp"
+3. #include "config.hpp"
+4. #include "languages.hpp"
+5. #include "ai.hpp"
+6. #include "cache.hpp"
+7. #include "parser.hpp"
+8. #include "processor.hpp"
+9. #include "ast_utils.hpp"
+10. #include "hub.hpp"
+}$$
+
+$$ Constants {
+1. Define CURRENT_VERSION
+2. Define CACHE_DIR
+3. Define LOCK_FILE
+4. Define SESSION_FILE
+}$$
+
+$$ Globals {
+1. Declare ExecutionTimer cronoTimer
+2. Declare auto startTime
+}$$
+
+$$ Main -> {
+1. Get startTime as current high-resolution time
+2. Initialize logger
+3. Check if argument count is less than 2, show usage and exit if true
+4. Handle commands based on first argument
+}$$
+
+$$ HandleCommands -> Main {
+1. Define cmd as first argument
+2. Handle 'config' command
+3. Handle 'clean' command
+4. Handle 'ast-test' command
+5. Handle 'get-key' and 'new-key' commands
+6. Handle 'fix' command
+7. Handle 'sos' command
+8. Handle 'check' command
+9. Handle 'update' command
+10. Handle 'explain' command
+11. Handle 'diff' command
+12. Handle 'info' command
+13. Handle 'insert-metadata' command
+14. Handle 'signup' command
+15. Handle 'login' command
+16. Handle 'logout' command
+17. Handle 'whoami' command
+}$$
+
+$$ HandleConfigCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Define key as second argument
+3. Handle 'see' subcommand
+4. Handle 'model-local' subcommand
+5. Check if argument count is less than 4, show error and exit if true
+6. Update configuration file with key and value
+}$$
+
+$$ HandleCleanCommand -> HandleCommands {
+1. Check if argument count is greater than or equal to 3 and second argument is 'cache'
+2. Remove cache directory and lock file
+3. Show usage and exit if no valid subcommand
+}$$
+
+$$ HandleAstTestCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Define target file as second argument
+3. Check if file exists, show error and exit if not
+4. Read file content
+5. Parse content using TSASTParser
+6. Show parsing results
+}$$
+
+$$ HandleFixCommand -> HandleCommands {
+1. Check if argument count is less than 4, show usage and exit if true
+2. Define target file, instruction, and mode
+3. Load configuration based on mode
+4. Check if file exists, show error and exit if not
+5. Read file content
+6. Generate prompt for AI
+7. Call AI and get response
+8. Extract fixed code from response
+9. Write fixed code to file
+}$$
+
+$$ HandleSosCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Define language, query, and mode
+3. Load configuration based on mode
+4. Generate prompt for AI
+5. Call AI and get response
+6. Show AI response
+}$$
+
+$$ HandleCheckCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Define target file
+3. Check if file exists, show error and exit if not
+4. Read file content
+5. Validate containers in content
+6. Show validation result
+}$$
+
+$$ HandleUpdateCommand -> HandleCommands {
+1. Show update message
+2. Execute update script based on platform
+3. Show update result
+}$$
+
+$$ HandleExplainCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Define target file, mode, and language
+3. Load configuration based on mode
+4. Check if file exists, show error and exit if not
+5. Read file content
+6. Generate prompt for AI
+7. Call AI and get response
+8. Extract documented code from response
+9. Write documented code to file
+}$$
+
+$$ HandleDiffCommand -> HandleCommands {
+1. Check if argument count is less than 4, show usage and exit if true
+2. Define fileA, fileB, mode, and language
+3. Load configuration based on mode
+4. Check if files exist, show error and exit if not
+5. Read file contents
+6. Generate prompt for AI
+7. Call AI and get response
+8. Write report to file
+}$$
+
+$$ HandleInfoCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Show metadata for file
+}$$
+
+$$ HandleInsertMetadataCommand -> HandleCommands {
+1. Check if argument count is less than 3, show usage and exit if true
+2. Define target file
+3. Generate metadata
+4. Write metadata to file
+}$$
+
+$$ HandleSignupCommand -> HandleCommands {
+1. Define URL, username, password, and confirm password
+2. Get username input and check availability
+3. Get password input and confirm
+4. Send signup request
+5. Handle signup response
+}$$
+
+$$ HandleLoginCommand -> HandleCommands {
+1. Define URL, username, and password
+2. Get username and password input
+3. Send login request
+4. Handle login response
+}$$
+
+$$ HandleLogoutCommand -> HandleCommands {
+1. Remove session file if exists
+2. Show logout message
+}$$
+
+$$ HandleWhoamiCommand -> HandleCommands {
+1. Get session information
+2. Show login status
+}$$
+
+$$ RunAutoBuild {
+1. Define buildSuccess as false
+2. Check for Makefile and execute 'make' if exists
+3. Check for CMakeLists.txt and configure/build if exists
+4. Check for build.sh and execute if exists
+5. Check for build.bat and execute if exists
+6. Show no build script message if none found
+7. Check if runOutput is true and buildSuccess is true
+8. Execute output binary if exists
+}$$
+
+$$ ShowHelp {
+1. Show GLUPE usage and options
+2. Show core options
+3. Show commands
+4. Show examples
+}$$
+$$ StandardIncludes {
+    1. Include necessary headers for file system operations, string manipulation, and JSON parsing.
+}$$
+
+$$ Constants {
+    1. Define constants for default URLs, file extensions, and error messages.
+}$$
+
+$$ CommandHandler -> AbstractCommandHandler {
+    1. Handle the "hub" command.
+    1.1. Check if the user is logged in.
+    1.2. Clear the input buffer.
+    1.3. Start the interactive hub.
+    2. Handle the "push" command.
+    2.1. Validate the number of arguments.
+    2.2. Extract file name, tags, and URL from arguments.
+    2.3. Check if the file exists and has a valid extension.
+    2.4. Get the user session.
+    2.5. Construct and execute the cURL command to upload the file.
+    2.6. Parse the server response and handle errors.
+    3. Handle the "pull" command.
+    3.1. Validate the number of arguments.
+    3.2. Extract file name, username, and URL from arguments.
+    3.3. Construct the target URL.
+    3.4. Execute the cURL command to download the file.
+    3.5. Check the HTTP status code and handle errors.
+    4. Handle the "edit" command.
+    4.1. Validate the number of arguments.
+    4.2. Extract file name, container name, and new prompt from arguments.
+    4.3. Read the file content.
+    4.4. Find and update the specified container.
+    4.5. Write the updated content back to the file.
+}$$
+
+$$ ArgumentParser -> AbstractArgumentParser {
+    1. Parse command-line arguments.
+    1.1. Initialize flags and variables.
+    1.2. Iterate through arguments and set corresponding flags/variables.
+    1.3. Separate input files from update targets.
+    1.4. Validate input files and set default output name if necessary.
+}$$
+
+$$ MainWorkflow -> AbstractWorkflow {
+    1. Execute the main workflow.
+    1.1. Parse arguments using ArgumentParser.
+    1.2. Load configuration based on the selected mode.
+    1.3. Handle refine mode if enabled.
+    1.4. Process input files and aggregate context.
+    1.5. Validate containers and process exports.
+    1.6. Initialize cache and check for cached build.
+    1.7. Execute the build process if necessary.
+}$$
+
+$$ AbstractCommandHandler {
+    1. Define abstract methods for handling commands.
+}$$
+
+$$ AbstractArgumentParser {
+    1. Define abstract methods for parsing arguments.
+}$$
+
+$$ AbstractWorkflow {
+    1. Define abstract methods for executing workflows.
+}$$
+
+$$ RefineModeHandler -> CommandHandler {
+    1. Handle refine mode.
+    1.1. Process each input file.
+    1.2. Slice source code into chunks.
+    1.3. Build global symbol graph.
+    1.4. Refine each chunk using AI.
+    1.5. Sanitize and save the refined code.
+}$$
+
+$$ CacheManager {
+    1. Manage build cache.
+    1.1. Initialize cache.
+    1.2. Check for cached build.
+    1.3. Update cache with new build.
+}$$
+
+$$ ExportProcessor {
+    1. Process export directives.
+    1.1. Parse export blocks from content.
+    1.2. Generate files based on export directives.
+}$$
+
+$$ main {
+    1. Initialize and execute the MainWorkflow.
+}$$
+$$ Includes {
+1. #ifdef _WIN32
+2. #else
+3. #endif
+4. #include <chrono>
+5. #include <fstream>
+6. #include <iostream>
+7. #include <set>
+8. #include <sstream>
+9. #include <string>
+10. #include <thread>
+}$$
+
+$$ Constants {
+1. const int MAX_RETRIES = 5;
+}$$
+
+$$ Globals {
+1. string aggregatedContext;
+2. string outputName;
+3. bool updateMode;
+4. bool seriesMode;
+5. bool makeMode;
+6. bool runOutput;
+7. bool useStdout;
+8. bool fillMode;
+9. bool interactiveMode;
+10. bool ideMode;
+11. map<string, string> interactiveAnswers;
+12. vector<string> inputFiles;
+13. string customInstructions;
+14. string errorHistory;
+15. GenMode CURRENT_MODE;
+16. Language CURRENT_LANG;
+}$$
+
+$$ PreFlightCheck -> Globals {
+1. Check if potential dependencies are valid.
+2. Return true if valid, false otherwise.
+}$$
+
+$$ ProcessInputWithCache -> Globals {
+1. Process input with cache based on modes and flags.
+2. Return updated aggregatedContext.
+}$$
+
+$$ ParseBlueprint -> Globals {
+1. Parse blueprint from aggregatedContext.
+2. Return vector of blueprint items.
+}$$
+
+$$ CallAI -> Globals {
+1. Call AI with given prompt.
+2. Handle retries and rate limits.
+3. Return AI response.
+}$$
+
+$$ ExtractCode -> Globals {
+1. Extract code from AI response.
+2. Return extracted code.
+}$$
+
+$$ UpdateCacheFromOutput -> Globals {
+1. Update cache based on AI output.
+2. Return updated code.
+}$$
+
+$$ PerformTreeShaking -> Globals {
+1. Perform tree shaking on code.
+2. Return optimized code.
+}$$
+
+$$ ProcessExports -> Globals {
+1. Process exports in AI output.
+2. Return processed code.
+}$$
+
+$$ RunAutoBuild -> Globals {
+1. Run auto build process.
+2. Handle output execution if required.
+}$$
+
+$$ FormatDuration -> Globals {
+1. Format duration in seconds to human-readable format.
+2. Return formatted string.
+}$$
+
+$$ ExecCmd -> Globals {
+1. Execute system command.
+2. Return command result.
+}$$
+
+$$ MainLogic -> PreFlightCheck, ProcessInputWithCache, ParseBlueprint, CallAI, ExtractCode, UpdateCacheFromOutput, PerformTreeShaking, ProcessExports, RunAutoBuild, FormatDuration, ExecCmd {
+1. Check dependencies and preprocess input.
+2. Handle series mode generation.
+3. Handle direct compilation if possible.
+4. Generate code through AI in passes.
+5. Handle AI retries and errors.
+6. Update cache and perform optimizations.
+7. Process exports and handle output.
+8. Run auto build and execute output if required.
+}$$
+$$ FileOperations {
+    1. Open file at tempSrc, write code, close file
+    2. Check CURRENT_MODE: if MODEL_3D or IMAGE, handle asset generation
+    3. Verify and clean up temporary files
+    4. Execute build commands based on mode and language settings
+    5. Handle output saving and error cases
+}$$
+
+$$ AssetGeneration -> FileOperations {
+    1. Display success message with outputName
+    2. Attempt to save file with retry mechanism
+    3. Remove temporary source file
+    4. Return success or error code
+}$$
+
+$$ FileCleanup {
+    1. Check if tempBin exists and is produced by CURRENT_LANG
+    2. Attempt to remove tempBin with retry mechanism
+}$$
+
+$$ BuildExecution {
+    1. Check blindMode and customBuildCmd
+    2. Execute custom build command or default build command
+    3. Handle build result and display messages
+}$$
+
+$$ OutputHandling -> BuildExecution {
+    1. Determine saveAsSource based on outputName extension and modes
+    2. Attempt to save output file with retry mechanism
+    3. Handle binary and source file copying
+    4. Remove temporary files if necessary
+    5. Run output if enabled
+}$$
+
+$$ ErrorHandling {
+    1. Display error messages with details
+    2. Check for fatal errors and handle user input
+    3. Log errors and update error history
+}$$
+
+$$ Includes {
+    1. Include necessary headers for file system, threading, error handling
+}$$
+
+$$ Constants {
+    1. Define constants for modes, language settings, and file paths
+}$$

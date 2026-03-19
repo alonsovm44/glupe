@@ -1,3 +1,13 @@
+## v6.1.0 2026-03-18
+
+Added:
+
+- added global symbol graph using tree sitter
+- added tree sitter c++ parsing for refine mode
+Removed:
+
+Improved/Fixed:
+
 ## v6.0.0 2026-03-13
 
 Added:
