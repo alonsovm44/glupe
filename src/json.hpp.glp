@@ -1,0 +1,3894 @@
+$$ StandardIncludes -> {
+    1. Include algorithm,
+    2. Include cstddef,
+    3. Include functional,
+    4. Include initializer_list,
+    5. Include iosfwd (conditional on JSON_NO_IO),
+    6. Include iterator,
+    7. Include memory,
+    8. Include string,
+    9. Include utility,
+    10. Include vector
+}$$
+
+$$ VersionMacros {
+    1. Define NLOHMANN_JSON_VERSION_MAJOR,
+    2. Define NLOHMANN_JSON_VERSION_MINOR,
+    3. Define NLOHMANN_JSON_VERSION_PATCH,
+    4. Define JSON_DIAGNOSTICS (conditional),
+    5. Define JSON_USE_LEGACY_DISCARDED_VALUE_COMPARISON (conditional),
+    6. Define NLOHMANN_JSON_ABI_TAG_DIAGNOSTICS,
+    7. Define NLOHMANN_JSON_ABI_TAG_LEGACY_DISCARDED_VALUE_COMPARISON,
+    8. Define NLOHMANN_JSON_NAMESPACE_NO_VERSION (conditional),
+    9. Define NLOHMANN_JSON_ABI_TAGS_CONCAT_EX,
+    10. Define NLOHMANN_JSON_ABI_TAGS_CONCAT,
+    11. Define NLOHMANN_JSON_ABI_TAGS,
+    12. Define NLOHMANN_JSON_NAMESPACE_VERSION_CONCAT_EX,
+    13. Define NLOHMANN_JSON_NAMESPACE_VERSION_CONCAT,
+    14. Define NLOHMANN_JSON_NAMESPACE_VERSION (conditional),
+    15. Define NLOHMANN_JSON_NAMESPACE_CONCAT_EX,
+    16. Define NLOHMANN_JSON_NAMESPACE_CONCAT,
+    17. Define NLOHMANN_JSON_NAMESPACE (conditional),
+    18. Define NLOHMANN_JSON_NAMESPACE_BEGIN,
+    19. Define NLOHMANN_JSON_NAMESPACE_END
+}$$
+
+$$ABSTRACT NamespaceManagement {
+    1. Begin NLOHMANN_JSON_NAMESPACE_BEGIN,
+    2. End NLOHMANN_JSON_NAMESPACE_END
+}$$
+
+$$ TypeTraits {
+    1. Define make_void struct,
+    2. Define void_t using make_void,
+    3. Define nonesuch struct,
+    4. Define detector struct,
+    5. Define is_detected using detector,
+    6. Define is_detected_lazy,
+    7. Define detected_t,
+    8. Define detected_or,
+    9. Define detected_or_t,
+    10. Define is_detected_exact,
+    11. Define is_detected_convertible
+}$$
+
+$$ HedleyMacros {
+    1. Define JSON_HEDLEY_VERSION,
+    2. Define JSON_HEDLEY_STRINGIFY_EX,
+    3. Define JSON_HEDLEY_STRINGIFY,
+    4. Define JSON_HEDLEY_CONCAT_EX,
+    5. Define JSON_HEDLEY_CONCAT,
+    6. Define JSON_HEDLEY_CONCAT3_EX,
+    7. Define JSON_HEDLEY_CONCAT3,
+    8. Define JSON_HEDLEY_VERSION_ENCODE,
+    9. Define JSON_HEDLEY_VERSION_DECODE_MAJOR,
+    10. Define JSON_HEDLEY_VERSION_DECODE_MINOR,
+    11. Define JSON_HEDLEY_VERSION_DECODE_REVISION,
+    12. Define JSON_HEDLEY_GNUC_VERSION (conditional),
+    13. Define JSON_HEDLEY_GNUC_VERSION_CHECK,
+    14. Define JSON_HEDLEY_MSVC_VERSION (conditional),
+    15. Define JSON_HEDLEY_MSVC_VERSION_CHECK,
+    16. Define JSON_HEDLEY_INTEL_VERSION (conditional),
+    17. Define JSON_HEDLEY_INTEL_VERSION_CHECK,
+    18. Define JSON_HEDLEY_INTEL_CL_VERSION (conditional),
+    19. Define JSON_HEDLEY_INTEL_CL_VERSION_CHECK,
+    20. Define JSON_HEDLEY_PGI_VERSION (conditional),
+    21. Define JSON_HEDLEY_PGI_VERSION_CHECK,
+    22. Define JSON_HEDLEY_SUNPRO_VERSION (conditional),
+    23. Define JSON_HEDLEY_SUNPRO_VERSION_CHECK
+}$$
+
+$$ NamespaceInitialization {
+    1. Initialize NLOHMANN_JSON_NAMESPACE,
+    2. Begin namespace nlohmann,
+    3. Begin inline namespace NLOHMANN_JSON_NAMESPACE
+}$$
+$$ CompilerVersionChecks {
+    1. Define JSON_HEDLEY_SUNPRO_VERSION_CHECK
+    2. Define JSON_HEDLEY_EMSCRIPTEN_VERSION_CHECK
+    3. Define JSON_HEDLEY_ARM_VERSION_CHECK
+    4. Define JSON_HEDLEY_IBM_VERSION_CHECK
+    5. Define JSON_HEDLEY_TI_VERSION_CHECK
+    6. Define JSON_HEDLEY_TI_CL2000_VERSION_CHECK
+    7. Define JSON_HEDLEY_TI_CL430_VERSION_CHECK
+    8. Define JSON_HEDLEY_TI_ARMCL_VERSION_CHECK
+    9. Define JSON_HEDLEY_TI_CL6X_VERSION_CHECK
+    10. Define JSON_HEDLEY_TI_CL7X_VERSION_CHECK
+    11. Define JSON_HEDLEY_TI_CLPRU_VERSION_CHECK
+    12. Define JSON_HEDLEY_CRAY_VERSION_CHECK
+    13. Define JSON_HEDLEY_IAR_VERSION_CHECK
+    14. Define JSON_HEDLEY_TINYC_VERSION_CHECK
+    15. Define JSON_HEDLEY_DMC_VERSION_CHECK
+    16. Define JSON_HEDLEY_COMPCERT_VERSION_CHECK
+    17. Define JSON_HEDLEY_PELLES_VERSION_CHECK
+    18. Define JSON_HEDLEY_MCST_LCC_VERSION_CHECK
+    19. Define JSON_HEDLEY_GCC_VERSION_CHECK
+}$$
+
+$$ FeatureDetection {
+    1. Define JSON_HEDLEY_HAS_ATTRIBUTE
+    2. Define JSON_HEDLEY_GNUC_HAS_ATTRIBUTE
+    3. Define JSON_HEDLEY_GCC_HAS_ATTRIBUTE
+    4. Define JSON_HEDLEY_HAS_CPP_ATTRIBUTE
+    5. Define JSON_HEDLEY_HAS_CPP_ATTRIBUTE_NS
+    6. Define JSON_HEDLEY_GNUC_HAS_CPP_ATTRIBUTE
+    7. Define JSON_HEDLEY_GCC_HAS_CPP_ATTRIBUTE
+    8. Define JSON_HEDLEY_HAS_BUILTIN
+    9. Define JSON_HEDLEY_GNUC_HAS_BUILTIN
+    10. Define JSON_HEDLEY_GCC_HAS_BUILTIN
+    11. Define JSON_HEDLEY_HAS_FEATURE
+    12. Define JSON_HEDLEY_GNUC_HAS_FEATURE
+    13. Define JSON_HEDLEY_GCC_HAS_FEATURE
+    14. Define JSON_HEDLEY_HAS_EXTENSION
+    15. Define JSON_HEDLEY_GNUC_HAS_EXTENSION
+    16. Define JSON_HEDLEY_GCC_HAS_EXTENSION
+    17. Define JSON_HEDLEY_HAS_DECLSPEC_ATTRIBUTE
+    18. Define JSON_HEDLEY_GNUC_HAS_DECLSPEC_ATTRIBUTE
+}$$
+
+$$ CompilerVersions {
+    1. Define JSON_HEDLEY_SUNPRO_VERSION
+    2. Define JSON_HEDLEY_EMSCRIPTEN_VERSION
+    3. Define JSON_HEDLEY_ARM_VERSION
+    4. Define JSON_HEDLEY_IBM_VERSION
+    5. Define JSON_HEDLEY_TI_VERSION
+    6. Define JSON_HEDLEY_TI_CL2000_VERSION
+    7. Define JSON_HEDLEY_TI_CL430_VERSION
+    8. Define JSON_HEDLEY_TI_ARMCL_VERSION
+    9. Define JSON_HEDLEY_TI_CL6X_VERSION
+    10. Define JSON_HEDLEY_TI_CL7X_VERSION
+    11. Define JSON_HEDLEY_TI_CLPRU_VERSION
+    12. Define JSON_HEDLEY_CRAY_VERSION
+    13. Define JSON_HEDLEY_IAR_VERSION
+    14. Define JSON_HEDLEY_TINYC_VERSION
+    15. Define JSON_HEDLEY_DMC_VERSION
+    16. Define JSON_HEDLEY_COMPCERT_VERSION
+    17. Define JSON_HEDLEY_PELLES_VERSION
+    18. Define JSON_HEDLEY_MCST_LCC_VERSION
+    19. Define JSON_HEDLEY_GCC_VERSION
+}$$
+
+$$ CompilerSpecificDefinitions {
+    1. Handle JSON_HEDLEY_SUNPRO_VERSION
+    2. Handle JSON_HEDLEY_EMSCRIPTEN_VERSION
+    3. Handle JSON_HEDLEY_ARM_VERSION
+    4. Handle JSON_HEDLEY_IBM_VERSION
+    5. Handle JSON_HEDLEY_TI_VERSION
+    6. Handle JSON_HEDLEY_TI_CL2000_VERSION
+    7. Handle JSON_HEDLEY_TI_CL430_VERSION
+    8. Handle JSON_HEDLEY_TI_ARMCL_VERSION
+    9. Handle JSON_HEDLEY_TI_CL6X_VERSION
+    10. Handle JSON_HEDLEY_TI_CL7X_VERSION
+    11. Handle JSON_HEDLEY_TI_CLPRU_VERSION
+    12. Handle JSON_HEDLEY_CRAY_VERSION
+    13. Handle JSON_HEDLEY_IAR_VERSION
+    14. Handle JSON_HEDLEY_TINYC_VERSION
+    15. Handle JSON_HEDLEY_DMC_VERSION
+    16. Handle JSON_HEDLEY_COMPCERT_VERSION
+    17. Handle JSON_HEDLEY_PELLES_VERSION
+    18. Handle JSON_HEDLEY_MCST_LCC_VERSION
+    19. Handle JSON_HEDLEY_GCC_VERSION
+}$$
+$$ Macros -> {
+    1. Define JSON_HEDLEY_GNUC_HAS_DECLSPEC_ATTRIBUTE
+    2. Define JSON_HEDLEY_GCC_HAS_DECLSPEC_ATTRIBUTE
+    3. Define JSON_HEDLEY_HAS_WARNING
+    4. Define JSON_HEDLEY_GNUC_HAS_WARNING
+    5. Define JSON_HEDLEY_GCC_HAS_WARNING
+    6. Define JSON_HEDLEY_PRAGMA
+    7. Define JSON_HEDLEY_DIAGNOSTIC_PUSH
+    8. Define JSON_HEDLEY_DIAGNOSTIC_POP
+    9. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_CPP98_COMPAT_WRAP_
+    10. Define JSON_HEDLEY_CONST_CAST
+    11. Define JSON_HEDLEY_REINTERPRET_CAST
+    12. Define JSON_HEDLEY_STATIC_CAST
+    13. Define JSON_HEDLEY_CPP_CAST
+    14. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED
+    15. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNKNOWN_PRAGMAS
+    16. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNKNOWN_CPP_ATTRIBUTES
+    17. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_CAST_QUAL
+    18. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNUSED_FUNCTION
+    19. Define JSON_HEDLEY_DEPRECATED
+    20. Define JSON_HEDLEY_DEPRECATED_FOR
+    21. Define JSON_HEDLEY_UNAVAILABLE
+    22. Define JSON_HEDLEY_WARN_UNUSED_RESULT
+    23. Define JSON_HEDLEY_WARN_UNUSED_RESULT_MSG
+    24. Define JSON_HEDLEY_SENTINEL
+    25. Define JSON_HEDLEY_NO_RETURN
+}$$
+
+$$ Conditions -> {
+    1. Check for JSON_HEDLEY_GNUC_HAS_DECLSPEC_ATTRIBUTE
+    2. Check for JSON_HEDLEY_GCC_HAS_DECLSPEC_ATTRIBUTE
+    3. Check for JSON_HEDLEY_HAS_WARNING
+    4. Check for JSON_HEDLEY_GNUC_HAS_WARNING
+    5. Check for JSON_HEDLEY_GCC_HAS_WARNING
+    6. Check for JSON_HEDLEY_PRAGMA
+    7. Check for JSON_HEDLEY_DIAGNOSTIC_PUSH
+    8. Check for JSON_HEDLEY_DIAGNOSTIC_POP
+    9. Check for JSON_HEDLEY_DIAGNOSTIC_DISABLE_CPP98_COMPAT_WRAP_
+    10. Check for JSON_HEDLEY_CONST_CAST
+    11. Check for JSON_HEDLEY_REINTERPRET_CAST
+    12. Check for JSON_HEDLEY_STATIC_CAST
+    13. Check for JSON_HEDLEY_CPP_CAST
+    14. Check for JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED
+    15. Check for JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNKNOWN_PRAGMAS
+    16. Check for JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNKNOWN_CPP_ATTRIBUTES
+    17. Check for JSON_HEDLEY_DIAGNOSTIC_DISABLE_CAST_QUAL
+    18. Check for JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNUSED_FUNCTION
+    19. Check for JSON_HEDLEY_DEPRECATED
+    20. Check for JSON_HEDLEY_DEPRECATED_FOR
+    21. Check for JSON_HEDLEY_UNAVAILABLE
+    22. Check for JSON_HEDLEY_WARN_UNUSED_RESULT
+    23. Check for JSON_HEDLEY_WARN_UNUSED_RESULT_MSG
+    24. Check for JSON_HEDLEY_SENTINEL
+    25. Check for JSON_HEDLEY_NO_RETURN
+}$$
+
+$$ CompilerChecks -> {
+    1. JSON_HEDLEY_GNUC_VERSION_CHECK
+    2. JSON_HEDLEY_GCC_VERSION_CHECK
+    3. JSON_HEDLEY_INTEL_VERSION_CHECK
+    4. JSON_HEDLEY_IAR_VERSION_CHECK
+    5. JSON_HEDLEY_PGI_VERSION_CHECK
+    6. JSON_HEDLEY_ARM_VERSION_CHECK
+    7. JSON_HEDLEY_TI_VERSION_CHECK
+    8. JSON_HEDLEY_TI_ARMCL_VERSION_CHECK
+    9. JSON_HEDLEY_TI_CL430_VERSION_CHECK
+    10. JSON_HEDLEY_TI_CL2000_VERSION_CHECK
+    11. JSON_HEDLEY_TI_CL6X_VERSION_CHECK
+    12. JSON_HEDLEY_TI_CL7X_VERSION_CHECK
+    13. JSON_HEDLEY_TI_CLPRU_VERSION_CHECK
+    14. JSON_HEDLEY_CRAY_VERSION_CHECK
+    15. JSON_HEDLEY_TINYC_VERSION_CHECK
+    16. JSON_HEDLEY_SUNPRO_VERSION_CHECK
+    17. JSON_HEDLEY_IBM_VERSION_CHECK
+    18. JSON_HEDLEY_MSVC_VERSION_CHECK
+    19. JSON_HEDLEY_INTEL_CL_VERSION_CHECK
+    20. JSON_HEDLEY_MCST_LCC_VERSION_CHECK
+    21. JSON_HEDLEY_PELLES_VERSION_CHECK
+}$$
+
+$$ Attributes -> {
+    1. Define JSON_HEDLEY_HAS_ATTRIBUTE
+    2. Define JSON_HEDLEY_HAS_EXTENSION
+    3. Define JSON_HEDLEY_HAS_WARNING
+    4. Define JSON_HEDLEY_HAS_CPP_ATTRIBUTE
+}$$
+
+$$ Diagnostics -> {
+    1. Define JSON_HEDLEY_DIAGNOSTIC_PUSH
+    2. Define JSON_HEDLEY_DIAGNOSTIC_POP
+    3. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_DEPRECATED
+    4. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNKNOWN_PRAGMAS
+    5. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNKNOWN_CPP_ATTRIBUTES
+    6. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_CAST_QUAL
+    7. Define JSON_HEDLEY_DIAGNOSTIC_DISABLE_UNUSED_FUNCTION
+}$$
+
+$$ Casting -> {
+    1. Define JSON_HEDLEY_CONST_CAST
+    2. Define JSON_HEDLEY_REINTERPRET_CAST
+    3. Define JSON_HEDLEY_STATIC_CAST
+    4. Define JSON_HEDLEY_CPP_CAST
+}$$
+
+$$ Deprecation -> {
+    1. Define JSON_HEDLEY_DEPRECATED
+    2. Define JSON_HEDLEY_DEPRECATED_FOR
+}$$
+
+$$ Availability -> {
+    1. Define JSON_HEDLEY_UNAVAILABLE
+}$$
+
+$$ Warnings -> {
+    1. Define JSON_HEDLEY_WARN_UNUSED_RESULT
+    2. Define JSON_HEDLEY_WARN_UNUSED_RESULT_MSG
+}$$
+
+$$ Sentinel -> {
+    1. Define JSON_HEDLEY_SENTINEL
+}$$
+
+$$ NoReturn -> {
+    1. Define JSON_HEDLEY_NO_RETURN
+}$$
+$$ CompilerVersionChecks {
+    1. Check MSVC version using JSON_HEDLEY_MSVC_VERSION_CHECK
+    2. Check Intel CL version using JSON_HEDLEY_INTEL_CL_VERSION_CHECK
+    3. Check TI CL6X version and C++ mode using JSON_HEDLEY_TI_CL6X_VERSION_CHECK and defined(__cplusplus)
+    4. Check CompCert version using JSON_HEDLEY_COMPCERT_VERSION_CHECK
+    5. Check Pelles version using JSON_HEDLEY_PELLES_VERSION_CHECK
+}$$
+
+$$ NoReturnAttribute {
+    1. Define JSON_HEDLEY_NO_RETURN based on compiler version checks
+    2. Use __declspec(noreturn) for MSVC and Pelles
+    3. Use _Pragma("FUNC_NEVER_RETURNS;") for TI CL6X in C++ mode
+    4. Use __attribute__((noreturn)) for CompCert
+    5. Default to empty definition
+}$$
+
+$$ NoEscapeAttribute {
+    1. Check if JSON_HEDLEY_NO_ESCAPE is already defined
+    2. Define JSON_HEDLEY_NO_ESCAPE using __attribute__((__noescape__)) if supported
+    3. Default to empty definition
+}$$
+
+$$ AssumeMacro {
+    1. Check if JSON_HEDLEY_ASSUME is already defined
+    2. Define JSON_HEDLEY_ASSUME using compiler-specific intrinsics
+    3. Use __assume for MSVC and Intel
+    4. Use __builtin_assume for GCC and Clang
+    5. Use std::_nassert or _nassert for TI compilers
+    6. Default to casting expression to void
+}$$
+
+$$ UnreachableMacro {
+    1. Check if JSON_HEDLEY_UNREACHABLE is already defined
+    2. Define JSON_HEDLEY_UNREACHABLE using compiler-specific intrinsics
+    3. Use __builtin_unreachable for GCC, Clang, and other supported compilers
+    4. Use JSON_HEDLEY_ASSUME(0) as fallback
+    5. Define JSON_HEDLEY_UNREACHABLE_RETURN using JSON_HEDLEY_UNREACHABLE or return statement
+}$$
+
+$$ NonNullAttribute {
+    1. Check if JSON_HEDLEY_NON_NULL is already defined
+    2. Define JSON_HEDLEY_NON_NULL using __attribute__((__nonnull__)) if supported
+    3. Default to empty definition
+}$$
+
+$$ PrintfFormatAttribute {
+    1. Check if JSON_HEDLEY_PRINTF_FORMAT is already defined
+    2. Define JSON_HEDLEY_PRINTF_FORMAT using compiler-specific attributes
+    3. Use __attribute__((__format__)) for GCC, Clang, and other supported compilers
+    4. Use __declspec(vaformat) for Pelles
+    5. Default to empty definition
+}$$
+
+$$ ConstexprMacro {
+    1. Check if JSON_HEDLEY_CONSTEXPR is already defined
+    2. Define JSON_HEDLEY_CONSTEXPR using constexpr in C++11 or later
+    3. Default to empty definition
+}$$
+
+$$ PredictMacros {
+    1. Check if prediction macros are already defined
+    2. Define JSON_HEDLEY_PREDICT, JSON_HEDLEY_LIKELY, JSON_HEDLEY_UNLIKELY using compiler-specific intrinsics
+    3. Use __builtin_expect_with_probability or __builtin_expect for supported compilers
+    4. Default to simple expression evaluation
+}$$
+
+$$MallocAttribute {
+    1. Check if JSON_HEDLEY_MALLOC is already defined
+    2. Define JSON_HEDLEY_MALLOC using __attribute__((__malloc__)) if supported
+    3. Use compiler-specific alternatives for other compilers
+    4. Default to empty definition
+}$$
+
+$$ PureAttribute {
+    1. Check if JSON_HEDLEY_PURE is already defined
+    2. Define JSON_HEDLEY_PURE using __attribute__((__pure__)) if supported
+    3. Use compiler-specific alternatives for other compilers
+    4. Default to empty definition
+}$$
+
+$$ ConstAttribute {
+    1. Check if JSON_HEDLEY_CONST is already defined
+    2. Define JSON_HEDLEY_CONST using __attribute__((__const__)) if supported
+    3. Use compiler-specific alternatives for other compilers
+    4. Default to JSON_HEDLEY_PURE
+}$$
+
+$$ RestrictMacro {
+    1. Check if JSON_HEDLEY_RESTRICT is already defined
+    2. Define JSON_HEDLEY_RESTRICT using restrict or __restrict based on compiler and language
+    3. Default to empty definition
+}$$
+
+$$ InlineMacro {
+    1. Check if JSON_HEDLEY_INLINE is already defined
+    2. Define JSON_HEDLEY_INLINE using inline or compiler-specific keywords
+    3. Default to empty definition
+}$$
+
+$$ AlwaysInlineAttribute {
+    1. Check if JSON_HEDLEY_ALWAYS_INLINE is already defined
+    2. Define JSON_HEDLEY_ALWAYS_INLINE using __attribute__((__always_inline__)) or compiler-specific alternatives
+    3. Default to JSON_HEDLEY_INLINE
+}$$
+
+$$ NeverInlineAttribute {
+    1. Check if JSON_HEDLEY_NEVER_INLINE is already defined
+    2. Define JSON_HEDLEY_NEVER_INLINE using __attribute__((__noinline__)) or compiler-specific alternatives
+    3. Default to empty definition
+}$$
+
+$$ VisibilityMacros {
+    1. Define JSON_HEDLEY_PRIVATE, JSON_HEDLEY_PUBLIC, and JSON_HEDLEY_IMPORT based on platform and compiler
+    2. Use __declspec(dllexport) and __declspec(dllimport) for Windows
+    3. Use __attribute__((__visibility__("hidden"))) and __attribute__((__visibility__("default"))) for supported compilers
+    4. Default to empty definitions
+}$$
+$$ MacroDefinitions {
+    1. Define JSON_HEDLEY_NO_THROW based on compiler attributes or directives.
+    2. Define JSON_HEDLEY_FALL_THROUGH based on compiler attributes or directives.
+    3. Define JSON_HEDLEY_RETURNS_NON_NULL based on compiler attributes or directives.
+    4. Define JSON_HEDLEY_ARRAY_PARAM based on compiler and language standards.
+    5. Define JSON_HEDLEY_IS_CONSTANT and JSON_HEDLEY_REQUIRE_CONSTEXPR based on compiler builtins and language standards.
+    6. Define JSON_HEDLEY_BEGIN_C_DECLS, JSON_HEDLEY_END_C_DECLS, and JSON_HEDLEY_C_DECL for C++ and C compatibility.
+    7. Define JSON_HEDLEY_STATIC_ASSERT based on compiler and language standards.
+    8. Define JSON_HEDLEY_NULL based on language standards and compiler definitions.
+    9. Define JSON_HEDLEY_MESSAGE and JSON_HEDLEY_WARNING for compiler-specific message and warning pragmas.
+    10. Define JSON_HEDLEY_REQUIRE and JSON_HEDLEY_REQUIRE_MSG for compiler-specific requirement diagnostics.
+    11. Define JSON_HEDLEY_FLAGS and JSON_HEDLEY_FLAGS_CAST for flag enum attributes and casting.
+    12. Define JSON_HEDLEY_EMPTY_BASES for empty base class optimization.
+    13. Define deprecated macros for backward compatibility.
+    14. Exclude unsupported compilers and detect C++ language standard.
+    15. Define filesystem and experimental filesystem support based on compiler and language standards.
+    16. Define three-way comparison and ranges support based on compiler and language standards.
+    17. Define static RTTI support based on compiler definitions.
+    18. Define inline variable support based on C++17 availability.
+}$$
+
+$$ CompilerChecks {
+    1. Check for unsupported Clang versions.
+    2. Check for unsupported GCC versions.
+}$$
+
+$$ LanguageStandardDetection {
+    1. Detect C++20, C++17, C++14, and C++11 language standards.
+}$$
+
+$$ FilesystemSupport {
+    1. Determine filesystem and experimental filesystem support based on compiler and language standards.
+}$$
+
+$$ ThreeWayComparisonSupport {
+    1. Determine three-way comparison support based on compiler and language standards.
+}$$
+
+$$ RangesSupport {
+    1. Determine ranges support based on compiler and language standards.
+}$$
+
+$$ StaticRTTI {
+    1. Determine static RTTI support based on compiler definitions.
+}$$
+
+$$ InlineVariableSupport {
+    1. Determine inline variable support based on C++17 availability.
+}$$
+$$ Includes {
+    1. JSON_HEDLEY_HAS_ATTRIBUTE
+    2. JSON_NO_UNIQUE_ADDRESS
+    3. JSON_THROW
+    4. JSON_TRY
+    5. JSON_CATCH
+    6. JSON_INTERNAL_CATCH
+    7. JSON_ASSERT
+    8. JSON_PRIVATE_UNLESS_TESTED
+    9. NLOHMANN_JSON_SERIALIZE_ENUM
+    10. NLOHMANN_BASIC_JSON_TPL_DECLARATION
+    11. NLOHMANN_BASIC_JSON_TPL
+    12. NLOHMANN_JSON_EXPAND
+    13. NLOHMANN_JSON_GET_MACRO
+    14. NLOHMANN_JSON_PASTE
+    15. NLOHMANN_JSON_TO
+    16. NLOHMANN_JSON_FROM
+    17. NLOHMANN_JSON_FROM_WITH_DEFAULT
+    18. NLOHMANN_DEFINE_TYPE_INTRUSIVE
+    19. NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT
+    20. NLOHMANN_DEFINE_TYPE_INTRUSIVE_ONLY_SERIALIZE
+    21. NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
+    22. NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_ONLY_SERIALIZE
+    23. NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT
+    24. NLOHMANN_CAN_CALL_STD_FUNC_IMPL
+}$$
+
+$$ Constants {
+    1. JSON_USE_IMPLICIT_CONVERSIONS
+    2. JSON_DISABLE_ENUM_SERIALIZATION
+    3. JSON_USE_GLOBAL_UDLS
+    4. JSON_HAS_THREE_WAY_COMPARISON
+}$$
+
+$$ JSONTypeEnumeration -> Constants {
+    1. Define value_t enum with null, object, array, string, boolean, number_integer, number_unsigned, number_float, binary, discarded.
+    2. Implement operator<=> for value_t to define ordering.
+}$$
+
+$$ StringManipulation -> Includes {
+    1. Implement replace_substring to replace all occurrences of a substring.
+    2. Implement escape to escape special characters as per RFC 6901.
+    3. Implement unescape to unescape special characters as per RFC 6901.
+}$$
+
+$$ ExceptionHandling -> Includes {
+    1. Define JSON_THROW, JSON_TRY, JSON_CATCH, JSON_INTERNAL_CATCH macros based on exception support.
+    2. Override exception macros if user-defined versions are available.
+}$$
+
+$$ EnumSerialization -> Includes {
+    1. Define NLOHMANN_JSON_SERIALIZE_ENUM macro to serialize enums to/from JSON.
+}$$
+
+$$ TemplateDeclarations -> Includes {
+    1. Define NLOHMANN_BASIC_JSON_TPL_DECLARATION and NLOHMANN_BASIC_JSON_TPL macros for template declarations.
+}$$
+
+$$ MacroUtilities -> Includes {
+    1. Implement NLOHMANN_JSON_EXPAND, NLOHMANN_JSON_GET_MACRO, NLOHMANN_JSON_PASTE macros for macro expansion and pasting.
+}$$
+
+$$ IntrusiveTypes -> Includes {
+    1. Define macros for intrusive and non-intrusive type definitions with JSON serialization.
+}$$
+
+$$ FunctionDetection -> Includes {
+    1. Implement NLOHMANN_CAN_CALL_STD_FUNC_IMPL to detect if a standard function can be called.
+}$$
+$$ Includes {
+    1. Include <cstddef>
+    2. Include <nlohmann/detail/input/position_t.hpp>
+    3. Include <nlohmann/detail/abi_macros.hpp>
+    4. Include <nlohmann/detail/macro_scope.hpp>
+    5. Include <nlohmann/detail/meta/cpp_future.hpp>
+    6. Include <array>
+    7. Include <type_traits>
+    8. Include <utility>
+    9. Include <limits>
+    10. Include <iterator>
+    11. Include <nlohmann/detail/iterators/iterator_traits.hpp>
+    12. Include <nlohmann/detail/meta/void_t.hpp>
+    13. Include <nlohmann/detail/meta/call_std/begin.hpp>
+    14. Include <nlohmann/detail/meta/call_std/end.hpp>
+    15. Include <nlohmann/detail/meta/detected.hpp>
+    16. Include <nlohmann/json_fwd.hpp>
+}$$
+
+$$ Globals {
+    1. Define NLOHMANN_JSON_NAMESPACE_BEGIN
+    2. Define NLOHMANN_JSON_NAMESPACE_END
+    3. Define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(begin)
+    4. Define NLOHMANN_CAN_CALL_STD_FUNC_IMPL(end)
+}$$
+
+$$ PositionStruct -> Globals {
+    1. Define struct position_t
+    2. Initialize chars_read_total to 0
+    3. Initialize chars_read_current_line to 0
+    4. Initialize lines_read to 0
+    5. Define conversion operator to size_t
+}$$
+
+$$ UncvrefType -> Globals {
+    1. Define template alias uncvref_t using std::remove_cv and std::remove_reference
+}$$
+
+$$ EnableIfAlias -> Globals {
+    1. Define template alias enable_if_t for C++14 and below
+}$$
+
+$$ IntegerSequence -> Globals {
+    1. Define struct integer_sequence
+    2. Define size() function for integer_sequence
+}$$
+
+$$ IndexSequence -> Globals {
+    1. Define template alias index_sequence
+}$$
+
+$$ MakeIntegerSequence -> Globals {
+    1. Define template alias make_integer_sequence
+}$$
+
+$$ MakeIndexSequence -> Globals {
+    1. Define template alias make_index_sequence
+}$$
+
+$$ IndexSequenceFor -> Globals {
+    1. Define template alias index_sequence_for
+}$$
+
+$$ PriorityTag -> Globals {
+    1. Define struct priority_tag
+}$$
+
+$$ StaticConst -> Globals {
+    1. Define struct static_const
+}$$
+
+$$ MakeArray -> Globals {
+    1. Define function make_array to create std::array
+}$$
+
+$$ IteratorTypes -> Globals {
+    1. Define struct iterator_types
+}$$
+
+$$ IteratorTraits -> Globals {
+    1. Define struct iterator_traits
+}$$
+
+$$ CharTraits -> Globals {
+    1. Define struct char_traits for custom char types
+}$$
+
+$$ Conjunction -> Globals {
+    1. Define struct conjunction for logical AND
+}$$
+
+$$ Negation -> Globals {
+    1. Define struct negation for logical NOT
+}$$
+
+$$ IsDefaultConstructible -> Globals {
+    1. Define struct is_default_constructible
+}$$
+
+$$ IsConstructible -> Globals {
+    1. Define struct is_constructible
+}$$
+
+$$ IsIteratorTraits -> Globals {
+    1. Define struct is_iterator_traits
+}$$
+
+$$ IsBasicJson -> Globals {
+    1. Define struct is_basic_json
+}$$
+
+$$ IsBasicJsonContext -> Globals {
+    1. Define struct is_basic_json_context
+}$$
+
+$$ IsJsonRef -> Globals {
+    1. Define struct is_json_ref
+}$$
+
+$$ MappedType -> Globals {
+    1. Define template alias mapped_type_t
+}$$
+
+$$ KeyType -> Globals {
+    1. Define template alias key_type_t
+}$$
+
+$$ ValueType -> Globals {
+    1. Define template alias value_type_t
+}$$
+
+$$ DifferenceType -> Globals {
+    1. Define template alias difference_type_t
+}$$
+
+$$ PointerType -> Globals {
+    1. Define template alias pointer_t
+}$$
+
+$$ ReferenceType -> Globals {
+    1. Define template alias reference_t
+}$$
+
+$$ IteratorCategory -> Globals {
+    1. Define template alias iterator_category_t
+}$$
+
+$$ ToJsonFunction -> Globals {
+    1. Define template alias to_json_function
+}$$
+
+$$ FromJsonFunction -> Globals {
+    1. Define template alias from_json_function
+}$$
+
+$$ GetTemplateFunction -> Globals {
+    1. Define template alias get_template_function
+}$$
+
+$$ HasFromJson -> Globals {
+    1. Define struct has_from_json
+}$$
+
+$$ IsGetable -> Globals {
+    1. Define struct is_getable
+}$$
+
+$$ HasNonDefaultFromJson -> Globals {
+    1. Define struct has_non_default_from_json
+}$$
+
+$$ HasToJson -> Globals {
+    1. Define struct has_to_json
+}$$
+
+$$ DetectKeyCompare -> Globals {
+    1. Define template alias detect_key_compare
+}$$
+
+$$ HasKeyCompare -> Globals {
+    1. Define struct has_key_compare
+}$$
+
+$$ ActualObjectComparator -> Globals {
+    1. Define struct actual_object_comparator
+}$$
+$$ Includes {
+    1. Include iterator_traits
+    2. Include type_traits
+    3. Include utility
+    4. Include limits
+}$$
+
+$$ Constants {
+    1. Define NLOHMANN_JSON_NAMESPACE_BEGIN
+    2. Define NLOHMANN_JSON_NAMESPACE_END
+}$$
+
+$$ABSTRACT TypeTraits {
+    1. Define is_detected
+    2. Define detected_t
+    3. Define nonesuch
+}$$
+
+$$ is_iterator_traits -> TypeTraits {
+    1. Check if iterator_traits are defined for a type
+}$$
+
+$$ is_range -> is_iterator_traits {
+    1. Check if a type is a range by verifying the presence of begin and end iterators
+}$$
+
+$$ is_complete_type {
+    1. Check if a type is complete by attempting to sizeof it
+}$$
+
+$$ is_compatible_object_type_impl -> is_complete_type {
+    1. Check if an object type is compatible with BasicJsonType's object_t
+}$$
+
+$$ is_compatible_object_type -> is_compatible_object_type_impl {
+    1. Determine if a type is compatible with BasicJsonType's object_t
+}$$
+
+$$ is_constructible_object_type_impl -> is_compatible_object_type_impl {
+    1. Check if an object type can be constructed from BasicJsonType's object_t
+}$$
+
+$$ is_constructible_object_type -> is_constructible_object_type_impl {
+    1. Determine if a type can be constructed from BasicJsonType's object_t
+}$$
+
+$$ is_compatible_string_type {
+    1. Check if a string type is compatible with BasicJsonType's string_t
+}$$
+
+$$ is_constructible_string_type {
+    1. Check if a string type can be constructed from BasicJsonType's string_t
+}$$
+
+$$ is_compatible_array_type_impl -> is_range, is_iterator_traits {
+    1. Check if an array type is compatible with BasicJsonType's array_t
+}$$
+
+$$ is_compatible_array_type -> is_compatible_array_type_impl {
+    1. Determine if a type is compatible with BasicJsonType's array_t
+}$$
+
+$$ is_constructible_array_type_impl -> is_compatible_array_type_impl, is_complete_type {
+    1. Check if an array type can be constructed from BasicJsonType's array_t
+}$$
+
+$$ is_constructible_array_type -> is_constructible_array_type_impl {
+    1. Determine if a type can be constructed from BasicJsonType's array_t
+}$$
+
+$$ is_compatible_integer_type_impl {
+    1. Check if an integer type is compatible with another integer type
+}$$
+
+$$ is_compatible_integer_type -> is_compatible_integer_type_impl {
+    1. Determine if an integer type is compatible with another integer type
+}$$
+
+$$ is_compatible_type_impl -> is_complete_type {
+    1. Check if a type is compatible with BasicJsonType
+}$$
+
+$$ is_compatible_type -> is_compatible_type_impl {
+    1. Determine if a type is compatible with BasicJsonType
+}$$
+
+$$ is_constructible_tuple {
+    1. Check if a tuple can be constructed from given types
+}$$
+
+$$ is_json_iterator_of {
+    1. Check if a type is an iterator of BasicJsonType
+}$$
+
+$$ is_specialization_of {
+    1. Check if a type is a specialization of a given template
+}$$
+
+$$ is_json_pointer -> is_specialization_of {
+    1. Check if a type is a JSON pointer
+}$$
+
+$$ is_comparable {
+    1. Check if two types are comparable using a given comparator
+}$$
+
+$$ detect_is_transparent {
+    1. Detect if a type has an is_transparent member
+}$$
+
+$$ is_usable_as_key_type -> is_comparable, detect_is_transparent {
+    1. Check if a type can be used as a key in a map
+}$$
+
+$$ is_usable_as_basic_json_key_type -> is_usable_as_key_type, is_json_iterator_of {
+    1. Check if a type can be used as a key in BasicJsonType's object_t
+}$$
+
+$$ has_erase_with_key_type {
+    1. Check if an object type has an erase method accepting a given key type
+}$$
+
+$$ is_ordered_map {
+    1. Check if a type is an ordered map
+}$$
+
+$$ conditional_static_cast {
+    1. Conditionally perform a static cast if types are not the same
+}$$
+
+$$ all_integral {
+    1. Check if all types are integral
+}$$
+
+$$ all_signed {
+    1. Check if all types are signed
+}$$
+
+$$ all_unsigned {
+    1. Check if all types are unsigned
+}$$
+
+$$ same_sign {
+    1. Check if all types have the same sign
+}$$
+
+$$ never_out_of_range {
+    1. Check if a value of one type can never be out of range for another type
+}$$
+
+$$ value_in_range_of_impl2 {
+    1. Implement value range checks for different sign combinations
+}$$
+
+$$ value_in_range_of_impl1 -> value_in_range_of_impl2 {
+    1. Implement value range checks with optimization for never out of range cases
+}$$
+
+$$ value_in_range_of -> value_in_range_of_impl1 {
+    1. Check if a value is within the range of a given type
+}$$
+
+$$ bool_constant {
+    1. Define a boolean constant type
+}$$
+
+$$ is_c_string {
+    1. Check if a type is a C-style string
+}$$
+
+$$ is_transparent {
+    1. Check if a type has an is_transparent member
+}$$
+$$ StandardIncludes -> { 1. #include <cstring>, 2. #include <string>, 3. #include <utility> }$$
+
+$$ GlobalsAndConstants -> { 1. NLOHMANN_JSON_NAMESPACE_BEGIN, 2. NLOHMANN_JSON_NAMESPACE_END }$$
+
+$$ CalculateConcatLength -> {
+    1. Check if no arguments, return 0.
+    2. For each argument, calculate length based on type:
+       2.1. For C-string, use strlen.
+       2.2. For single character, return 1.
+       2.3. For other string types, use size() method.
+    3. Recursively calculate length for remaining arguments.
+}$$
+
+$$ ConcatInto -> {
+    1. Check if output string can directly append argument.
+    2. If yes, append argument and recursively process remaining arguments.
+    3. If not, check for operator+=, iterator-based append, or data-based append.
+    4. Use the first available method to append and recursively process remaining arguments.
+}$$
+
+$$ Concat -> {
+    1. Create output string of appropriate type.
+    2. Reserve space based on calculated length.
+    3. Call ConcatInto to append all arguments.
+    4. Return the concatenated string.
+}$$
+
+$$ ExceptionHandling -> {
+    1. Base exception class with id, what() method, and protected constructor.
+    2. Derived exception classes for parse_error, invalid_iterator, type_error, out_of_range, other_error.
+    3. Each derived class has a create method to construct with specific details.
+    4. Diagnostics method to generate context-aware error messages.
+}$$
+
+$$ TypeTraitsAndMetaProgramming -> {
+    1. Define type traits for detecting string append capabilities.
+    2. Use SFINAE and enable_if to conditionally enable functions based on type traits.
+    3. Priority tags for function overloading.
+}$$
+
+$$ JsonDeserialization -> {
+    1. Overloads for basic types: null, boolean, string, arithmetic types.
+    2. Handling of enums, arrays, and containers.
+    3. Specializations for forward_list, valarray, and C-style arrays.
+    4. Generic array handling with priority-based dispatch.
+}$$
+
+$$ IdentityTagAndDispatching -> {
+    1. Helper struct for type identity.
+    2. Use identity_tag to dispatch to specific implementations.
+}$$
+
+$$ FileSystemSupport -> {
+    1. Conditional inclusion of experimental or standard filesystem library.
+    2. Alias std_fs to the appropriate filesystem namespace.
+}$$
+
+This blueprint organizes the code into logical blocks, each with a clear purpose and responsibility. It eliminates redundancy by abstracting common patterns into reusable blocks and ensures that the functionality is preserved while improving readability and maintainability.
+$$ Includes {
+    1. Include algorithm
+    2. Include iterator
+    3. Include string
+    4. Include tuple
+    5. Include type_traits
+    6. Include utility
+    7. Include valarray
+    8. Include vector
+    9. Include cstddef
+    10. Include string
+    11. Include tuple
+    12. Include utility
+    13. Include ranges (if JSON_HAS_RANGES)
+}$$
+
+$$ Constants {
+    1. Define JSON_HEDLEY_UNLIKELY
+    2. Define JSON_THROW
+    3. Define JSON_INLINE_VARIABLE
+    4. Define NLOHMANN_JSON_NAMESPACE_BEGIN
+    5. Define NLOHMANN_JSON_NAMESPACE_END
+    6. Define JSON_HAS_FILESYSTEM
+    7. Define JSON_HAS_EXPERIMENTAL_FILESYSTEM
+    8. Define JSON_HAS_CPP_17
+    9. Define JSON_HAS_RANGES
+}$$
+
+$$ ValidateJsonType -> {
+    1. Check if JSON type is valid
+    2. Throw type_error if invalid
+}$$
+
+$$ FromJsonInplaceArrayImpl -> {
+    1. Validate JSON type is array
+    2. Call from_json_inplace_array_impl with forwarded arguments
+}$$
+
+$$ FromJsonBinary -> {
+    1. Validate JSON type is binary
+    2. Assign binary value to output
+}$$
+
+$$ FromJsonObject -> {
+    1. Validate JSON type is object
+    2. Create new object instance
+    3. Transform JSON object to output object
+}$$
+
+$$ FromJsonArithmetic -> {
+    1. Switch on JSON value type
+    2. Assign corresponding arithmetic value to output
+}$$
+
+$$ FromJsonTupleImplBase -> {
+    1. Create tuple from JSON array elements
+}$$
+
+$$ FromJsonTupleImplPair -> {
+    1. Create pair from JSON array elements
+}$$
+
+$$ FromJsonTupleImpl -> {
+    1. Call from_json_tuple_impl_base or from_json_tuple_impl_pair based on type
+}$$
+
+$$ FromJsonMap -> {
+    1. Validate JSON type is array
+    2. Clear output map
+    3. Iterate JSON array and populate map
+}$$
+
+$$ FromJsonUnorderedMap -> {
+    1. Validate JSON type is array
+    2. Clear output map
+    3. Iterate JSON array and populate map
+}$$
+
+$$ FromJsonFilesystemPath -> {
+    1. Validate JSON type is string
+    2. Assign string value to filesystem path
+}$$
+
+$$ FromJsonFn -> {
+    1. Call from_json function with forwarded arguments
+}$$
+
+$$ IterationProxyValue -> {
+    1. Define iteration proxy value class
+    2. Implement iterator methods
+}$$
+
+$$ IterationProxy -> {
+    1. Define iteration proxy class
+    2. Implement begin and end methods
+}$$
+
+$$ StructuredBindingsSupport -> {
+    1. Define tuple_size and tuple_element for iteration_proxy_value
+}$$
+
+$$ RangesSupport -> {
+    1. Enable borrowed range for iteration_proxy (if JSON_HAS_RANGES)
+}$$
+$$ ExternalConstructorFramework {
+    1. Define template struct external_constructor for various value types (boolean, string, binary, numbers, array, object)
+    1.1 Each specialization provides a static construct method to initialize a BasicJsonType instance
+    1.2 Common steps across specializations:
+        - Destroy existing value in j.m_data.m_value
+        - Set new value type in j.m_data.m_type
+        - Assign new value to j.m_data.m_value
+        - Call j.assert_invariant()
+}$$
+
+$$ ConstructBoolean -> ExternalConstructorFramework {
+    1. Handle boolean value construction
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::boolean
+    1.3 Assign boolean value
+    1.4 Assert invariant
+}$$
+
+$$ ConstructString -> ExternalConstructorFramework {
+    1. Handle string value construction (const ref, rvalue ref, compatible string types)
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::string
+    1.3 Assign string value (copy or move)
+    1.4 Assert invariant
+}$$
+
+$$ ConstructBinary -> ExternalConstructorFramework {
+    1. Handle binary value construction (const ref, rvalue ref)
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::binary
+    1.3 Assign binary value (copy or move)
+    1.4 Assert invariant
+}$$
+
+$$ ConstructNumberFloat -> ExternalConstructorFramework {
+    1. Handle floating-point number construction
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::number_float
+    1.3 Assign float value
+    1.4 Assert invariant
+}$$
+
+$$ ConstructNumberUnsigned -> ExternalConstructorFramework {
+    1. Handle unsigned integer construction
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::number_unsigned
+    1.3 Assign unsigned value
+    1.4 Assert invariant
+}$$
+
+$$ ConstructNumberInteger -> ExternalConstructorFramework {
+    1. Handle signed integer construction
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::number_integer
+    1.3 Assign integer value
+    1.4 Assert invariant
+}$$
+
+$$ ConstructArray -> ExternalConstructorFramework {
+    1. Handle array construction (const ref, rvalue ref, compatible array types, std::vector<bool>, std::valarray)
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::array
+    1.3 Assign array value (copy, move, or create from range)
+    1.4 Set parent relationships
+    1.5 Assert invariant
+}$$
+
+$$ ConstructObject -> ExternalConstructorFramework {
+    1. Handle object construction (const ref, rvalue ref, compatible object types)
+    1.1 Call destroy on existing value
+    1.2 Set type to value_t::object
+    1.3 Assign object value (copy, move, or create from range)
+    1.4 Set parent relationships
+    1.5 Assert invariant
+}$$
+
+$$ ToJsonFramework {
+    1. Define to_json functions for various types
+    1.1 Use external_constructor specializations to construct JSON values
+    1.2 Handle type conversions and special cases (enums, pairs, tuples, filesystem paths)
+}$$
+
+$$ ToJsonBoolean -> ToJsonFramework {
+    1. Handle boolean and boolean-like types (std::vector<bool>::reference)
+    1.1 Call external_constructor<value_t::boolean>::construct
+}$$
+
+$$ ToJsonString -> ToJsonFramework {
+    1. Handle string and compatible string types
+    1.1 Call external_constructor<value_t::string>::construct
+}$$
+
+$$ ToJsonNumber -> ToJsonFramework {
+    1. Handle floating-point and integer types
+    1.1 Call respective external_constructor specialization
+}$$
+
+$$ ToJsonArray -> ToJsonFramework {
+    1. Handle array-like types (std::vector<bool>, compatible arrays, std::valarray)
+    1.1 Call external_constructor<value_t::array>::construct
+}$$
+
+$$ ToJsonObject -> ToJsonFramework {
+    1. Handle object-like types (compatible objects)
+    1.1 Call external_constructor<value_t::object>::construct
+}$$
+
+$$ ToJsonSpecialTypes -> ToJsonFramework {
+    1. Handle special types (enums, pairs, tuples, filesystem paths)
+    1.1 Perform necessary conversions and call appropriate external_constructor
+}$$
+
+$$ AdlSerializerFramework {
+    1. Define ADL serializer for generic types
+    1.1 Provide from_json and to_json methods
+    1.2 Utilize existing nlohmann::from_json and nlohmann::to_json functions
+}$$
+
+$$ ByteContainerWithSubtype {
+    1. Define byte_container_with_subtype class
+    1.1 Inherit from BinaryType
+    1.2 Add subtype_type and related members
+    1.3 Implement constructors to handle subtype information
+}$$
+$$ Includes {
+    1. #include <cstdint>
+    2. #include <cstddef>
+    3. #include <functional>
+    4. #include <algorithm>
+    5. #include <array>
+    6. #include <cmath>
+    7. #include <cstdio>
+    8. #include <cstring>
+    9. #include <iterator>
+    10. #include <limits>
+    11. #include <string>
+    12. #include <utility>
+    13. #include <vector>
+    14. #include <memory>
+    15. #include <numeric>
+    16. #include <type_traits>
+}$$
+
+$$ Constants {
+    1. NLOHMANN_JSON_NAMESPACE_BEGIN
+    2. NLOHMANN_JSON_NAMESPACE_END
+}$$
+
+$$ byte_container_with_subtype_ctor -> container_type {
+    1. Initialize container_type with std::move(b)
+    2. Set m_subtype to subtype_
+    3. Set m_has_subtype to true
+}$$
+
+$$ operator_eq -> byte_container_with_subtype {
+    1. Compare static_cast<const BinaryType&>(*this) with static_cast<const BinaryType&>(rhs)
+    2. Compare m_subtype with rhs.m_subtype
+    3. Compare m_has_subtype with rhs.m_has_subtype
+    4. Return true if all comparisons are equal, otherwise false
+}$$
+
+$$ operator_neq -> byte_container_with_subtype {
+    1. Return !(rhs == *this)
+}$$
+
+$$ set_subtype -> byte_container_with_subtype {
+    1. Set m_subtype to subtype_
+    2. Set m_has_subtype to true
+}$$
+
+$$ subtype -> byte_container_with_subtype {
+    1. Return m_subtype if m_has_subtype is true, otherwise return static_cast<subtype_type>(-1)
+}$$
+
+$$ has_subtype -> byte_container_with_subtype {
+    1. Return m_has_subtype
+}$$
+
+$$ clear_subtype -> byte_container_with_subtype {
+    1. Set m_subtype to 0
+    2. Set m_has_subtype to false
+}$$
+
+$$ combine -> detail {
+    1. Combine seed, h, and constants using bitwise operations
+    2. Return the combined seed
+}$$
+
+$$ hash_json_value -> detail {
+    1. Determine the type of the JSON value
+    2. Handle each type separately (null, object, array, string, boolean, number_integer, number_unsigned, number_float, binary)
+    3. Combine the type and hashed value using the combine function
+    4. Return the final hash value
+}$$
+
+$$ file_input_adapter -> input_adapters {
+    1. Read a single character from the file
+    2. Return the character as an int_type
+}$$
+
+$$ input_stream_adapter -> input_adapters {
+    1. Read a single character from the input stream
+    2. Handle EOF and clear stream flags
+    3. Return the character as an int_type
+}$$
+
+$$ iterator_input_adapter -> input_adapters {
+    1. Read a single character from the iterator
+    2. Advance the iterator
+    3. Return the character as an int_type
+}$$
+
+$$ wide_string_input_helper -> input_adapters {
+    1. Convert wide characters to UTF-8
+    2. Fill the UTF-8 buffer with the converted characters
+    3. Handle different wide character encodings (UTF-32, UTF-16)
+}$$
+$$ Includes -> {
+1. Include <cstddef>
+2. Include <string>
+3. Include <utility>
+4. Include <vector>
+}$$
+
+$$ Constants -> {
+1. Define JSON_HEDLEY_UNLIKELY
+2. Define JSON_ASSERT
+3. Define JSON_THROW
+4. Define JSON_NO_IO
+}$$
+
+$$ABSTRACT AdapterBase {
+1. Define char_type
+}$$
+
+$$ WideStringInputAdapter -> AdapterBase {
+1. Initialize base_adapter
+2. Define get_character
+3. Define fill_buffer
+4. Manage utf8_bytes buffer
+5. Track utf8_bytes_index and utf8_bytes_filled
+}$$
+
+$$ IteratorInputAdapterFactory -> {
+1. Define iterator_type
+2. Define char_type
+3. Define adapter_type
+4. Create adapter from iterators
+}$$
+
+$$ IteratorInputAdapterFactorySpecialization -> IteratorInputAdapterFactory {
+1. Specialize for multibyte iterators
+2. Define base_adapter_type
+3. Define wide_adapter_type
+4. Create wide adapter from iterators
+}$$
+
+$$ InputAdapter -> {
+1. Create adapter from iterators
+2. Create adapter from containers
+3. Create adapter from files and streams
+4. Create adapter from null-delimited strings
+5. Create adapter from arrays
+6. Define span_input_adapter
+}$$
+
+$$ABSTRACT JsonSax {
+1. Define number_integer_t
+2. Define number_unsigned_t
+3. Define number_float_t
+4. Define string_t
+5. Define binary_t
+6. Handle null value
+7. Handle boolean value
+8. Handle integer number
+9. Handle unsigned integer
+10. Handle floating-point number
+11. Handle string value
+12. Handle binary value
+13. Start object
+14. Handle object key
+15. End object
+16. Start array
+17. End array
+18. Handle parse error
+}$$
+
+$$ JsonSaxDomParser -> JsonSax {
+1. Initialize parser with JSON reference
+2. Handle null value
+3. Handle boolean value
+4. Handle integer number
+5. Handle unsigned integer
+6. Handle floating-point number
+7. Handle string value
+8. Handle binary value
+9. Start object
+10. Handle object key
+11. End object
+12. Start array
+13. End array
+14. Handle parse error
+15. Manage reference stack
+16. Handle value insertion
+17. Check for errors
+}$$
+$$ StandardIncludes -> {
+1. #include <array>
+2. #include <clocale>
+3. #include <cstddef>
+4. #include <cstdio>
+5. #include <cstdlib>
+6. #include <initializer_list>
+7. #include <string>
+8. #include <utility>
+9. #include <vector>
+}$$
+
+$$ Constants -> {
+1. decimal_point_char: char_int_type
+}$$
+
+$$ Globals -> {
+1. ia: InputAdapterType
+2. ignore_comments: bool
+3. current: char_type
+4. token_buffer: std::vector<char_type>
+5. error_message: std::string
+}$$
+
+$$ABSTRACT LexerBase {
+1. Define token types for parsing.
+2. Provide static method to get token type name.
+}$$
+
+$$ Lexer -> LexerBase {
+1. Initialize lexer with input adapter and ignore comments flag.
+2. Implement get_codepoint to parse Unicode codepoints.
+3. Implement next_byte_in_range to validate byte sequences.
+4. Implement scan_string to parse JSON strings.
+}$$
+
+$$ JsonSaxDomCallbackParser {
+1. Initialize parser with JSON root, callback, and exception handling flag.
+2. Implement SAX event handlers (null, boolean, number_integer, etc.).
+3. Implement start_object and end_object to handle JSON objects.
+4. Implement start_array and end_array to handle JSON arrays.
+5. Implement parse_error to handle parsing errors.
+6. Implement handle_value to process parsed values.
+}$$
+
+$$ JsonSaxAcceptor {
+1. Implement default SAX event handlers that accept all events.
+}$$
+
+$$ MainLogic {
+1. Initialize lexer with input and parse JSON.
+2. Create JSON SAX DOM callback parser with root JSON object and callback.
+3. Parse JSON using the lexer and callback parser.
+4. Handle parsing errors and exceptions.
+}$$
+$$ HandleEscapeSequences {
+    1. Check for newline escape sequence, add '\n' if found.
+    2. Check for double quote escape sequence, add '"' if found.
+    3. Check for backslash escape sequence, add '\' if found.
+    4. Check for forward slash escape sequence, add '/' if found.
+    5. Check for backspace escape sequence, add '\b' if found.
+    6. Check for form feed escape sequence, add '\f' if found.
+    7. Check for carriage return escape sequence, add '\r' if found.
+    8. Check for tab escape sequence, add '\t' if found.
+    9. Handle Unicode escape sequences:
+        9.1 Get codepoint from Unicode escape sequence.
+        9.2 Validate codepoint and handle surrogate pairs if necessary.
+        9.3 Translate codepoint into bytes based on its value range.
+    10. Handle invalid escape sequences, set error message and return parse error.
+}$$
+
+$$ ValidateControlCharacters {
+    1. Check for control characters U+0000 to U+001F and U+007F.
+    2. Set error message indicating the control character must be escaped.
+    3. Return parse error for each invalid control character.
+}$$
+
+$$ ValidateUTF8Sequences {
+    1. Check for 2-byte UTF-8 sequences (U+0080 to U+07FF).
+    2. Check for 3-byte UTF-8 sequences (U+0800 to U+FFFF).
+    3. Check for 4-byte UTF-8 sequences (U+10000 to U+10FFFF).
+    4. Validate each byte in the sequence is within the expected range.
+    5. Return parse error if any byte is out of range.
+}$$
+
+$$ AddCharacter {
+    1. Add the current character to the output based on its Unicode category.
+}$$
+
+$$ HandleStringParsing {
+    1. Process each character in the string.
+    2. Call HandleEscapeSequences for escape sequences.
+    3. Call ValidateControlCharacters for control characters.
+    4. Call ValidateUTF8Sequences for UTF-8 sequences.
+    5. Call AddCharacter for valid characters.
+}$$
+$$ StandardIncludes {
+    1. Include <cctype>
+    2. Include <climits>
+    3. Include <cstdio>
+    4. Include <cstdlib>
+    5. Include <cstring>
+    6. Include <string>
+    7. Include <type_traits>
+}$$
+
+$$ Constants {
+    1. Define decimal_point_char as '.'
+}$$
+
+$$ ValidateUTF8Bytes -> {
+    1. Check if next_byte_in_range({0x80, 0xBF, 0x80, 0xBF, 0x80, 0xBF})
+    2. Return token_type::parse_error if check fails
+}$$
+
+$$ HandleUTF8Cases -> {
+    1. Handle case 0xF1, 0xF2, 0xF3 with ValidateUTF8Bytes
+    2. Handle case 0xF4 with ValidateUTF8Bytes
+    3. Handle default case with error message and return token_type::parse_error
+}$$
+
+$$ ScanComment -> {
+    1. Handle single-line comments
+    1.1. Skip input until newline or EOF
+    2. Handle multi-line comments
+    2.1. Skip input until '*/' is read
+    3. Handle unexpected character after '/'
+    3.1. Return error message and false
+}$$
+
+$$ ScanNumber -> {
+    1. Reset token_buffer
+    2. Set initial number_type to token_type::value_unsigned
+    3. Handle initial state with switch-case
+    4. Define states: scan_number_minus, scan_number_zero, scan_number_any1, scan_number_decimal1, scan_number_decimal2, scan_number_exponent, scan_number_sign, scan_number_any2, scan_number_done
+    5. Transition between states based on input
+    6. Handle final state: scan_number_done
+    7. Parse number based on number_type
+    8. Return corresponding token_type
+}$$
+
+$$ ScanLiteral -> {
+    1. Assert first character matches literal_text[0]
+    2. Iterate through remaining characters
+    3. Check if each character matches literal_text
+    4. Return error message and token_type::parse_error if mismatch
+    5. Return return_type on success
+}$$
+
+$$ Strtof -> {
+    1. Overload for float, double, long double
+    2. Call std::strtof, std::strtod, std::strtold respectively
+}$$
+$$ InputManagement {
+    1. Reset token buffer and token string.
+    2. Get next character from input.
+    3. Unget current character.
+    4. Add character to token buffer.
+}$$
+
+$$ ValueGetters {
+    1. Return integer value.
+    2. Return unsigned integer value.
+    3. Return floating-point value.
+    4. Return current string value.
+}$$
+
+$$ Diagnostics {
+    1. Return position of last read token.
+    2. Return the last read token.
+    3. Return syntax error message.
+}$$
+
+$$ Scanner {
+    1. Skip UTF-8 byte order mark.
+    2. Skip whitespace characters.
+    3. Scan and return token type.
+}$$
+
+$$ TokenProcessing -> Scanner {
+    1. Process structural characters.
+    2. Process literals.
+    3. Process strings.
+    4. Process numbers.
+    5. Handle end of input.
+    6. Handle errors.
+}$$
+
+$$ Includes {
+    1. Include cstdint.
+    2. Include utility.
+    3. Include string.
+}$$
+
+$$ SAXInterface {
+    1. Define SAX interface functions.
+}$$
+
+$$ CBORTagHandler {
+    1. Define CBOR tag handler enum.
+}$$
+$$ StandardIncludes -> SystemHeaders {
+    1. #include <cstdint>
+    2. #include <string>
+    3. #include <vector>
+    4. #include <array>
+    5. #include <algorithm>
+    6. #include <iterator>
+    7. #include <cstring>
+    8. #include <cstdio>
+    9. #include <utility>
+    10. #include <type_traits>
+}$$
+
+$$ Constants {
+    1. constexpr auto CHAR_TRAITS_EOF = std::char_traits<char>::eof();
+}$$
+
+$$ Globals {
+    1. json_sax_t* sax = nullptr;
+    2. input_format_t input_format = input_format_t::json;
+    3. char_int_type current = 0;
+    4. std::size_t chars_read = 0;
+}$$
+
+$$ DetermineSystemEndianness {
+    1. Get system byte order.
+    2. Return true if little endian, false otherwise.
+}$$
+
+$$ABSTRACT BinaryReaderBase {
+    1. Define common types and methods for binary readers.
+}$$
+
+$$ BinaryReader -> BinaryReaderBase {
+    1. Initialize reader with input adapter and format.
+    2. Provide move-only semantics.
+    3. Implement sax_parse method to parse binary data.
+}$$
+
+$$ ParseBSON -> BinaryReader {
+    1. Parse BSON data.
+    2. Handle BSON elements and arrays.
+}$$
+
+$$ ParseCBOR -> BinaryReader {
+    1. Parse CBOR data.
+    2. Handle CBOR arrays, objects, and tagged items.
+}$$
+
+$$ ParseMsgPack -> BinaryReader {
+    1. Parse MessagePack data.
+}$$
+
+$$ ParseUBJSON -> BinaryReader {
+    1. Parse UBJSON data.
+}$$
+
+$$ HandleBSONElement -> ParseBSON {
+    1. Parse a single BSON element based on its type.
+}$$
+
+$$ HandleCBORArray -> ParseCBOR {
+    1. Parse a CBOR array with given length and tag handler.
+}$$
+
+$$ HandleCBORObject -> ParseCBOR {
+    1. Parse a CBOR object with given length and tag handler.
+}$$
+
+$$ GetBSONString -> ParseBSON {
+    1. Read a zero-terminated string of given length from BSON input.
+}$$
+
+$$ GetBSONBinary -> ParseBSON {
+    1. Read a byte array of given length from BSON input.
+}$$
+
+$$ GetCBORString -> ParseCBOR {
+    1. Read a CBOR string based on its length prefix.
+}$$
+
+$$ GetCBORBinary -> ParseCBOR {
+    1. Read a CBOR binary data based on its length prefix.
+}$$
+
+$$ CheckEOF -> BinaryReader {
+    1. Check if the input has reached EOF.
+    2. Return true if EOF is reached, false otherwise.
+}$$
+
+$$ GetNextToken -> BinaryReader {
+    1. Retrieve the next token from the input.
+}$$
+
+$$ GetNumber -> BinaryReader {
+    1. Read a number of given type from the input.
+}$$
+
+$$ GetString -> BinaryReader {
+    1. Read a string of given length from the input.
+}$$
+
+$$ GetBinary -> BinaryReader {
+    1. Read binary data of given length from the input.
+}$$
+
+$$ HandleError -> BinaryReader {
+    1. Handle parse errors and report them to the SAX parser.
+}$$
+
+$$ static inline bool little_endianness(int num = 1) noexcept -> DetermineSystemEndianness {
+    1. return *reinterpret_cast<char*>(&num) == 1;
+}$$
+
+$$ binary_reader -> BinaryReader {
+    1. Implement the binary reader class with all necessary methods.
+}$$
+$$ Includes {
+    1. Include necessary headers for CBOR and MessagePack parsing.
+}$$
+
+$$ Constants {
+    1. Define constants for CBOR and MessagePack byte values.
+}$$
+
+$$ HandleCBORTags -> HandleTags {
+    1. Process CBOR tags based on the tag handler type.
+    1.1 If tag handler is ignore, skip the tag.
+    1.2 If tag handler is store, store the tag in a binary container.
+}$$
+
+$$ ParseCBORInternal -> ParseInternal {
+    1. Handle CBOR major types based on the current byte.
+    1.1 For major type 0 (unsigned integer), parse and return the unsigned integer.
+    1.2 For major type 1 (negative integer), parse and return the negative integer.
+    1.3 For major type 2 (byte string), call get_cbor_binary.
+    1.4 For major type 3 (UTF-8 string), call get_cbor_string.
+    1.5 For major type 4 (array), call get_cbor_array.
+    1.6 For major type 5 (map), call get_cbor_object.
+    1.7 For major type 6 (tag), call HandleCBORTags.
+    1.8 For major type 7, handle simple values (true, false, null, floats).
+}$$
+
+$$ GetCBORString -> GetString {
+    1. Determine the length of the CBOR string based on the current byte.
+    2. Read the string data based on the determined length.
+    3. Handle indefinite-length strings by concatenating chunks.
+}$$
+
+$$ GetCBORBinary -> GetBinary {
+    1. Determine the length of the CBOR binary data based on the current byte.
+    2. Read the binary data based on the determined length.
+    3. Handle indefinite-length binary data by concatenating chunks.
+}$$
+
+$$ GetCBORArray -> GetArray {
+    1. Start a new array with the given length.
+    2. If length is indefinite, parse elements until a break byte is encountered.
+    3. Parse each element using ParseCBORInternal.
+    4. End the array.
+}$$
+
+$$ GetCBORObject -> GetObject {
+    1. Start a new object with the given length.
+    2. If length is indefinite, parse key-value pairs until a break byte is encountered.
+    3. Parse each key using GetCBORString and each value using ParseCBORInternal.
+    4. End the object.
+}$$
+
+$$ ParseMsgPackInternal -> ParseInternal {
+    1. Handle MessagePack formats based on the current byte.
+    2. Process positive fixint, negative fixint, and other MessagePack types.
+}$$
+
+$$ HandleMsgPackFormats -> HandleFormats {
+    1. Implement logic to handle various MessagePack formats.
+}$$
+$$ MsgPackHandler { 1. Handle MessagePack data }$$
+
+$$ HandleFixMap -> MsgPackHandler {
+    1. Get MessagePack object based on current byte
+    2. Return object
+}$$
+
+$$ HandleFixArray -> MsgPackHandler {
+    1. Get MessagePack array based on current byte
+    2. Return array
+}$$
+
+$$ HandleFixStr -> MsgPackHandler {
+    1. Initialize string
+    2. Get MessagePack string
+    3. Return string and SAX parser result
+}$$
+
+$$ HandleNil -> MsgPackHandler {
+    1. Return SAX null
+}$$
+
+$$ HandleBoolean -> MsgPackHandler {
+    1. Return SAX boolean based on current byte
+}$$
+
+$$ HandleBinary -> MsgPackHandler {
+    1. Initialize binary data
+    2. Get MessagePack binary
+    3. Return binary and SAX parser result
+}$$
+
+$$ HandleFloat -> MsgPackHandler {
+    1. Initialize number
+    2. Get number based on input format
+    3. Return number and SAX parser result
+}$$
+
+$$ HandleUnsignedInt -> MsgPackHandler {
+    1. Initialize number
+    2. Get number based on input format
+    3. Return number and SAX parser result
+}$$
+
+$$ HandleSignedInt -> MsgPackHandler {
+    1. Initialize number
+    2. Get number based on input format
+    3. Return number and SAX parser result
+}$$
+
+$$ HandleArray -> MsgPackHandler {
+    1. Get array length
+    2. Start SAX array
+    3. Parse array elements
+    4. End SAX array
+}$$
+
+$$ HandleMap -> MsgPackHandler {
+    1. Get map length
+    2. Start SAX object
+    3. Parse key-value pairs
+    4. End SAX object
+}$$
+
+$$ HandleNegativeFixInt -> MsgPackHandler {
+    1. Return SAX integer based on current byte
+}$$
+
+$$ HandleInvalidByte -> MsgPackHandler {
+    1. Get last token
+    2. Return SAX parse error
+}$$
+
+$$ GetMsgPackString -> MsgPackHandler {
+    1. Check for unexpected EOF
+    2. Determine string length based on current byte
+    3. Get string
+    4. Return string creation result
+}$$
+
+$$ GetMsgPackBinary -> MsgPackHandler {
+    1. Determine binary length and subtype based on current byte
+    2. Get binary data
+    3. Set subtype and return result
+}$$
+
+$$ GetMsgPackArray -> MsgPackHandler {
+    1. Start SAX array
+    2. Parse array elements
+    3. End SAX array
+}$$
+
+$$ GetMsgPackObject -> MsgPackHandler {
+    1. Start SAX object
+    2. Parse key-value pairs
+    3. End SAX object
+}$$
+$$ Includes { 1. Include necessary headers for UBJSON parsing. }$$
+
+$$ Constants { 1. Define constants for UBJSON and BJData formats. }$$
+
+$$ GetUBJSONString -> GetUBJSONValue { 1. Check if a new character should be retrieved. 2. Validate input to avoid unexpected EOF. 3. Handle different string length types based on the current character. 4. Return success or failure based on string creation. }$$
+
+$$ GetUBJSONNDArraySize -> GetUBJSONSizeValue { 1. Determine the size and type of the ND array. 2. Handle nested dimensions if not inside an ND array. 3. Populate the dimension vector with sizes. 4. Return success or failure based on size value retrieval. }$$
+
+$$ GetUBJSONSizeValue -> GetUBJSONSizeType, GetUBJSONNDArraySize { 1. Handle different size prefixes for UBJSON and BJData formats. 2. Validate and convert size values based on the prefix. 3. Handle ND array size representation in BJData format. 4. Return success or failure based on size determination. }$$
+
+$$ GetUBJSONSizeType -> GetUBJSONSizeValue { 1. Initialize size and type variables. 2. Handle optimized UBJSON format with type and size markers. 3. Validate and process size values based on the current character. 4. Return success or failure based on pair creation. }$$
+
+$$ GetUBJSONValue -> GetUBJSONString, GetUBJSONArray, GetUBJSONObject, GetUBJSONHighPrecisionNumber { 1. Handle different value types based on the prefix character. 2. Process numeric values, booleans, null, strings, arrays, and objects. 3. Return success or failure based on value creation. }$$
+
+$$ GetUBJSONArray -> GetUBJSONSizeType, GetUBJSONValue { 1. Determine the size and type of the array. 2. Handle BJData ND array encoding as a JData annotated array. 3. Process array elements based on the determined type. 4. Return success or failure based on array creation. }$$
+
+$$ABSTRACT HandleUBJSONErrors { 1. Centralize error handling logic for UBJSON parsing. 2. Provide consistent error messages and parsing error callbacks. }$$
+
+$$ABSTRACT UBJSONParsingLogic { 1. Define the core logic for parsing UBJSON data. 2. Ensure adherence to UBJSON and BJData format specifications. }$$
+$$ ProcessUBJSONArray -> ParseUBJSON {
+1. Check size_and_type.first != npos
+1.1 If true, call sax->start_array(size_and_type.first)
+1.2 If false, handle array with unknown size
+2. Process array elements based on size_and_type.second
+2.1 If size_and_type.second != 0 and != 'N', call get_ubjson_value for each element
+2.2 Otherwise, call parse_ubjson_internal for each element
+3. Handle array with unknown size
+3.1 Call sax->start_array(static_cast<std::size_t>(-1))
+3.2 Process elements until current != ']'
+3.3 Call parse_ubjson_internal and get_ignore_noop for each element
+4. Call sax->end_array()
+}$$
+
+$$ ProcessUBJSONObject -> ParseUBJSON {
+1. Get size_and_type using get_ubjson_size_type
+2. Validate size_and_type for BJData format
+3. Process object elements based on size_and_type.first
+3.1 If size_and_type.first != npos, call sax->start_object(size_and_type.first)
+3.2 Process elements with known size
+3.2.1 Call get_ubjson_string and sax->key for each key
+3.2.2 Call get_ubjson_value or parse_ubjson_internal based on size_and_type.second
+3.3 Process elements with unknown size
+3.3.1 Call sax->start_object(static_cast<std::size_t>(-1))
+3.3.2 Process elements until current != '}'
+3.3.3 Call get_ubjson_string, sax->key, and parse_ubjson_internal for each element
+4. Call sax->end_object()
+}$$
+
+$$ ParseHighPrecisionNumber -> ParseUBJSON {
+1. Get size of number string using get_ubjson_size_value
+2. Read number string into number_vector
+3. Parse number string using number_lexer
+4. Validate parsing result
+5. Call appropriate sax->number_* function based on result_number
+}$$
+
+$$ GetCharacter -> InputHandling {
+1. Increment chars_read
+2. Call ia.get_character()
+3. Return current character
+}$$
+
+$$ GetIgnoreNoop -> InputHandling {
+1. Call get() until current != 'N'
+2. Return current character
+}$$
+
+$$ GetNumber -> InputHandling {
+1. Read input into vec with system's byte order
+2. Convert vec into result with correct byte order
+3. Return success status
+}$$
+
+$$ GetString -> InputHandling {
+1. Read characters into result string
+2. Handle EOF and return success status
+}$$
+
+$$ GetBinary -> InputHandling {
+1. Read bytes into result binary array
+2. Handle EOF and return success status
+}$$
+
+$$ UnexpectEOF -> ErrorHandling {
+1. Check if current is EOF
+2. Call sax->parse_error if EOF
+3. Return true if not EOF
+}$$
+
+$$ GetTokenString -> ErrorHandling {
+1. Create string representation of current byte
+2. Return token string
+}$$
+
+$$ ExceptionMessage -> ErrorHandling {
+1. Construct error message based on format, detail, and context
+2. Return error message
+}$$
+
+$$ Includes {
+1. #include <cmath>
+2. #include <cstdint>
+3. #include <functional>
+4. #include <string>
+5. #include <utility>
+6. #include <vector>
+}$$
+
+$$ Constants {
+1. constexpr std::size_t npos = static_cast<std::size_t>(-1)
+}$$
+
+$$ Globals {
+1. InputAdapterType ia
+2. char_int_type current
+3. std::size_t chars_read
+4. bool is_little_endian
+5. input_format_t input_format
+6. json_sax_t* sax
+7. Lookup tables: bjd_optimized_type_markers, bjd_types_map
+}$$
+$$ Includes {
+    1. #include <nlohmann/detail/input/input_adapters.hpp>
+    2. #include <nlohmann/detail/input/json_sax.hpp>
+    3. #include <nlohmann/detail/input/lexer.hpp>
+    4. #include <nlohmann/detail/macro_scope.hpp>
+    5. #include <nlohmann/detail/meta/is_sax.hpp>
+    6. #include <nlohmann/detail/string_concat.hpp>
+    7. #include <nlohmann/detail/value_t.hpp>
+}$$
+
+$$ Globals {
+    NLOHMANN_JSON_NAMESPACE_BEGIN
+    namespace detail {
+        enum class parse_event_t : std::uint8_t {
+            object_start,
+            object_end,
+            array_start,
+            array_end,
+            key,
+            value
+        };
+
+        template<typename BasicJsonType>
+        using parser_callback_t = std::function<bool(int, parse_event_t, BasicJsonType&)>;
+    }
+}$$
+
+$$ABSTRACT ParserInterface {
+    -> ParserImplementation {
+        1. Define public parser interface.
+        2. Define public accept interface.
+        3. Define private sax_parse_internal function.
+    }
+}$$
+
+$$ ParserImplementation -> ParserInterface {
+    1. Define parser class with necessary template parameters.
+    2. Implement constructor to initialize parser.
+    3. Implement parse function to parse JSON input.
+    4. Implement accept function to check if input is valid JSON.
+    5. Implement sax_parse function to parse JSON using SAX parser.
+    6. Implement sax_parse_internal function to handle SAX parsing logic.
+    7. Implement get_token function to retrieve next token from lexer.
+    8. Implement exception_message function to generate error messages.
+}$$
+
+$$ Parser {
+    -> ParserImplementation {
+        1. Initialize parser with input adapter and callback function.
+        2. Parse JSON input using parse function.
+        3. Handle errors and exceptions during parsing.
+    }
+}$$
+
+$$ SAXParser {
+    -> Parser {
+        1. Implement SAX parsing logic using sax_parse_internal function.
+        2. Handle different token types and events during parsing.
+        3. Manage parser state using a stack to track hierarchy.
+        4. Call appropriate SAX handler functions based on token type.
+        5. Handle errors and exceptions during SAX parsing.
+    }
+}$$
+
+$$ Lexer {
+    1. Define lexer class to tokenize JSON input.
+    2. Implement scan function to retrieve next token.
+    3. Handle different token types and events during lexing.
+}$$
+
+$$ ErrorHandling {
+    1. Define parse_error class to handle parsing errors.
+    2. Implement exception_message function to generate error messages.
+    3. Handle errors and exceptions during parsing and lexing.
+}$$
+
+$$ Main {
+    -> Parser {
+        1. Create parser instance with input adapter and callback function.
+        2. Call parse function to parse JSON input.
+        3. Handle errors and exceptions during parsing.
+    }
+}$$
+$$ StandardIncludes -> None {
+    1. #include <cstddef> // ptrdiff_t
+    2. #include <limits>  // numeric_limits
+    3. #include <iterator> // iterator, random_access_iterator_tag, bidirectional_iterator_tag, advance, next
+    4. #include <type_traits> // conditional, is_const, remove_const
+}$$
+
+$$ Constants -> None {
+    1. NLOHMANN_JSON_NAMESPACE_BEGIN
+    2. NLOHMANN_JSON_NAMESPACE_END
+}$$
+
+$$ PrimitiveIterator -> None {
+    1. Define difference_type as std::ptrdiff_t
+    2. Set begin_value to 0
+    3. Set end_value to begin_value + 1
+    4. Declare private member m_it of type difference_type
+    5. Initialize m_it to minimum value of difference_type
+    6. Declare get_value() to return m_it
+    7. Declare set_begin() to set m_it to begin_value
+    8. Declare set_end() to set m_it to end_value
+    9. Declare is_begin() to check if m_it equals begin_value
+    10. Declare is_end() to check if m_it equals end_value
+    11. Declare operator== to compare m_it of two iterators
+    12. Declare operator< to compare m_it of two iterators
+    13. Declare operator+ to add difference_type to iterator
+    14. Declare operator- to subtract iterators
+    15. Declare operator++ to increment iterator
+    16. Declare operator-- to decrement iterator
+    17. Declare operator+= to add difference_type to iterator
+    18. Declare operator-= to subtract difference_type from iterator
+}$$
+
+$$ InternalIterator -> None {
+    1. Declare object_iterator of type BasicJsonType::object_t::iterator
+    2. Declare array_iterator of type BasicJsonType::array_t::iterator
+    3. Declare primitive_iterator of type primitive_iterator_t
+}$$
+
+$$ IterImpl -> None {
+    1. Define other_iter_impl using std::conditional
+    2. Declare m_object as pointer to BasicJsonType
+    3. Declare m_it as internal_iterator
+    4. Declare iterator_category as std::bidirectional_iterator_tag
+    5. Declare value_type as BasicJsonType::value_type
+    6. Declare difference_type as BasicJsonType::difference_type
+    7. Declare pointer using std::conditional
+    8. Declare reference using std::conditional
+    9. Declare default constructor
+    10. Declare destructor
+    11. Declare move constructor
+    12. Declare move assignment operator
+    13. Declare constructor with pointer to BasicJsonType
+    14. Declare copy constructor from const iter_impl
+    15. Declare converting assignment from const iter_impl
+    16. Declare converting constructor from non-const iter_impl
+    17. Declare converting assignment from non-const iter_impl
+    18. Declare set_begin() to set iterator to begin
+    19. Declare set_end() to set iterator to end
+    20. Declare operator* to dereference iterator
+    21. Declare operator-> to dereference iterator
+    22. Declare post-increment operator
+    23. Declare pre-increment operator
+    24. Declare post-decrement operator
+    25. Declare pre-decrement operator
+    26. Declare equality operator
+    27. Declare inequality operator
+    28. Declare less-than operator
+}$$
+
+$$ InitializeIterator -> None {
+    1. Check if m_object is not null
+    2. Switch on m_object's type
+    3. Case object: initialize object_iterator
+    4. Case array: initialize array_iterator
+    5. Default: initialize primitive_iterator
+}$$
+
+$$ SetBegin -> None {
+    1. Check if m_object is not null
+    2. Switch on m_object's type
+    3. Case object: set object_iterator to begin
+    4. Case array: set array_iterator to begin
+    5. Case null: set primitive_iterator to end
+    6. Default: set primitive_iterator to begin
+}$$
+
+$$ SetEnd -> None {
+    1. Check if m_object is not null
+    2. Switch on m_object's type
+    3. Case object: set object_iterator to end
+    4. Case array: set array_iterator to end
+    5. Default: set primitive_iterator to end
+}$$
+
+$$ DereferenceIterator -> None {
+    1. Check if m_object is not null
+    2. Switch on m_object's type
+    3. Case object: return object_iterator's value
+    4. Case array: return array_iterator's value
+    5. Case null: throw exception
+    6. Default: return primitive_iterator's value
+}$$
+
+$$ IncrementIterator -> None {
+    1. Check if m_object is not null
+    2. Switch on m_object's type
+    3. Case object: advance object_iterator
+    4. Case array: advance array_iterator
+    5. Default: increment primitive_iterator
+}$$
+
+$$ DecrementIterator -> None {
+    1. Check if m_object is not null
+    2. Switch on m_object's type
+    3. Case object: advance object_iterator backwards
+    4. Case array: advance array_iterator backwards
+    5. Default: decrement primitive_iterator
+}$$
+
+$$ CompareIterators -> None {
+    1. Check if m_object equals other's m_object
+    2. Switch on m_object's type
+    3. Case object: compare object_iterators
+    4. Case array: compare array_iterators
+    5. Default: compare primitive_iterators
+}$$
+$$ Includes {
+    1. Include <cstddef>
+    2. Include <iterator>
+    3. Include <utility>
+    4. Include <type_traits>
+    5. Include <algorithm>
+    6. Include <cctype>
+    7. Include <cerrno>
+    8. Include <cstdlib>
+    9. Include <limits>
+    10. Include <numeric>
+    11. Include <string>
+    12. Include <utility>
+    13. Include <vector>
+}$$
+
+$$ Constants {
+    1. Define JSON_HEDLEY_DEPRECATED_FOR(version, replacement)
+}$$
+
+$$ABSTRACT IteratorBase {
+    1. Define iterator type
+    2. Define reference type
+    3. Define difference_type
+}$$
+
+$$ IteratorImpl -> IteratorBase {
+    1. Check if iterator is initialized
+    2. Handle different JSON types
+    3. Implement comparison operators
+    4. Implement arithmetic operators
+    5. Implement access operators
+}$$
+
+$$ ReverseIterator -> IteratorBase {
+    1. Define base iterator type
+    2. Implement increment and decrement operators
+    3. Implement arithmetic operators
+    4. Implement access operators
+    5. Implement key and value accessors
+}$$
+
+$$ JsonPointer {
+    1. Define string type
+    2. Split JSON pointer string into tokens
+    3. Accumulate tokens into string representation
+    4. Implement deprecated string conversion operator
+}$$
+
+$$ JsonBaseClass {
+    1. Define default base class
+    2. Conditionally select base class
+}$$
+$$ StandardIncludes {
+    1. #include <iostream>
+    2. #include <string>
+    3. #include <vector>
+    4. #include <stdexcept>
+    5. #include <cctype>
+    6. #include <cerrno>
+    7. #include <climits>
+    8. #include <json.hpp> // Assuming nlohmann/json is included here
+}$$
+
+$$ Constants {
+    1. constexpr const char* JSON_POINTER_ERROR_PREFIX = "JSON pointer error: ";
+}$$
+
+$$ JsonPointerClass {
+    1.  Constructor {
+        Initialize reference_tokens vector.
+    } $
+
+    2.  AppendPointer {
+        -> JsonPointerClass
+        Append another JSON pointer to the current one.
+        1. Insert new tokens at the end of reference_tokens.
+    } $
+
+    3.  AppendToken {
+        -> JsonPointerClass
+        Append an unescaped reference token to the current pointer.
+        1. Push token to reference_tokens.
+    } $
+
+    4.  AppendArrayIndex {
+        -> JsonPointerClass
+        Append an array index to the current pointer.
+        1. Convert index to string and append.
+    } $
+
+    5.  OperatorPlus {
+        -> JsonPointerClass
+        Create a new JSON pointer by appending another pointer.
+        1. Combine reference_tokens of both pointers.
+    } $
+
+    6.  ParentPointer {
+        -> JsonPointerClass
+        Return the parent JSON pointer.
+        1. Remove the last token from reference_tokens.
+    } $
+
+    7.  PopBack {
+        -> JsonPointerClass
+        Remove the last reference token.
+        1. Check if pointer is not empty.
+        2. Pop back from reference_tokens.
+    } $
+
+    8.  Back {
+        -> JsonPointerClass
+        Return the last reference token.
+        1. Check if pointer is not empty.
+        2. Return the last token.
+    } $
+
+    9.  PushBack {
+        -> JsonPointerClass
+        Append an unescaped token to the pointer.
+        1. Push token to reference_tokens.
+    } $
+
+    10.  Empty {
+        -> JsonPointerClass
+        Check if the pointer is empty.
+        1. Return true if reference_tokens is empty.
+    } $
+
+    11.  ArrayIndex {
+        -> JsonPointerClass
+        Convert a reference token to an array index.
+        1. Validate token format.
+        2. Convert token to integer.
+    } $
+
+    12.  Top {
+        -> JsonPointerClass
+        Return the top-level JSON pointer.
+        1. Create a new pointer with the first token.
+    } $
+
+    13.  GetAndCreate {
+        -> JsonPointerClass
+        Get and create the pointed-to value.
+        1. Traverse the JSON structure.
+        2. Create missing objects or arrays.
+    } $
+
+    14.  GetUnchecked {
+        -> JsonPointerClass
+        Get the pointed-to value without checks.
+        1. Traverse the JSON structure.
+        2. Handle null values by converting to array/object.
+    } $
+
+    15.  GetChecked {
+        -> JsonPointerClass
+        Get the pointed-to value with checks.
+        1. Traverse the JSON structure.
+        2. Perform range checks.
+    } $
+
+    16.  Contains {
+        -> JsonPointerClass
+        Check if the pointer contains a value.
+        1. Traverse the JSON structure.
+        2. Validate each token.
+    } $
+}$$
+
+$$ OperatorOutput {
+    -> JsonPointerClass
+    Output the JSON pointer to a stream.
+    1. Output the string representation of the pointer.
+}$$
+
+$$ OperatorSlashEqual {
+    -> JsonPointerClass
+    Append another JSON pointer or token.
+    1. Combine reference_tokens.
+}$$
+
+$$ OperatorSlash {
+    -> JsonPointerClass
+    Create a new JSON pointer by combining two pointers.
+    1. Combine reference_tokens.
+}$$
+$$ Includes -> { 1. #include <initializer_list>, 2. #include <utility>, 3. #include <algorithm>, 4. #include <array>, 5. #include <map>, 6. #include <cmath>, 7. #include <cstdint>, 8. #include <cstring>, 9. #include <limits>, 10. #include <string>, 11. #include <vector>, 12. #include <memory>, 13. #include <cstddef>, 14. #include <iterator> }$$
+
+$$ Constants -> { 1. JSON_HEDLEY_UNLIKELY, 2. JSON_ASSERT, 3. JSON_THROW, 4. JSON_HAS_THREE_WAY_COMPARISON, 5. NLOHMANN_JSON_NAMESPACE_BEGIN, 6. NLOHMANN_JSON_NAMESPACE_END }$$
+
+$$ SplitReferenceString -> { 1. Check if reference string is empty, 2. If empty, return empty result, 3. Check if non-empty string starts with '/', 4. If not, throw parse_error.107, 5. Extract reference tokens using slashes, 6. For each token, check for proper escaping, 7. If invalid escape, throw parse_error.108, 8. Unescape and store reference token, 9. Return result vector }$$
+
+$$ FlattenJSON -> { 1. Switch on value type, 2. For array: if empty, flatten as null; else iterate and recursively flatten, 3. For object: if empty, flatten as null; else iterate and recursively flatten, 4. For other types: add primitive value with reference string }$$
+
+$$ UnflattenJSON -> { 1. Check if input is an object, 2. If not, throw type_error.314, 3. Iterate object values, 4. Check if values are primitive, 5. If not, throw type_error.315, 6. Assign values to reference pointed by JSON pointer, 7. Return unflattened JSON }$$
+
+$$ ConvertJSONPointer -> { 1. Copy or move reference tokens to result, 2. Return result }$$
+
+$$ JSONPointerComparisonOperators -> { 1. Define equality and inequality operators for JSON pointers, 2. Define three-way comparison operator if available, 3. Otherwise, define separate comparison operators }$$
+
+$$ JSONRefClass -> { 1. Define constructors for move, copy, and initializer list, 2. Define moved_or_copied function to return owned or referenced value, 3. Define operator* and operator-> for access }$$
+
+$$ OutputAdapterProtocol -> { 1. Declare abstract methods for writing characters and character sequences }$$
+$$ Includes {
+    1. #include <nlohmann/detail/string_concat.hpp>
+}$$
+
+$$ Constants {
+    1. JSON_HEDLEY_NON_NULL(2)
+    2. JSON_NO_IO
+}$$
+
+$$ OutputAdapterProtocol {
+    1. Define output adapter protocol for character types.
+}$$
+
+$$ OutputVectorAdapter -> OutputAdapterProtocol {
+    1. Adapt std::vector for output operations.
+    1.1. Constructor: Initialize with vector reference.
+    1.2. write_character: Append single character to vector.
+    1.3. write_characters: Insert multiple characters into vector.
+}$$
+
+$$ABSTRACT OutputStreamAdapter -> OutputAdapterProtocol {
+    1. Abstract adapter for output streams.
+    1.1. Constructor: Initialize with stream reference.
+    1.2. write_character: Write single character to stream.
+    1.3. write_characters: Write multiple characters to stream.
+}$$
+
+$$ OutputStringAdapter -> OutputAdapterProtocol {
+    1. Adapt std::basic_string for output operations.
+    1.1. Constructor: Initialize with string reference.
+    1.2. write_character: Append single character to string.
+    1.3. write_characters: Append multiple characters to string.
+}$$
+
+$$ OutputAdapter {
+    1. Manage output adapters for different types.
+    1.1. Constructor for std::vector: Initialize with vector adapter.
+    1.2. Constructor for std::basic_ostream: Initialize with stream adapter.
+    1.3. Constructor for std::basic_string: Initialize with string adapter.
+    1.4. Conversion operator: Return shared pointer to adapter.
+}$$
+
+$$ BinaryWriter {
+    1. Serialize JSON values to binary formats (CBOR, MessagePack).
+    1.1. Constructor: Initialize with output adapter.
+    1.2. write_bson: Serialize JSON object to BSON.
+    1.3. write_cbor: Serialize JSON value to CBOR.
+    1.4. write_msgpack: Serialize JSON value to MessagePack.
+    1.5. write_number: Write numbers in various formats.
+    1.6. write_compact_float: Write floating-point numbers compactly.
+    1.7. write_bson_object: Handle BSON object serialization.
+}$$
+
+$$ WriteCBOR -> BinaryWriter {
+    1. Handle CBOR serialization for different JSON types.
+    1.1. null: Write CBOR null marker.
+    1.2. boolean: Write CBOR boolean markers.
+    1.3. number_integer: Write integers in CBOR format.
+    1.4. number_unsigned: Write unsigned integers in CBOR format.
+    1.5. number_float: Write floating-point numbers in CBOR format.
+    1.6. string: Write strings in CBOR format.
+    1.7. array: Write arrays in CBOR format.
+    1.8. binary: Write binary data in CBOR format.
+    1.9. object: Write objects in CBOR format.
+}$$
+
+$$ WriteMessagePack -> BinaryWriter {
+    1. Handle MessagePack serialization for different JSON types.
+    1.1. null: Write MessagePack null marker.
+    1.2. boolean: Write MessagePack boolean markers.
+    1.3. number_integer: Write integers in MessagePack format.
+    1.4. number_unsigned: Write unsigned integers in MessagePack format.
+    1.5. number_float: Write floating-point numbers in MessagePack format.
+    1.6. string: Write strings in MessagePack format.
+    1.7. array: Write arrays in MessagePack format.
+    1.8. binary: Write binary data in MessagePack format.
+}$$
+$$ Constants {
+    1. fixed: bool = true
+    2. output_type: uint8_t
+    3. N: size_t
+    4. use_ext: bool
+    5. use_count: bool
+    6. use_type: bool
+    7. add_prefix: bool
+    8. use_bjdata: bool
+}
+
+}$$
+$$ Includes {
+    1. #include <limits>
+    2. #include <vector>
+    3. #include <algorithm>
+    4. #include <cstdint>
+}
+
+}$$
+$$ DetermineOutputType -> Constants {
+    1. Check if use_ext is true
+    2. If true, determine output_type based on N using a switch-case
+    3. If false, set output_type to 0xC4
+    4. Set fixed to false if output_type is 0xC7 or 0xC4
+}
+
+}$$
+$$ WriteOutputType -> DetermineOutputType, Constants {
+    1. Write output_type to oa
+    2. If fixed is false, write N as uint8_t
+}
+
+}$$
+$$ HandleBinaryType -> WriteOutputType, Constants {
+    1. Check if N is within uint16_t limits
+    2. Write output_type and N accordingly
+    3. If use_ext, write subtype
+    4. Write byte string
+}
+
+}$$
+$$ HandleObjectType -> Constants {
+    1. Calculate object size N
+    2. Write control byte and object size
+    3. Write each element by calling write_msgpack
+}
+
+}$$
+$$ WriteUBJSON -> Constants {
+    1. Handle null, boolean, number, string, array, binary, and object types
+    2. Write prefixes and values based on type and flags
+}
+
+}$$
+$$ WriteBSONEntryHeader -> Constants {
+    1. Write element type and name to output
+}
+
+}$$
+$$ WriteBSONBoolean -> WriteBSONEntryHeader, Constants {
+    1. Write boolean value as BSON
+}
+
+}$$
+$$ WriteBSONDouble -> WriteBSONEntryHeader, Constants {
+    1. Write double value as BSON
+}
+
+}$$
+$$ WriteBSONString -> WriteBSONEntryHeader, Constants {
+    1. Write string value as BSON
+}
+
+}$$
+$$ WriteBSONNull -> WriteBSONEntryHeader, Constants {
+    1. Write null value as BSON
+}
+
+}$$
+$$ WriteBSONInteger -> WriteBSONEntryHeader, Constants {
+    1. Write integer value as BSON (int32 or int64)
+}
+
+}$$
+$$ WriteBSONUnsigned -> WriteBSONEntryHeader, Constants {
+    1. Write unsigned integer value as BSON (int32 or int64)
+}
+
+}$$
+$$ WriteBSONObjectEntry -> WriteBSONEntryHeader, Constants {
+    1. Write object entry as BSON
+}
+
+}$$
+$$ CalculateBSONSizes -> Constants {
+    1. Calculate sizes for string, integer, unsigned, array, and binary
+}
+}$$
+$$ Includes {
+    1. Include map
+    2. Include binary_t
+    3. Include BasicJsonType
+    4. Include CharType
+    5. Include detail::input_format_t
+    6. Include number_float_t
+    7. Include std::array
+    8. Include std::enable_if
+    9. Include std::int32_t
+    10. Include std::int64_t
+    11. Include std::int8_t
+    12. Include std::is_floating_point
+    13. Include std::is_signed
+    14. Include std::is_unsigned
+    15. Include std::map
+    16. Include std::memcpy
+    17. Include std::numeric_limits
+    18. Include std::size_t
+    19. Include std::string
+    20. Include std::uint16_t
+    21. Include std::uint32_t
+    22. Include std::uint64_t
+    23. Include std::uint8_t
+    24. Include typename
+}$$
+
+$$ Constants {
+    1. Define 0x00 as null character
+    2. Define 0x04 as array type
+    3. Define 0x05 as binary type
+    4. Define 'Z' as UBJSON null prefix
+    5. Define 'T' as UBJSON true prefix
+    6. Define 'F' as UBJSON false prefix
+    7. Define 'i' as UBJSON int8 prefix
+    8. Define 'U' as UBJSON uint8 prefix
+    9. Define 'I' as UBJSON int16 prefix
+    10. Define 'u' as UBJSON uint16 prefix (bjdata only)
+    11. Define 'l' as UBJSON int32 prefix
+    12. Define 'm' as UBJSON uint32 prefix (bjdata only)
+    13. Define 'L' as UBJSON int64 prefix
+    14. Define 'M' as UBJSON uint64 prefix (bjdata only)
+    15. Define 'd' as UBJSON float 32 prefix
+    16. Define 'D' as UBJSON float 64 prefix
+    17. Define 'S' as UBJSON string prefix
+    18. Define '[' as UBJSON array/binary prefix
+    19. Define '{' as UBJSON object prefix
+    20. Define 'N' as UBJSON discarded prefix
+}$$
+
+$$ Globals {
+    1. Declare oa as output adapter
+    2. Declare is_little_endian as system endianness flag
+}$$
+
+$$ WriteBSONArray -> WriteBSONElement {
+    1. Write BSON entry header with name and array type (0x04)
+    2. Calculate and write array size as int32
+    3. Iterate over array elements
+        3.1. Write each element as BSON element with index as key
+}$$
+
+$$ WriteBSONBinary -> WriteBSONElement {
+    1. Write BSON entry header with name and binary type (0x05)
+    2. Write binary size as int32
+    3. Write binary subtype (if available)
+    4. Write binary data
+}$$
+
+$$ CalcBSONElementSize -> CalcBSONEntryHeaderSize, CalcBSONObjectSize, CalcBSONArraySize, CalcBSONBinarySize, CalcBSONIntegerSize, CalcBSONUnsignedSize, CalcBSONStringSize {
+    1. Calculate header size
+    2. Switch on JSON value type
+        2.1. Object: header + object size
+        2.2. Array: header + array size
+        2.3. Binary: header + binary size
+        2.4. Boolean: header + 1 byte
+        2.5. Number float: header + 8 bytes
+        2.6. Number integer: header + integer size
+        2.7. Number unsigned: header + unsigned size
+        2.8. String: header + string size
+        2.9. Null: header + 0 bytes
+}$$
+
+$$ WriteBSONElement -> WriteBSONObjectEntry, WriteBSONArray, WriteBSONBinary, WriteBSONBoolean, WriteBSONDouble, WriteBSONInteger, WriteBSONUnsigned, WriteBSONString, WriteBSONNull {
+    1. Switch on JSON value type
+        1.1. Object: write object entry
+        1.2. Array: write array
+        1.3. Binary: write binary
+        1.4. Boolean: write boolean
+        1.5. Number float: write double
+        1.6. Number integer: write integer
+        1.7. Number unsigned: write unsigned
+        1.8. String: write string
+        1.9. Null: write null
+}$$
+
+$$ CalcBSONObjectSize -> CalcBSONElementSize {
+    1. Accumulate size of all elements in object
+}$$
+
+$$ WriteBSONObject -> WriteNumber, WriteBSONElement {
+    1. Write object size as int32
+    2. Iterate over object elements
+        2.1. Write each element as BSON element
+}$$
+
+$$ GetCBORFloatPrefix {
+    1. Return 0xFA for float
+    2. Return 0xFB for double
+}$$
+
+$$ GetMsgPackFloatPrefix {
+    1. Return 0xCA for float
+    2. Return 0xCB for double
+}$$
+
+$$ WriteNumberWithUBJSONPrefix -> WriteNumber, WriteCharacter {
+    1. Determine prefix based on number type and value
+    2. Write prefix (if required)
+    3. Write number with appropriate type casting
+}$$
+
+$$ UBJSONPrefix {
+    1. Switch on JSON value type
+        1.1. Null: return 'Z'
+        1.2. Boolean: return 'T' or 'F'
+        1.3. Number integer: determine prefix based on value range
+        1.4. Number unsigned: determine prefix based on value range
+        1.5. Number float: return float prefix
+        1.6. String: return 'S'
+        1.7. Array/Binary: return '['
+        1.8. Object: return '{'
+        1.9. Discarded: return 'N'
+}$$
+
+$$ WriteBJDataNDArray -> WriteCharacter, WriteUBJSON, WriteNumber {
+    1. Validate array type and size
+    2. Write ndarray header
+    3. Write array size
+    4. Write array data based on type
+}$$
+
+$$ WriteNumber -> WriteCharacters, Reverse {
+    1. Write number to byte array
+    2. Reverse byte order if necessary
+    3. Write byte array to output
+}$$
+
+$$ WriteCompactFloat -> GetCBORFloatPrefix, GetMsgPackFloatPrefix, WriteNumber {
+    1. Determine if float or double is required
+    2. Write prefix
+    3. Write number
+}$$
+
+$$ ToCharType {
+    1. Convert uint8_t to CharType based on CharType properties
+}$$
+$$ Includes {
+1. #include <algorithm>
+2. #include <array>
+3. #include <clocale>
+4. #include <cmath>
+5. #include <cstddef>
+6. #include <cstdint>
+7. #include <cstdio>
+8. #include <limits>
+9. #include <string>
+10. #include <iomanip>
+11. #include <type_traits>
+12. #include <utility>
+}$$
+
+$$ Constants {
+1. constexpr int kPrecision = 64;
+2. constexpr int kAlpha = -60;
+3. constexpr int kGamma = -32;
+4. constexpr int kCachedPowersMinDecExp = -300;
+5. constexpr int kCachedPowersDecStep = 8;
+}$$
+
+$$ABSTRACT Diyfp -> {
+1. Get normalized diyfp.
+2. Perform diyfp operations: sub, mul, normalize, normalize_to.
+}$$
+
+$$ DiyfpOperations -> Diyfp {
+1. Define diyfp struct with f and e members.
+2. Implement sub, mul, normalize, normalize_to methods.
+}$$
+
+$$ BoundariesCalculation -> Diyfp {
+1. Compute boundaries for a given float type.
+2. Determine v, m_plus, m_minus, w_plus, w_minus.
+}$$
+
+$$ CachedPowerCalculation -> Diyfp {
+1. Get cached power for a given binary exponent.
+2. Use predefined cached powers array.
+}$$
+
+$$ Grisu2Algorithm -> Diyfp, BoundariesCalculation, CachedPowerCalculation {
+1. Implement Grisu2 algorithm for binary to decimal conversion.
+2. Use diyfp operations and boundaries calculation.
+}$$
+
+$$ MainLogic -> Grisu2Algorithm {
+1. Initialize and execute Grisu2 algorithm.
+2. Handle output and edge cases.
+}$$
+$$ Includes {
+    1. Include map
+    2. Include numeric_limits
+    3. Include cassert
+}$$
+
+$$ Constants {
+    1. Define kAlpha
+    2. Define kGamma
+    3. Define kCachedPowersMinDecExp
+    4. Define kCachedPowersDecStep
+    5. Define kCachedPowers { List of cached_power }
+}$$
+
+$$ABSTRACT ComputeCachedPower -> Includes, Constants {
+    1. Get binary exponent
+    2. Calculate index
+    3. Return cached power
+}$$
+
+$$ FindLargestPow10 {
+    1. Check if n >= 1000000000
+    2. Check if n >= 100000000
+    3. Check if n >= 10000000
+    4. Check if n >= 1000000
+    5. Check if n >= 100000
+    6. Check if n >= 10000
+    7. Check if n >= 1000
+    8. Check if n >= 100
+    9. Check if n >= 10
+    10. Return pow10 and k
+}$$
+
+$$ Grisu2Round -> Includes, Constants {
+    1. Assert len >= 1
+    2. Assert dist <= delta
+    3. Assert rest <= delta
+    4. Assert ten_k > 0
+    5. While rest < dist and delta - rest >= ten_k and (rest + ten_k < dist or dist - rest > rest + ten_k - dist)
+        5.1 Decrement buf[len - 1]
+        5.2 Increment rest by ten_k
+}$$
+
+$$ Grisu2DigitGen -> Includes, Constants, FindLargestPow10, Grisu2Round {
+    1. Assert M_plus.e >= kAlpha
+    2. Assert M_plus.e <= kGamma
+    3. Calculate delta and dist
+    4. Split M+ into p1 and p2
+    5. Generate digits of integral part
+    6. Generate digits of fractional part
+    7. Call Grisu2Round
+}$$
+
+$$ GetCachedPowerForBinaryExponent -> ComputeCachedPower {
+    1. Call ComputeCachedPower
+}$$
+
+$$ Grisu2 -> Includes, Constants, GetCachedPowerForBinaryExponent, Grisu2DigitGen {
+    1. Scale v, m_minus, and m_plus
+    2. Calculate w, w_minus, and w_plus
+    3. Adjust M_minus and M_plus
+    4. Call Grisu2DigitGen
+}$$
+
+$$ AppendExponent {
+    1. Handle negative exponent
+    2. Append exponent to buffer
+}$$
+$$ Includes {
+1. #include <nlohmann/detail/exceptions.hpp>
+2. #include <nlohmann/detail/macro_scope.hpp>
+3. #include <nlohmann/detail/meta/cpp_future.hpp>
+4. #include <nlohmann/detail/output/binary_writer.hpp>
+5. #include <nlohmann/detail/output/output_adapters.hpp>
+6. #include <nlohmann/detail/string_concat.hpp>
+7. #include <nlohmann/detail/value_t.hpp>
+}$$
+
+$$ Constants {
+1. constexpr std::uint8_t UTF8_ACCEPT = 0;
+2. constexpr std::uint8_t UTF8_REJECT = 1;
+3. constexpr int kMinExp = -4;
+4. constexpr int kMaxExp = std::numeric_limits<FloatType>::digits10;
+}$$
+
+$$ Globals {
+1. std::locale loc(std::localeconv());
+2. char thousands_sep = loc->thousands_sep == nullptr ? '\0' : std::char_traits<char>::to_char_type(*(loc->thousands_sep));
+3. char decimal_point = loc->decimal_point == nullptr ? '\0' : std::char_traits<char>::to_char_type(*(loc->decimal_point));
+}$$
+
+$$ABSTRACT SerializeValue -> SerializeObject, SerializeArray, SerializeString, SerializeBinary, SerializeBoolean, SerializeInteger, SerializeUnsigned, SerializeFloat, SerializeNull {
+1. Implement serialization logic for different JSON value types.
+}$$
+
+$$ SerializeObject -> SerializeValue {
+1. Check if object is empty.
+2. If pretty print, write '{\n' and indent.
+3. Iterate over key-value pairs, serialize keys and values.
+4. Write closing '}' or '}\n' with indentation.
+}$$
+
+$$ SerializeArray -> SerializeValue {
+1. Check if array is empty.
+2. If pretty print, write '[\n' and indent.
+3. Iterate over elements, serialize each element.
+4. Write closing ']' or ']\n' with indentation.
+}$$
+
+$$ SerializeString -> SerializeValue {
+1. Write opening quote.
+2. Escape and write string characters.
+3. Write closing quote.
+}$$
+
+$$ SerializeBinary -> SerializeValue {
+1. Write opening '{' and indent if pretty print.
+2. Serialize bytes array and subtype.
+3. Write closing '}' with indentation if pretty print.
+}$$
+
+$$ SerializeBoolean -> SerializeValue {
+1. Write 'true' or 'false' based on value.
+}$$
+
+$$ SerializeInteger -> SerializeValue {
+1. Write integer value as string.
+}$$
+
+$$ SerializeUnsigned -> SerializeValue {
+1. Write unsigned integer value as string.
+}$$
+
+$$ SerializeFloat -> SerializeValue {
+1. Write float value using "%g" format.
+}$$
+
+$$ SerializeNull -> SerializeValue {
+1. Write 'null'.
+}$$
+
+$$ FormatBuffer {
+1. Validate input parameters.
+2. Calculate buffer length and decimal exponent.
+3. Format buffer based on exponent range.
+4. Return formatted buffer pointer.
+}$$
+
+$$ ToChars {
+1. Validate input parameters.
+2. Handle special cases (zero, NaN, Infinity).
+3. Compute buffer and decimal exponent using Grisu2 algorithm.
+4. Format buffer using FormatBuffer.
+5. Return formatted buffer pointer.
+}$$
+
+$$ Serializer {
+1. Initialize output adapter, locale, and indentation.
+2. Implement dump method to serialize JSON values.
+3. Handle different value types using corresponding Serialize* methods.
+}$$
+
+$$ ErrorHandler {
+1. Define error handling strategies for UTF-8 decoding errors.
+}$$
+$$ Includes {
+    1. #include <string>
+    2. #include <cstdint>
+    3. #include <array>
+    4. #include <cassert>
+    5. #include <algorithm>
+    6. #include <limits>
+    7. #include <cstdio>
+}$$
+
+$$ Constants {
+    1. UTF8_ACCEPT = 0
+    2. UTF8_REJECT = 1
+}$$
+
+$$ Globals {
+    1. string_buffer: std::array<char, 256>
+    2. number_buffer: std::array<char, 64>
+    3. error_handler: error_handler_t
+    4. o: output_stream_t
+}$$
+
+$$ ABSTRACT UTF8Decoder {
+    1. decode(state, codepoint, byte) -> new_state
+}$$
+
+$$ EscapeControlCharacters -> UTF8Decoder {
+    1. Get codepoint from UTF-8 sequence
+    2. Check if codepoint is a control character
+    3. If control character, escape it
+    4. Otherwise, copy byte to buffer
+}$$
+
+$$ HandleUTF8Errors -> UTF8Decoder {
+    1. Check error type (strict, ignore, replace)
+    2. Handle error accordingly:
+       - strict: throw exception
+       - ignore: reset buffer
+       - replace: add replacement character
+}$$
+
+$$ DumpEscapedString {
+    1. Initialize UTF-8 decoder state
+    2. Iterate over input string
+    3. Decode UTF-8 sequence
+    4. Handle decoded codepoint:
+       - Escape control characters
+       - Handle errors
+       - Copy bytes to buffer
+    5. Write buffer to output stream
+}$$
+
+$$ CountDigits {
+    1. Count digits of an unsigned integer
+    2. Return number of digits
+}$$
+
+$$ HexBytes {
+    1. Convert byte to uppercase hex string
+    2. Return hex string
+}$$
+
+$$ IsNegativeNumber {
+    1. Check if a number is negative
+    2. Return true if negative, false otherwise
+}$$
+
+$$ DumpInteger {
+    1. Handle special case for zero
+    2. Determine if number is negative
+    3. Convert absolute value to string
+    4. Add sign if necessary
+    5. Write to output stream
+}$$
+
+$$ DumpFloat {
+    1. Check for NaN/Infinity
+    2. Use Grisu2 algorithm for IEEE-754 floats
+    3. Fallback to snprintf for other floats
+    4. Write to output stream
+}$$
+
+$$ DumpFloatIEEE -> DumpFloat {
+    1. Use to_chars for IEEE-754 floats
+    2. Write to output stream
+}$$
+
+$$ DumpFloatNonIEEE -> DumpFloat {
+    1. Use snprintf for non-IEEE-754 floats
+    2. Post-process output (remove thousands separator, convert decimal point)
+    3. Write to output stream
+}$$
+$$ Includes {
+    1. #include <functional>
+    2. #include <initializer_list>
+    3. #include <iterator>
+    4. #include <memory>
+    5. #include <stdexcept>
+    6. #include <type_traits>
+    7. #include <utility>
+    8. #include <vector>
+}$$
+
+$$ Constants {
+    1. Define UTF8_ACCEPT as a constant for state acceptance.
+}$$
+
+$$ABSTRACT DecodeUTF8 {
+    1. Process UTF-8 encoded byte.
+    2. Update state and codepoint based on byte.
+}$$
+
+$$ DecodeUTF8 -> AbstractDecodeUTF8 {
+    1. Get byte from input.
+    2. Check if byte is within valid range.
+    3. Update codepoint based on current state.
+    4. Determine new state from lookup table.
+    5. Return new state.
+}$$
+
+$$ABSTRACT RemoveSign {
+    1. Handle signed integer conversion.
+}$$
+
+$$ RemoveSign -> AbstractRemoveSign {
+    1. Check if input is negative.
+    2. Apply plus/minus shuffling for INT_MIN and INT_MAX cases.
+    3. Return absolute value as unsigned integer.
+}$$
+
+$$ OrderedMap {
+    1. Initialize ordered_map with default or provided allocator.
+    2. Emplace key-value pair, preserving insertion order.
+    3. Access value by key with operator[].
+    4. Access value by key with at(), throwing if key not found.
+    5. Erase key-value pair by key.
+    6. Erase range of key-value pairs by iterators.
+    7. Count occurrences of key.
+    8. Find key-value pair by key.
+    9. Insert key-value pair, preserving insertion order.
+    10. Insert range of key-value pairs.
+}$$
+
+$$ Serializer {
+    1. Initialize serializer with output adapter.
+    2. Prepare character buffer for number serialization.
+    3. Set locale and locale-specific characters.
+    4. Prepare string buffer for string serialization.
+    5. Set indentation character and string.
+    6. Handle decoding errors based on error handler.
+}$$
+$$ Includes -> None {
+    1. Include nlohmann/json_fwd.hpp
+    2. Include nlohmann/detail/meta/cpp_future.hpp
+    3. Include nlohmann/detail/meta/type_traits.hpp
+    4. Include nlohmann/detail/value_t.hpp
+    5. Include nlohmann/detail/iterators/internal_iterator.hpp
+    6. Include nlohmann/detail/iterators/primitive_iterator.hpp
+    7. Include nlohmann/detail/json_pointer.hpp
+    8. Include nlohmann/detail/exceptions.hpp
+    9. Include nlohmann/detail/macro_scope.hpp
+    10. Include nlohmann/detail/serializer.hpp
+    11. Include nlohmann/detail/binary_writer.hpp
+    12. Include nlohmann/detail/binary_reader.hpp
+    13. Include nlohmann/detail/json_sax_dom_parser.hpp
+    14. Include nlohmann/detail/json_sax_dom_callback_parser.hpp
+    15. Include nlohmann/detail/json_ref.hpp
+    16. Include nlohmann/byte_container_with_subtype.hpp
+    17. Include nlohmann/detail/conversions/to_chars.hpp
+    18. Include nlohmann/detail/conversions/from_chars.hpp
+    19. Include nlohmann/detail/string_escape.hpp
+    20. Include nlohmann/detail/iterator.hpp
+    21. Include nlohmann/detail/json_reverse_iterator.hpp
+    22. Include nlohmann/detail/json_sax.hpp
+    23. Include nlohmann/detail/output/binary_writer.hpp
+    24. Include nlohmann/detail/output/output_adapters.hpp
+    25. Include nlohmann/detail/input/binary_reader.hpp
+    26. Include nlohmann/detail/input/input_adapters.hpp
+    27. Include nlohmann/detail/json_pointer_iterator.hpp
+    28. Include nlohmann/detail/json_pointer_scope.hpp
+    29. Include nlohmann/detail/json_pointer_walk.hpp
+    30. Include nlohmann/detail/json_pointer_resolve.hpp
+}$$
+
+$$ Constants -> None {
+    1. Define NLOHMANN_BASIC_JSON_TPL_DECLARATION
+    2. Define JSON_PRIVATE_UNLESS_TESTED
+    3. Define JSON_HEDLEY_WARN_UNUSED_RESULT
+    4. Define JSON_HEDLEY_RETURNS_NON_NULL
+    5. Define JSON_ASSERT
+    6. Define JSON_TRY
+    7. Define JSON_CATCH
+    8. Define JSON_THROW
+    9. Define JSON_DIAGNOSTICS
+    10. Define JSON_HEDLEY_UNLIKELY
+}$$
+
+$$ Globals -> None {
+    1. Declare global variables and functions used across the system.
+}$$
+
+$$ABSTRACT JsonBaseClass -> None {
+    1. Define base class for JSON with template parameters.
+}$$
+
+$$ JsonValueUnion -> None {
+    1. Define union for JSON value storage.
+    2. Include constructors and destructors for all JSON types.
+    3. Implement destroy method for proper resource management.
+}$$
+
+$$ JsonClass -> JsonBaseClass {
+    1. Define class basic_json with private and public sections.
+    2. Include friend declarations for related classes and functions.
+    3. Define type aliases for iterators, containers, and other utilities.
+    4. Implement static methods for allocator and meta information.
+    5. Define private helper methods for invariant checks and parent settings.
+    6. Implement public methods for JSON manipulation and querying.
+}$$
+
+$$ Parser -> None {
+    1. Define parser class for JSON input.
+    2. Implement parsing logic for different input types.
+}$$
+
+$$ Serializer -> None {
+    1. Define serializer class for JSON output.
+    2. Implement serialization logic for different output types.
+}$$
+
+$$ Iterator -> None {
+    1. Define iterator classes for JSON containers.
+    2. Implement iterator functionality for traversal and manipulation.
+}$$
+
+$$ Exceptions -> None {
+    1. Define exception classes for JSON-related errors.
+    2. Implement error handling and exception throwing mechanisms.
+}$$
+
+$$ Utilities -> None {
+    1. Define utility functions and classes for JSON processing.
+    2. Implement helper methods for string manipulation, type conversions, etc.
+}$$
+
+$$ MainLogic -> JsonClass, Parser, Serializer, Iterator, Exceptions, Utilities {
+    1. Integrate all components to provide a complete JSON library.
+    2. Ensure proper interaction between classes and functions.
+    3. Implement main logic for JSON parsing, serialization, and manipulation.
+}$$
+$$ Includes -> { 1. Include detail::output_adapter, 2. Include detail::json_ref, 3. Include detail::json_base_class_t, 4. Include detail::json_value, 5. Include detail::parse_event_t, 6. Include detail::parser_callback_t, 7. Include detail::JSONSerializer, 8. Include detail::value_t }$$
+
+$$ Constants -> { 1. Define value_t::null, 2. Define value_t::discarded, 3. Define value_t::boolean, 4. Define value_t::number_float, 5. Define value_t::number_integer, 6. Define value_t::number_unsigned, 7. Define value_t::string, 8. Define value_t::object, 9. Define value_t::array, 10. Define value_t::binary }$$
+
+$$ InitializeJSONValue -> { 1. Set m_data.m_type to value_t::null, 2. Set m_data.m_value to default }$$
+
+$$ CreateJSONValue -> parent: InitializeJSONValue { 1. Set m_data.m_type based on input, 2. Set m_data.m_value based on input, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ CopyJSONValue -> parent: InitializeJSONValue { 1. Copy m_data.m_type from source, 2. Copy m_data.m_value based on type, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ MoveJSONValue -> parent: InitializeJSONValue { 1. Move m_data from source, 2. Invalidate source m_data, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ AssignJSONValue -> { 1. Swap m_data.m_type with source, 2. Swap m_data.m_value with source, 3. Call base class assignment, 4. Call set_parents, 5. Call assert_invariant }$$
+
+$$ DestroyJSONValue -> { 1. Call assert_invariant with false }$$
+
+$$ CreateEmptyValue -> parent: CreateJSONValue { 1. Set m_data.m_type to input value_t, 2. Set m_data.m_value to default }$$
+
+$$ CreateNullValue -> parent: CreateJSONValue { 1. Set m_data.m_type to value_t::null, 2. Set m_data.m_value to default }$$
+
+$$ CreateValueFromCompatibleType -> parent: CreateJSONValue { 1. Call JSONSerializer::to_json with input, 2. Call set_parents, 3. Call assert_invariant }$$
+
+$$ CreateValueFromBasicJSONType -> parent: CreateJSONValue { 1. Determine type from input, 2. Call JSONSerializer::to_json based on type, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ CreateContainerFromInitializerList -> parent: CreateJSONValue { 1. Determine if list represents object or array, 2. Set m_data.m_type accordingly, 3. Populate m_data.m_value based on type, 4. Call set_parents, 5. Call assert_invariant }$$
+
+$$ CreateBinaryArray -> parent: CreateJSONValue { 1. Set m_data.m_type to value_t::binary, 2. Set m_data.m_value to input binary data, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ CreateArrayFromInitializerList -> parent: CreateJSONValue { 1. Set m_data.m_type to value_t::array, 2. Populate m_data.m_value.array from input, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ CreateObjectFromInitializerList -> parent: CreateJSONValue { 1. Set m_data.m_type to value_t::object, 2. Populate m_data.m_value.object from input, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ CreateArrayWithCountCopies -> parent: CreateJSONValue { 1. Set m_data.m_type to value_t::array, 2. Populate m_data.m_value.array with count copies of value, 3. Call set_parents, 4. Call assert_invariant }$$
+
+$$ CreateValueFromIteratorRange -> parent: CreateJSONValue { 1. Validate iterators, 2. Determine type from first iterator, 3. Populate m_data.m_value based on type, 4. Call set_parents, 5. Call assert_invariant }$$
+
+$$ SerializeJSONValue -> { 1. Initialize serializer, 2. Call serializer.dump with parameters, 3. Return result }$$
+$$ Includes {
+    1. Include nlohmann/json.hpp
+}$$
+
+$$ Constants {
+    1. Define value_t as enum for JSON types
+    2. Define JSON_HEDLEY_LIKELY macro
+    3. Define JSON_THROW macro
+    4. Define detail::concat function
+}$$
+
+$$ GetType -> {
+    1. Return m_data.m_type
+}$$
+
+$$ IsPrimitiveType -> {
+    1. Check if type is null, string, boolean, number, or binary
+    2. Return true if any of the above, else false
+}$$
+
+$$ IsStructuredType -> {
+    1. Check if type is array or object
+    2. Return true if either, else false
+}$$
+
+$$ IsNull -> {
+    1. Check if m_data.m_type equals value_t::null
+    2. Return result
+}$$
+
+$$ IsBoolean -> {
+    1. Check if m_data.m_type equals value_t::boolean
+    2. Return result
+}$$
+
+$$ IsNumber -> {
+    1. Check if type is integer or float
+    2. Return true if either, else false
+}$$
+
+$$ IsNumberInteger -> {
+    1. Check if m_data.m_type equals value_t::number_integer or value_t::number_unsigned
+    2. Return result
+}$$
+
+$$ IsNumberUnsigned -> {
+    1. Check if m_data.m_type equals value_t::number_unsigned
+    2. Return result
+}$$
+
+$$ IsNumberFloat -> {
+    1. Check if m_data.m_type equals value_t::number_float
+    2. Return result
+}$$
+
+$$ IsObject -> {
+    1. Check if m_data.m_type equals value_t::object
+    2. Return result
+}$$
+
+$$ IsArray -> {
+    1. Check if m_data.m_type equals value_t::array
+    2. Return result
+}$$
+
+$$ IsString -> {
+    1. Check if m_data.m_type equals value_t::string
+    2. Return result
+}$$
+
+$$ IsBinary -> {
+    1. Check if m_data.m_type equals value_t::binary
+    2. Return result
+}$$
+
+$$ IsDiscarded -> {
+    1. Check if m_data.m_type equals value_t::discarded
+    2. Return result
+}$$
+
+$$ GetImplBoolean -> {
+    1. Check if type is boolean
+    2. If true, return m_data.m_value.boolean
+    3. Else, throw type_error
+}$$
+
+$$ GetImplPtrObject -> {
+    1. Check if type is object
+    2. If true, return m_data.m_value.object
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrArray -> {
+    1. Check if type is array
+    2. If true, return m_data.m_value.array
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrString -> {
+    1. Check if type is string
+    2. If true, return m_data.m_value.string
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrBoolean -> {
+    1. Check if type is boolean
+    2. If true, return &m_data.m_value.boolean
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrInteger -> {
+    1. Check if type is integer
+    2. If true, return &m_data.m_value.number_integer
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrUnsigned -> {
+    1. Check if type is unsigned
+    2. If true, return &m_data.m_value.number_unsigned
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrFloat -> {
+    1. Check if type is float
+    2. If true, return &m_data.m_value.number_float
+    3. Else, return nullptr
+}$$
+
+$$ GetImplPtrBinary -> {
+    1. Check if type is binary
+    2. If true, return m_data.m_value.binary
+    3. Else, return nullptr
+}$$
+
+$$ GetRefImpl -> {
+    1. Get pointer using get_ptr
+    2. If pointer not null, return dereferenced pointer
+    3. Else, throw type_error
+}$$
+
+$$ GetPtr -> {
+    1. Delegate call to get_impl_ptr
+}$$
+
+$$ GetImplValueType -> {
+    1. Create instance of ValueType
+    2. Call JSONSerializer::from_json
+    3. Return instance
+}$$
+
+$$ GetImplNonDefaultValueType -> {
+    1. Call JSONSerializer::from_json
+    2. Return result
+}$$
+
+$$ GetImplBasicJsonType -> {
+    1. Return *this
+}$$
+
+$$ GetImplIdentity -> {
+    1. Return *this
+}$$
+
+$$ Get -> {
+    1. Call get_impl with appropriate priority tag
+}$$
+$$ Includes -> { 1. Include necessary headers for JSON handling and serialization. }$$
+
+$$ Constants -> { 1. Define constants for error codes and messages. }$$
+
+$$ GetExplicitValue -> { 1. Check if ValueType is not basic_json and has from_json specialization. 2. Call JSONSerializer::from_json to deserialize. 3. Return the deserialized value. }$$
+
+$$ GetBasicJsonValue -> { 1. Check if ValueType is basic_json. 2. Assign current JSON value to v. 3. Return v. }$$
+
+$$ GetArrayValue -> { 1. Check if array has from_json specialization. 2. Call JSONSerializer::from_json to deserialize array. 3. Return the deserialized array. }$$
+
+$$ GetReferenceValue -> { 1. Check if ReferenceType is a reference. 2. Delegate call to get_ref_impl. 3. Return the reference value. }$$
+
+$$ GetImplicitValue -> { 1. Check if ValueType meets the requirements for implicit conversion. 2. Delegate call to get<ValueType>(). 3. Return the converted value. }$$
+
+$$ GetBinaryValue -> { 1. Check if JSON value is binary. 2. Throw type_error if not binary. 3. Return binary value. }$$
+
+$$ AccessArrayElementWithBoundsChecking -> { 1. Check if JSON value is an array. 2. Throw type_error if not an array. 3. Access array element with bounds checking. 4. Return the element. }$$
+
+$$ AccessObjectElementWithBoundsChecking -> { 1. Check if JSON value is an object. 2. Throw type_error if not an object. 3. Find key in object. 4. Throw out_of_range if key not found. 5. Return the element. }$$
+
+$$ AccessArrayElement -> { 1. Check if JSON value is an array or null. 2. Convert null to empty array if necessary. 3. Resize array if index is out of range. 4. Return the element. }$$
+
+$$ AccessObjectElement -> { 1. Check if JSON value is an object or null. 2. Convert null to empty object if necessary. 3. Emplace key-value pair if key not found. 4. Return the element. }$$
+
+$$ AccessObjectElementWithDefaultValue -> { 1. Check if JSON value is an object. 2. Throw type_error if not an object. 3. Find key in object. 4. Return value if key found, otherwise return default value. }$$
+$$ Includes {
+    1. Include <nlohmann/json.hpp>
+}$$
+
+$$ Constants {
+    1. Define JSON_HEDLEY_LIKELY
+    2. Define JSON_HEDLEY_UNLIKELY
+    3. Define JSON_HEDLEY_DEPRECATED_FOR
+    4. Define JSON_THROW
+    5. Define JSON_TRY
+    6. Define JSON_INTERNAL_CATCH
+    7. Define JSON_ASSERT
+}$$
+
+$$ GetValueByKeyWithDefault -> {
+    1. Check if JSON object is valid
+    2. If key exists, return value
+    3. Otherwise, return default value
+}$$
+
+$$ GetValueByJSONPointerWithDefault -> {
+    1. Check if JSON object is valid
+    2. Try to resolve JSON pointer
+    3. If successful, return value
+    4. Catch out_of_range exception, return default value
+}$$
+
+$$ AccessFirstElement -> {
+    1. Return first element using begin iterator
+}$$
+
+$$ AccessLastElement -> {
+    1. Return last element using end iterator and decrement
+}$$
+
+$$ EraseElementByIterator -> {
+    1. Validate iterator
+    2. Handle primitive types (boolean, numbers, strings, binary)
+    3. Handle objects and arrays
+    4. Throw exception for unsupported types
+}$$
+
+$$ EraseElementsByIteratorRange -> {
+    1. Validate iterators
+    2. Handle primitive types (boolean, numbers, strings, binary)
+    3. Handle objects and arrays
+    4. Throw exception for unsupported types
+}$$
+
+$$ EraseElementByKey -> {
+    1. Validate JSON object
+    2. Erase element by key
+}$$
+
+$$ EraseElementByIndex -> {
+    1. Validate JSON array
+    2. Erase element by index
+}$$
+
+$$ FindElementByKey -> {
+    1. Validate JSON object
+    2. Return iterator to found element or end()
+}$$
+
+$$ CountOccurrencesByKey -> {
+    1. Validate JSON object
+    2. Return count of key occurrences
+}$$
+
+$$ CheckExistenceByKey -> {
+    1. Validate JSON object
+    2. Return true if key exists, false otherwise
+}$$
+
+$$ CheckExistenceByJSONPointer -> {
+    1. Use JSON pointer to check existence
+}$$
+
+$$ ProvideIterators -> {
+    1. Implement begin(), end(), cbegin() iterators
+}$$
+$$ Includes {
+    1. Include nlohmann/json.hpp
+}$$
+
+$$ Constants {
+    1. Define JSON_HEDLEY_UNLIKELY
+    2. Define JSON_HEDLEY_LIKELY
+    3. Define JSON_HEDLEY_DEPRECATED_FOR
+    4. Define JSON_ASSERT
+    5. Define JSON_THROW
+}$$
+
+$$ IteratorManagement -> Constants {
+    1. Get end iterator
+    2. Set end iterator
+    3. Get reverse iterators
+    4. Manage iterator wrapper (deprecated)
+}$$
+
+$$ CapacityManagement -> Constants {
+    1. Check if container is empty
+    2. Get number of elements
+    3. Get maximum possible number of elements
+}$$
+
+$$ ModifierOperations -> Constants {
+    1. Clear contents
+    2. Add object to array (move semantics)
+    3. Add object to array (copy semantics)
+    4. Add object to object
+    5. Add initializer list to object or array
+    6. Emplace back into array
+    7. Emplace into object
+    8. Insert into array
+}$$
+
+$$ TypeChecks -> Constants {
+    1. Check if null
+    2. Check if array
+    3. Check if object
+}$$
+
+$$ ErrorHandling -> Constants {
+    1. Throw type error
+    2. Throw invalid iterator error
+}$$
+
+$$ HelperFunctions -> Constants {
+    1. Set parent
+    2. Assert invariant
+}$$
+
+$$ABSTRACT TypeSystem {
+    1. Define value_t enum
+    2. Define object_t, array_t, string_t types
+}$$
+
+$$ DataManagement -> TypeSystem {
+    1. Manage internal data storage
+}$$
+$$ StandardIncludes {
+    1. #include <map>
+    2. #include <string>
+    3. #include <vector>
+    4. #include <stdexcept>
+    5. #include <algorithm>
+    6. #include <initializer_list>
+    7. #include <type_traits>
+    8. #include <utility>
+    9. #include <cassert>
+}$$
+
+$$ Constants {
+    1. JSON_HEDLEY_LIKELY
+    2. JSON_HEDLEY_UNLIKELY
+    3. JSON_THROW
+    4. JSON_DIAGNOSTICS
+    5. JSON_USE_LEGACY_DISCARDED_VALUE_COMPARISON
+    6. JSON_HAS_THREE_WAY_COMPARISON
+}$$
+
+$$ABSTRACT JsonTypeCheck {
+    1. Check if JSON type is array.
+    2. Check if JSON type is object.
+    3. Check if JSON type is string.
+    4. Check if JSON type is binary.
+}$$
+
+$$ABSTRACT IteratorValidation {
+    1. Validate iterator belongs to current JSON object.
+    2. Validate iterators belong to the same JSON object.
+    3. Validate iterators do not belong to container.
+}$$
+
+$$ InsertElement -> JsonTypeCheck, IteratorValidation {
+    1. Get JSON type.
+    2. Check if JSON type is array.
+    3. Validate iterator belongs to current JSON object.
+    4. Insert element into array and return iterator.
+}$$
+
+$$ InsertRange -> JsonTypeCheck, IteratorValidation {
+    1. Get JSON type.
+    2. Check if JSON type is array.
+    3. Validate iterator belongs to current JSON object.
+    4. Validate range iterators belong to the same JSON object.
+    5. Validate iterators do not belong to container.
+    6. Insert range into array and return iterator.
+}$$
+
+$$ InsertInitializerList -> JsonTypeCheck, IteratorValidation {
+    1. Get JSON type.
+    2. Check if JSON type is array.
+    3. Validate iterator belongs to current JSON object.
+    4. Insert initializer list into array and return iterator.
+}$$
+
+$$ InsertObjectRange -> JsonTypeCheck, IteratorValidation {
+    1. Get JSON type.
+    2. Check if JSON type is object.
+    3. Validate range iterators belong to the same JSON object.
+    4. Validate iterators point to objects.
+    5. Insert range into object.
+}$$
+
+$$ UpdateJson -> JsonTypeCheck, IteratorValidation {
+    1. Check if JSON is null, convert to object if necessary.
+    2. Check if JSON type is object.
+    3. Validate range iterators belong to the same JSON object.
+    4. Validate iterators point to objects.
+    5. Update JSON object with new values.
+}$$
+
+$$ SwapJson -> JsonTypeCheck {
+    1. Swap JSON values.
+    2. Set parents after swap.
+    3. Assert invariant after swap.
+}$$
+
+$$ SwapContainer -> JsonTypeCheck {
+    1. Check JSON type.
+    2. Swap container values based on type.
+}$$
+
+$$ CompareJson {
+    1. Define comparison operators for JSON values.
+    2. Handle different JSON types.
+    3. Handle mixed number types.
+    4. Handle unordered comparisons.
+}$$
+
+$$ UnorderedComparison {
+    1. Check for NaN in floating-point numbers.
+    2. Handle discarded values based on legacy mode.
+}$$
+$$ ComparisonOperators {
+    1. Define operator== for ScalarType and const_reference.
+    2. Define operator!= for const_reference and const_reference.
+    3. Define operator!= for ScalarType and const_reference.
+    4. Define operator!= for const_reference and ScalarType.
+    5. Define operator< for const_reference and const_reference.
+    6. Define operator< for ScalarType and const_reference.
+    7. Define operator< for const_reference and ScalarType.
+    8. Define operator<= for const_reference and const_reference.
+    9. Define operator<= for ScalarType and const_reference.
+    10. Define operator<= for const_reference and ScalarType.
+    11. Define operator> for const_reference and const_reference.
+    12. Define operator> for ScalarType and const_reference.
+    13. Define operator> for const_reference and ScalarType.
+    14. Define operator>= for const_reference and const_reference.
+    15. Define operator>= for ScalarType and const_reference.
+    16. Define operator>= for const_reference and ScalarType.
+}$$
+
+$$ Serialization {
+    1. Define operator<< for std::ostream and const basic_json.
+    2. Define operator>> for const basic_json and std::ostream (deprecated).
+    3. Define parse function for InputType.
+    4. Define parse function for IteratorType.
+    5. Define parse function for detail::span_input_adapter (deprecated).
+    6. Define accept function for InputType.
+    7. Define accept function for IteratorType.
+    8. Define accept function for detail::span_input_adapter (deprecated).
+    9. Define sax_parse function for InputType and SAX.
+    10. Define sax_parse function for IteratorType and SAX.
+    11. Define sax_parse function for detail::span_input_adapter and SAX (deprecated).
+    12. Define operator>> for std::istream and basic_json.
+    13. Define operator<< for basic_json and std::istream (deprecated).
+}$$
+
+$$ BinarySerialization {
+    1. Define to_cbor function for const basic_json.
+    2. Define to_cbor function for const basic_json and detail::output_adapter<std::uint8_t>.
+    3. Define to_cbor function for const basic_json and detail::output_adapter<char>.
+    4. Define to_msgpack function for const basic_json.
+    5. Define to_msgpack function for const basic_json and detail::output_adapter<std::uint8_t>.
+    6. Define to_msgpack function for const basic_json and detail::output_adapter<char>.
+    7. Define to_ubjson function for const basic_json.
+    8. Define to_ubjson function for const basic_json, detail::output_adapter<std::uint8_t>, bool, bool.
+    9. Define to_ubjson function for const basic_json, detail::output_adapter<char>, bool, bool.
+}$$
+
+$$ Includes {
+    1. Include necessary headers for JSON library.
+}$$
+
+$$ Globals {
+    1. Define global constants and variables.
+}$$
+$$ Includes {
+    1. Include <vector>
+    2. Include <string>
+    3. Include <utility>
+    4. Include <detail/input_adapter.hpp>
+    5. Include <detail/json_sax_dom_parser.hpp>
+    6. Include <detail/binary_reader.hpp>
+    7. Include <detail/json_pointer.hpp>
+    8. Include <detail/exceptions.hpp>
+}$$
+
+$$ Constants {
+    1. Define JSON_HEDLEY_WARN_UNUSED_RESULT
+    2. Define JSON_HEDLEY_DEPRECATED_FOR
+    3. Define JSON_HEDLEY_UNLIKELY
+    4. Define JSON_HEDLEY_LIKELY
+    5. Define JSON_THROW
+    6. Define JSON_TRY
+    7. Define JSON_INTERNAL_CATCH
+    8. Define JSON_ASSERT
+    9. Define JSON_HEDLEY_DEBUG
+    10. Define NLOHMANN_BASIC_JSON_TPL_DECLARATION
+}$$
+
+$$ ToBJData -> Serialize {
+    1. Create a vector of uint8_t to store the result.
+    2. Call the to_bjdata function with the JSON value, output adapter, and flags.
+    3. Return the result vector.
+}$$
+
+$$ ToBJDataAdapter -> Serialize {
+    1. Create a binary writer with the output adapter.
+    2. Call the write_ubjson function with the JSON value, flags, and options.
+}$$
+
+$$ ToBSON -> Serialize {
+    1. Create a vector of uint8_t to store the result.
+    2. Call the to_bson function with the JSON value and output adapter.
+    3. Return the result vector.
+}$$
+
+$$ ToBSONAdapter -> Serialize {
+    1. Create a binary writer with the output adapter.
+    2. Call the write_bson function with the JSON value.
+}$$
+
+$$ FromCBOR -> Deserialize {
+    1. Create a JSON result object.
+    2. Create a JSON SAX DOM parser with the result object and options.
+    3. Create an input adapter with the input type.
+    4. Create a binary reader with the input adapter and format.
+    5. Call the sax_parse function with the format, parser, flags, and options.
+    6. Return the result object if successful, otherwise return a discarded JSON value.
+}$$
+
+$$ FromMessagePack -> Deserialize {
+    1. Create a JSON result object.
+    2. Create a JSON SAX DOM parser with the result object and options.
+    3. Create an input adapter with the input type.
+    4. Create a binary reader with the input adapter and format.
+    5. Call the sax_parse function with the format, parser, and flags.
+    6. Return the result object if successful, otherwise return a discarded JSON value.
+}$$
+
+$$ FromUBJSON -> Deserialize {
+    1. Create a JSON result object.
+    2. Create a JSON SAX DOM parser with the result object and options.
+    3. Create an input adapter with the input type.
+    4. Create a binary reader with the input adapter and format.
+    5. Call the sax_parse function with the format, parser, and flags.
+    6. Return the result object if successful, otherwise return a discarded JSON value.
+}$$
+
+$$ FromBJData -> Deserialize {
+    1. Create a JSON result object.
+    2. Create a JSON SAX DOM parser with the result object and options.
+    3. Create an input adapter with the input type.
+    4. Create a binary reader with the input adapter and format.
+    5. Call the sax_parse function with the format, parser, and flags.
+    6. Return the result object if successful, otherwise return a discarded JSON value.
+}$$
+
+$$ FromBSON -> Deserialize {
+    1. Create a JSON result object.
+    2. Create a JSON SAX DOM parser with the result object and options.
+    3. Create an input adapter with the input type.
+    4. Create a binary reader with the input adapter and format.
+    5. Call the sax_parse function with the format, parser, and flags.
+    6. Return the result object if successful, otherwise return a discarded JSON value.
+}$$
+
+$$ JSONPointerAccess -> Access {
+    1. Implement operator[] and at functions for JSON pointer access.
+    2. Handle both const and non-const versions.
+    3. Use json_pointer::get_unchecked and json_pointer::get_checked for access.
+}$$
+
+$$ FlattenJSON -> Transform {
+    1. Create a new JSON object to store the flattened result.
+    2. Call json_pointer::flatten with the current JSON object and result.
+    3. Return the flattened JSON object.
+}$$
+
+$$ UnflattenJSON -> Transform {
+    1. Call json_pointer::unflatten with the current JSON object.
+    2. Return the unflattened JSON object.
+}$$
+
+$$ PatchJSON -> Transform {
+    1. Validate the JSON patch array.
+    2. Iterate over each patch operation.
+    3. Implement operation_add, operation_remove, and other operation wrappers.
+    4. Apply the patch operations to the JSON object.
+}$$
+
+$$ABSTRACT BinarySerialization -> Serialize {
+    1. Define the interface for binary serialization.
+    2. Specify the required functions for serialization.
+}$$
+
+$$ABSTRACT BinaryDeserialization -> Deserialize {
+    1. Define the interface for binary deserialization.
+    2. Specify the required functions for deserialization.
+}$$
+$$ StandardIncludes {
+    1. #include <nlohmann/json.hpp>
+    2. #include <string>
+    3. #include <map>
+    4. #include <vector>
+    5. #include <algorithm>
+    6. #include <functional>
+    7. #include <cassert>
+}$$
+
+$$ Constants {
+    1. const std::string EMPTY_PATH = "";
+}$$
+
+$$ABSTRACT JsonPatchOperations {
+    1. GeneratePatch(source, target, path)
+    2. ApplyPatch(source, patch)
+}$$
+
+$$ GeneratePatch -> JsonPatchOperations {
+    1. Check if source and target are the same, return empty patch if true.
+    2. If types differ, generate replace operation.
+    3. Handle array type:
+        3.1 Traverse common elements, generate recursive patches.
+        3.2 Handle remaining elements in source and target.
+    4. Handle object type:
+        4.1 Traverse source object, generate patches for missing keys in target.
+        4.2 Traverse target object, generate patches for new keys.
+    5. Handle primitive types: generate replace operation.
+}$$
+
+$$ ApplyPatch -> JsonPatchOperations {
+    1. Create a copy of the source object.
+    2. Apply each operation in the patch:
+        2.1 Replace: set value at path.
+        2.2 Add: add value at path.
+        2.3 Remove: remove value at path.
+    3. Return the modified object.
+}$$
+
+$$ JsonDiff -> GeneratePatch {
+    1. Implement GeneratePatch logic for JSON objects.
+}$$
+
+$$ JsonMergePatch -> ApplyPatch {
+    1. Implement ApplyPatch logic for JSON Merge Patch.
+}$$
+
+$$ JsonLiterals {
+    1. Define user-defined string literals for JSON values and pointers.
+}$$
+
+$$ StdHashSpecialization {
+    1. Specialize std::hash for nlohmann::json.
+}$$
+
+$$ StdSwapSpecialization {
+    1. Specialize std::swap for nlohmann::json.
+}$$
+
+$$ JsonPatch {
+    1. Implement patch method for nlohmann::json.
+}$$
+
+$$ JsonDiffImplementation {
+    1. Implement diff method for nlohmann::json.
+}$$
+
+$$ JsonMergePatchImplementation {
+    1. Implement merge_patch method for nlohmann::json.
+}$$
+
+$$ ToStringFunction {
+    1. Implement to_string function for nlohmann::json.
+}$$
+
+$$ JsonLiteralsImplementation {
+    1. Implement user-defined string literals for JSON values and pointers.
+}$$
+
+$$ CleanupMacros {
+    1. Undefine all macros used in the library.
+}$$
