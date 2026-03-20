@@ -2,6 +2,7 @@
 
 Added:
 
+- added audit command and --ignore-scaffold flags
 - added semantic equivalence verification loop
 - added global symbol graph using tree sitter
 - added tree sitter c++ parsing for refine mode
