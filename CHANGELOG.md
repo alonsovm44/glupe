@@ -4,9 +4,14 @@ Added:
 
 - added global symbol graph using tree sitter
 - added tree sitter c++ parsing for refine mode
+- added AST-Driven source code slicing to prevent code fracturing in -refine mode
+- added targeted dependency injection to drastically reduce API token usage
 Removed:
 
 Improved/Fixed:
+- fixed AI hallucinating empty or headless containers during refine
+- fixed internal syntax sanitizer incorrectly merging adjacent container blocks
+- fixed JSON parsing crashes caused by verbose cURL output merging with API responses
 
 ## v6.0.0 2026-03-13
 
