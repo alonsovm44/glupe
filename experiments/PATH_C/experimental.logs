@@ -1,0 +1,38 @@
+PS C:\Users\diego\.projects\M-MACHINE> .\glupe audit experiments/PATH_C/win_installer.glp experiments/PATH_C/wini.cpp.glp -cloud
+[AUDIT] Reading specification experiments/PATH_C/win_installer.glp...
+[AUDIT] Reading implementation experiments/PATH_C/wini.cpp.glp...
+[AUDIT] Performing Semantic Subtraction (cloud)...
+   [AUDIT] Aligning container mappings semantically...
+   [AUDIT] Deep Semantic Subtraction on container: done (mapped to DoneStep)...
+   [AUDIT] Deep Semantic Subtraction on container: main (mapped to MainStep)...
+   [AUDIT] Deep Semantic Subtraction on container: popup_intro (mapped to PopupIntro)...
+
+=== SEMANTIC SUBTRACTION REPORT ===
+
+[?] UNDOCUMENTED/HALLUCINATED CONTAINERS (Code - Spec):
+  - Constants
+  - EmitPopup
+  - ExecuteSystemCommand
+  - MainFlow
+  - StandardIncludes
+
+[~] LOGIC MISMATCH IN CONTAINER: done (Code: DoneStep)
+[MISSING]
+- system("glupe --version")
+
+[HALLUCINATED]
+- Call EmitPopup with empty title
+- Call ExecuteSystemCommand to verify Glupe installation
+
+[~] LOGIC MISMATCH IN CONTAINER: main (Code: MainStep)
+[MISSING]
+- Direct invocation of `system("powershell -Command \"& {$(cmd)}\"")` as specified.
+- Explicit construction of the exact PowerShell command string shown in the spec.
+- Execution through the `system()` call itself (implementation uses an abstracted function instead).
+
+[HALLUCINATED]
+- Stepwise logic describing ÔÇ£construct PowerShell command to execute installation script.ÔÇØ
+- Use of an `ExecuteSystemCommand` function, which is not mentioned or implied in the expected specification.
+
+
+[FAIL] Audit rejected: Implementation diverges from specification.

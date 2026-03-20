@@ -2,6 +2,7 @@
 
 Added:
 
+- added semantic equivalence verification loop
 - added global symbol graph using tree sitter
 - added tree sitter c++ parsing for refine mode
 - added AST-Driven source code slicing to prevent code fracturing in -refine mode

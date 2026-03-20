@@ -90,6 +90,7 @@ void showHelp() {
     cout << "  fix <file> \"instr\"      : AI-powered code repair.\n";
     cout << "  explain <file> [lang]   : Generate documentation.\n";
     cout << "  diff <f1> <f2> [lang]   : Semantic diff report.\n";
+    cout << "  audit <spec> <impl>     : Verify implementation against specification (Semantic Subtraction).\n";
     cout << "  sos [lang] \"query\"      : Ask AI for help.\n";
     cout << "  update                  : Check for and apply updates to glupe.\n";
     cout << "  hub                     : Enter interactive GlupeHub mode.\n";
@@ -119,6 +120,7 @@ int main(int argc, char* argv[]) {
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
+        cout << "  audit <spec> <impl> : Verify implementation against specification\n";
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         cout << "  update             : Check for and apply updates to glupe.\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
@@ -264,8 +266,9 @@ int main(int argc, char* argv[]) {
 
         string ext = getExt(targetFile);
         string langName = "Code";
+        string langId = "cpp"; // default fallback
         for(auto const& [key, val] : LANG_DB) {
-            if(val.extension == ext) { langName = val.name; break; }
+            if(val.extension == ext) { langName = val.name; langId = val.id; break; }
         }
 
         cout << "[AI] Applying fix (" << mode << ")..." << endl;
@@ -276,11 +279,32 @@ int main(int argc, char* argv[]) {
         prompt << "CODE:\n" << content << "\n";
         prompt << "OUTPUT: Return ONLY the fixed code. No markdown. No explanations.";
 
-        string response = callAI(prompt.str());
-        string fixedCode = extractCode(response);
+        string fixedCode;
+        bool success = false;
+        int retries = 0;
 
-        if (fixedCode.find("ERROR:") == 0) {
-            cout << "   [!] API Error: " << fixedCode.substr(6) << endl;
+        while (retries < MAX_RETRIES) {
+            string response = callAI(prompt.str());
+            fixedCode = extractCode(response);
+
+            if (fixedCode.find("ERROR:") == 0) {
+                cout << "   [!] API Error: " << fixedCode.substr(6) << endl;
+                retries++; continue;
+            }
+
+            // [v6.3] Semantic Equivalence Verification
+            double complexityRatio = compareASTComplexity(content, fixedCode, langId);
+            if (complexityRatio < 0.7) {
+                cout << "   [!] AI oversimplified the code (Complexity Ratio: " << complexityRatio << "). Rejecting and retrying..." << endl;
+                prompt << "\n[SYSTEM ALERT]: Your previous attempt deleted too much logic. DO NOT oversimplify. Keep all original functions intact.\n";
+                retries++; continue;
+            }
+            success = true;
+            break;
+        }
+        
+        if (!success) {
+            cout << "[ERROR] Failed to fix file safely." << endl;
             return 1;
         }
 
@@ -436,6 +460,12 @@ int main(int argc, char* argv[]) {
         string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
         f.close();
 
+        string ext = getExt(targetFile);
+        string langId = "cpp"; // default fallback
+        for(auto const& [key, val] : LANG_DB) {
+            if(val.extension == ext) { langId = val.id; break; }
+        }
+
         cout << "[AI] Generating documentation in " << language << " (" << mode << ")..." << endl;
         stringstream prompt;
         prompt << "TASK: Add high-quality technical documentation comments to the provided code in " << language << ".\n";
@@ -448,15 +478,35 @@ int main(int argc, char* argv[]) {
         prompt << "6. Return ONLY the code in a markdown block.\n\n";
         prompt << "CODE TO DOCUMENT:\n" << content;
 
-        string response = callAI(prompt.str());
-        string docCode = extractCode(response);
+        string docCode;
+        bool success = false;
+        int retries = 0;
 
-        if (docCode.find("ERROR:") == 0) {
-            cout << "   [!] API Error: " << docCode.substr(6) << endl;
+        while (retries < MAX_RETRIES) {
+            string response = callAI(prompt.str());
+            docCode = extractCode(response);
+
+            if (docCode.find("ERROR:") == 0) {
+                cout << "   [!] API Error: " << docCode.substr(6) << endl;
+                retries++; continue;
+            }
+            
+            // [v6.3] Semantic Equivalence Verification
+            double complexityRatio = compareASTComplexity(content, docCode, langId);
+            if (complexityRatio < 0.9) { // Explain should be almost identical in complexity
+                cout << "   [!] AI altered the code structure (Ratio: " << complexityRatio << "). Rejecting and retrying..." << endl;
+                prompt << "\n[SYSTEM ALERT]: Your previous attempt modified the underlying code. ONLY add comments.\n";
+                retries++; continue;
+            }
+            success = true;
+            break;
+        }
+        
+        if (!success) {
+            cout << "[ERROR] Failed to generate documentation safely." << endl;
             return 1;
         }
 
-        string ext = getExt(targetFile);
         string docFile = stripExt(targetFile) + "_doc" + ext;
         
         ofstream out(docFile);
@@ -528,6 +578,53 @@ int main(int argc, char* argv[]) {
 
         cout << "[SUCCESS] Report generated: " << outName << endl;
         return 0;
+    }
+
+    // AUDIT COMMAND
+    if (cmd == "audit") {
+        if (argc < 4) {
+            cout << "Usage: glupe audit <expected_spec.glp> <actual_impl.glp> [-cloud/-local]" << endl;
+            return 1;
+        }
+        string expectedFile = argv[2];
+        string actualFile = argv[3];
+        string mode = "local";
+
+        for(int i=4; i<argc; i++) {
+            string arg = argv[i];
+            if (arg == "-cloud") mode = "cloud";
+            else if (arg == "-local") mode = "local";
+        }
+
+        if (!loadConfig(mode)) return 1;
+
+        if (!fs::exists(expectedFile) || !fs::exists(actualFile)) {
+            cout << "[ERROR] One or both files not found." << endl;
+            return 1;
+        }
+
+        cout << "[AUDIT] Reading specification " << expectedFile << "..." << endl;
+        ifstream fe(expectedFile);
+        string expectedCode((istreambuf_iterator<char>(fe)), istreambuf_iterator<char>());
+        fe.close();
+
+        cout << "[AUDIT] Reading implementation " << actualFile << "..." << endl;
+        ifstream fa(actualFile);
+        string actualCode((istreambuf_iterator<char>(fa)), istreambuf_iterator<char>());
+        fa.close();
+
+        cout << "[AUDIT] Performing Semantic Subtraction (" << mode << ")..." << endl;
+        string report = compareBlueprints(expectedCode, actualCode);
+
+        cout << "\n" << report << endl;
+
+        if (report.find("[!]") != string::npos || report.find("[?]") != string::npos || report.find("[~]") != string::npos) {
+            cout << "[FAIL] Audit rejected: Implementation diverges from specification." << endl;
+            return 1; // Fails the CI/CD pipeline
+        } else {
+            cout << "[SUCCESS] Audit passed: Implementation strictly matches specification." << endl;
+            return 0;
+        }
     }
 
     // INFO COMMAND

@@ -1,0 +1,54 @@
+$$ StandardIncludes {
+    1. Include iostream
+    2. Include string
+    3. Include cstdlib
+}$$
+
+$$ Constants {
+    1. Define URL: "https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1"
+}$$
+
+$$ ABSTRACT PopupLogic {
+    1. Display popup with title, message, and button label
+}$$
+
+$$ EmitPopup -> PopupLogic {
+    1. Check if title is not empty
+    1.1. Print title
+    2. Print message
+    3. Print button label enclosed in brackets
+    4. Print popup border
+}$$
+
+$$ ABSTRACT SystemCommandLogic {
+    1. Execute system command
+}$$
+
+$$ ExecuteSystemCommand -> SystemCommandLogic {
+    1. Execute command using std::system
+}$$
+
+$$ PopupIntro {
+    1. Call EmitPopup with "Welcome to the Glupe Installer" as title
+    2. Provide installation guidance message
+    3. Set button label to "Next"
+}$$
+
+$$ MainStep {
+    1. Construct PowerShell command to execute installation script
+    2. Call ExecuteSystemCommand with constructed command
+}$$
+
+$$ DoneStep {
+    1. Call EmitPopup with empty title
+    2. Provide installation completion message
+    3. Set button label to "Finish"
+    4. Call ExecuteSystemCommand to verify Glupe installation
+}$$
+
+$$ MainFlow {
+    1. Call PopupIntro
+    2. Call MainStep
+    3. Call DoneStep
+    4. Return exit code 0
+}$$

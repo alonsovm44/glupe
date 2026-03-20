@@ -10,6 +10,38 @@
 #include <thread>
 #include <chrono>
 
+// [NEW] Helper for API calls with built-in retry and rate limit handling
+inline string safeCallAI(const string& prompt) {
+    int retries = 0;
+    while (retries < MAX_RETRIES) {
+        string response = extractCode(callAI(prompt));
+        if (response.find("ERROR:") == 0) {
+            string errorMsg = response.substr(6);
+            int waitTime = 5 * (retries + 1);
+            string lowerErr = errorMsg;
+            transform(lowerErr.begin(), lowerErr.end(), lowerErr.begin(), ::tolower);
+            
+            if (lowerErr.find("rate limit") != string::npos || lowerErr.find("429") != string::npos) {
+                size_t waitPos = lowerErr.find("wait ");
+                if (waitPos != string::npos) {
+                    try {
+                        int parsedWait = stoi(lowerErr.substr(waitPos + 5));
+                        if (parsedWait > 0) waitTime = parsedWait + 2;
+                    } catch(...) {}
+                }
+                cout << "      [!] Rate limit detected. Waiting " << waitTime << "s..." << endl;
+            } else {
+                cout << "      [!] API Error: " << errorMsg << ". Retrying in " << waitTime << "s..." << endl;
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(waitTime));
+            retries++;
+            continue;
+        }
+        return response;
+    }
+    return "ERROR: Max retries exceeded";
+}
+
 // [NEW] Helper to substitute variables ($VAR) with their content
 inline string substituteVariables(const string& content, const string& currentFilePrefix = "global", bool allowContainers = false) {
     string result;
@@ -51,6 +83,10 @@ inline string substituteVariables(const string& content, const string& currentFi
                 result += "$" + id;
                 pos = scan;
             }
+        } else {
+            // [FIX] If no valid variable name follows the $, advance the scanner to prevent an infinite loop
+            result += "$";
+            pos = scan;
         }
     }
     return result;
@@ -69,7 +105,7 @@ inline bool checkSemanticContradiction(const string& a, const string& b) {
     prompt << "DEFINITION: A contradiction occurs if Set B explicitly forbids what Set A requires, or vice versa (e.g., 'print X' vs 'do not print X').\n";
     prompt << "OUTPUT: Return ONLY the word 'CONTRADICTION' if they conflict, or 'COMPATIBLE' if they can coexist.\n";
 
-    string response = callAI(prompt.str());
+    string response = safeCallAI(prompt.str());
     
     string upperRes = response;
     transform(upperRes.begin(), upperRes.end(), upperRes.begin(), ::toupper);
@@ -94,7 +130,7 @@ inline string performSemanticSubtraction(const string& base, const string& subtr
     prompt << "  3. Mixed: Remove shared logic, forbid extra logic.\n";
     prompt << "OUTPUT: Return ONLY the resulting prompt string. No explanations.";
 
-    string response = callAI(prompt.str());
+    string response = safeCallAI(prompt.str());
     
     // Clean up response
     size_t first = response.find_first_not_of(" \t\r\n\"'");
@@ -127,7 +163,7 @@ inline string performSemanticMultiplication(const string& a, const string& b) {
     prompt << "  Example: 'print' * 'list items' -> 'print every item in the list'.\n";
     prompt << "OUTPUT: Return ONLY the resulting merged instruction string. No explanations.";
 
-    string response = callAI(prompt.str());
+    string response = safeCallAI(prompt.str());
     
     size_t first = response.find_first_not_of(" \t\r\n\"'");
     if (first == string::npos) return "";
@@ -155,7 +191,7 @@ inline string performSemanticDivision(const string& numerator, const string& den
     }
     prompt << "OUTPUT: Return ONLY the resulting instruction string. No explanations.";
 
-    string response = callAI(prompt.str());
+    string response = safeCallAI(prompt.str());
     
     size_t first = response.find_first_not_of(" \t\r\n\"'");
     if (first == string::npos) return "";
@@ -184,12 +220,140 @@ inline string performSemanticExponentiation(const string& base, const string& ex
     prompt << "  Example: 'rewrite' ^ '3 times' -> 'rewrite the text, then rewrite the result, then rewrite that result'.\n";
     prompt << "OUTPUT: Return ONLY the resulting instruction string. No explanations.";
 
-    string response = callAI(prompt.str());
+    string response = safeCallAI(prompt.str());
     
     size_t first = response.find_first_not_of(" \t\r\n\"'");
     if (first == string::npos) return "";
     size_t last = response.find_last_not_of(" \t\r\n\"'");
     return response.substr(first, (last - first + 1));
+}
+
+// [NEW] Deep Subtraction: 2-Way Semantic Diffing for Inner Container Logic
+inline string performDeepSubtraction(const string& expected_intent, const string& actual_intent) {
+    stringstream prompt;
+    prompt << "ROLE: Expert Software Auditor.\n";
+    prompt << "TASK: Perform a deep semantic two-way subtraction between the EXPECTED specification and the ACTUAL implementation of a code container.\n";
+    prompt << "EXPECTED SPECIFICATION:\n" << expected_intent << "\n\n";
+    prompt << "ACTUAL IMPLEMENTATION:\n" << actual_intent << "\n\n";
+    prompt << "LOGIC:\n";
+    prompt << "1. EXPECTED - ACTUAL = MISSING (What is explicitly in the spec but missing from the implementation?)\n";
+    prompt << "2. ACTUAL - EXPECTED = HALLUCINATED (What is in the implementation but NOT requested/implied in the spec?)\n\n";
+    prompt << "OUTPUT FORMAT:\n";
+    prompt << "If both are semantically equivalent (meaning no missing and no hallucinated logic), return EXACTLY the word 'NULL'.\n";
+    prompt << "Otherwise, list them like this:\n";
+    prompt << "[MISSING]\n- ...\n[HALLUCINATED]\n- ...\n";
+    prompt << "Do not include empty sections. Return ONLY the report or 'NULL'.";
+
+    string response = safeCallAI(prompt.str());
+    
+    size_t first = response.find_first_not_of(" \t\r\n\"'");
+    if (first != string::npos) {
+        size_t last = response.find_last_not_of(" \t\r\n\"'");
+        response = response.substr(first, (last - first + 1));
+    }
+    if (response == "NULL" || response == "'NULL'" || response == "\"NULL\"") return "NULL";
+    return response;
+}
+
+// [NEW] Semantic Subtraction: Compare Expected Specification vs Actual Implementation
+inline string compareBlueprints(const string& expectedCode, const string& actualCode) {
+    auto extractContainers = [](const string& code) -> map<string, string> {
+        map<string, string> containers;
+        YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
+        yylineno = 1;
+        ProgramNode* root = nullptr;
+        if (yyparse(&root) == 0 && root != nullptr) {
+            for (const auto& el : root->elements) {
+                if (auto* contNode = dynamic_cast<ContainerNode*>(el.get())) {
+                    if (!contNode->id.empty() && !contNode->isAbstract) {
+                        containers[contNode->id] = contNode->intent;
+                    }
+                }
+            }
+        }
+        if (buffer) yy_delete_buffer(buffer);
+        if (root) delete root;
+        return containers;
+    };
+
+    auto expected = extractContainers(expectedCode);
+    auto actual = extractContainers(actualCode);
+
+    cout << "   [AUDIT] Aligning container mappings semantically..." << endl;
+    stringstream mapPrompt;
+    mapPrompt << "ROLE: Expert Software Auditor.\n";
+    mapPrompt << "TASK: Map the EXPECTED containers to their corresponding ACTUAL containers based on intent.\n";
+    mapPrompt << "EXPECTED CONTAINERS:\n";
+    for (const auto& [id, intent] : expected) mapPrompt << "- " << id << ": " << intent.substr(0, 100) << "...\n";
+    mapPrompt << "\nACTUAL CONTAINERS:\n";
+    for (const auto& [id, intent] : actual) mapPrompt << "- " << id << ": " << intent.substr(0, 100) << "...\n";
+    mapPrompt << "\nRULES:\n";
+    mapPrompt << "1. Match them by semantic similarity. They might have different names (e.g. 'main' vs 'MainStep').\n";
+    mapPrompt << "2. If an expected container has no logical match in actual, map it to \"\" (empty string).\n";
+    mapPrompt << "OUTPUT FORMAT: Return ONLY a valid JSON dictionary where keys are EXPECTED container names and values are ACTUAL container names.\n";
+    mapPrompt << "Example: { \"main\": \"MainStep\", \"popup_intro\": \"PopupIntro\", \"missing\": \"\" }";
+
+    string mapResponse = safeCallAI(mapPrompt.str());
+    map<string, string> expectedToActual;
+    try {
+        size_t jsonStart = mapResponse.find('{');
+        size_t jsonEnd = mapResponse.rfind('}');
+        if (jsonStart != string::npos && jsonEnd != string::npos && jsonEnd > jsonStart) {
+            mapResponse = mapResponse.substr(jsonStart, jsonEnd - jsonStart + 1);
+            json j = json::parse(mapResponse);
+            for (auto& el : j.items()) {
+                if (el.value().is_string()) expectedToActual[el.key()] = el.value().get<string>();
+            }
+        }
+    } catch (...) {
+        cout << "   [WARN] Failed to parse semantic mapping. Falling back to strict name matching." << endl;
+        for (const auto& [id, intent] : expected) {
+            if (actual.count(id)) expectedToActual[id] = id;
+        }
+    }
+
+    stringstream report;
+    report << "=== SEMANTIC SUBTRACTION REPORT ===\n\n";
+
+    // 1. Structural Subtraction (Missing Containers)
+    vector<string> missing;
+    for (const auto& [id, intent] : expected) {
+        if (expectedToActual.find(id) == expectedToActual.end() || expectedToActual[id].empty() || actual.find(expectedToActual[id]) == actual.end()) {
+            missing.push_back(id);
+        }
+    }
+    if (!missing.empty()) {
+        report << "[!] MISSING CONTAINERS (Spec - Code):\n";
+        for (const auto& id : missing) report << "  - " << id << "\n";
+        report << "\n";
+    }
+
+    // 2. Structural Subtraction (Hallucinated Containers)
+    set<string> mappedActual;
+    for (const auto& [e, a] : expectedToActual) if (!a.empty()) mappedActual.insert(a);
+    
+    vector<string> undocumented;
+    for (const auto& [id, intent] : actual) {
+        if (mappedActual.find(id) == mappedActual.end()) undocumented.push_back(id);
+    }
+    if (!undocumented.empty()) {
+        report << "[?] UNDOCUMENTED/HALLUCINATED CONTAINERS (Code - Spec):\n";
+        for (const auto& id : undocumented) report << "  - " << id << "\n";
+        report << "\n";
+    }
+
+    // 3. Deep Subtraction (Intent Diffing)
+    for (const auto& [id, expected_intent] : expected) {
+        if (expectedToActual.find(id) != expectedToActual.end() && !expectedToActual[id].empty() && actual.find(expectedToActual[id]) != actual.end()) {
+            string actual_id = expectedToActual[id];
+            cout << "   [AUDIT] Deep Semantic Subtraction on container: " << id << " (mapped to " << actual_id << ")..." << endl;
+            string deepDiff = performDeepSubtraction(expected_intent, actual[actual_id]);
+            if (deepDiff != "NULL" && !deepDiff.empty() && deepDiff.find("NULL") == string::npos) {
+                report << "[~] LOGIC MISMATCH IN CONTAINER: " << id << " (Code: " << actual_id << ")\n" << deepDiff << "\n\n";
+            }
+        }
+    }
+    return report.str();
 }
 
 // [UPDATED] Resolve Prompt Arithmetic (Addition & Subtraction)
@@ -709,8 +873,7 @@ inline string performTreeShaking(const string& code, const string& language) {
     prompt << "5. Return ONLY the cleaned code.\n";
     prompt << "CODE:\n" << code << "\n";
     
-    string response = callAI(prompt.str());
-    string cleaned = extractCode(response);
+    string cleaned = safeCallAI(prompt.str());
 
     // [SAFETY] Verify that EXPORT directives were not lost during optimization
     if (code.find("EXPORT:") != string::npos && cleaned.find("EXPORT:") == string::npos) {

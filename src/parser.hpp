@@ -553,6 +553,51 @@ inline vector<string> sliceSourceCodeAST(const string& code, const string& lang_
     return chunks;
 }
 
+// [NEW v6.3] Phase 3: Semantic Equivalence Verification (AST Diffing)
+
+inline void extractNodeTypes(TSASTNode node, map<string, int>& typeCounts) {
+    if (node.is_null()) return;
+    
+    // Ignore comments for structural equivalence
+    if (node.type() != "comment") {
+        typeCounts[node.type()]++;
+    }
+    
+    for (uint32_t i = 0; i < node.child_count(); ++i) {
+        extractNodeTypes(node.child(i), typeCounts);
+    }
+}
+
+// Diffing function to detect oversimplification (loss of complexity)
+inline double compareASTComplexity(const string& origCode, const string& newCode, const string& lang_id) {
+    TSASTParser parser;
+    if (!parser.set_language(lang_id)) return 1.0; // Fallback to 1.0 if unsupported
+
+    TSASTTree origTree = parser.parse_string(origCode);
+    TSASTTree newTree = parser.parse_string(newCode);
+
+    map<string, int> origCounts;
+    map<string, int> newCounts;
+
+    extractNodeTypes(origTree.root_node(), origCounts);
+    extractNodeTypes(newTree.root_node(), newCounts);
+
+    int origSignificantNodes = 0;
+    int newSignificantNodes = 0;
+
+    // We specifically care about structural nodes being dropped
+    vector<string> criticalTypes = {"function_definition", "class_specifier", "if_statement", "for_statement", "while_statement", "call_expression", "declaration"};
+
+    for (const auto& type : criticalTypes) {
+        origSignificantNodes += origCounts[type];
+        newSignificantNodes += newCounts[type];
+    }
+
+    if (origSignificantNodes == 0) return 1.0;
+
+    return static_cast<double>(newSignificantNodes) / static_cast<double>(origSignificantNodes);
+}
+
 // [NEW v6.2] Helper to extract a symbol's identifier from an AST Node
 inline string extractSymbolName(TSASTNode node, const string& code) {
     if (node.is_null()) return "";
