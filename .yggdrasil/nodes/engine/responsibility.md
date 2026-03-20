@@ -1,1 +1,0 @@
-Default to Ollama if no provider flag is issued in build command

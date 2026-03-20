@@ -90,7 +90,7 @@ void showHelp() {
     cout << "  fix <file> \"instr\"      : AI-powered code repair.\n";
     cout << "  explain <file> [lang]   : Generate documentation.\n";
     cout << "  diff <f1> <f2> [lang]   : Semantic diff report.\n";
-    cout << "  audit <spec> <impl>     : Verify implementation against specification (Semantic Subtraction).\n";
+    cout << "  audit <spec> <impl> [--ignore-scaffold] : Verify implementation against specification.\n";
     cout << "  sos [lang] \"query\"      : Ask AI for help.\n";
     cout << "  update                  : Check for and apply updates to glupe.\n";
     cout << "  hub                     : Enter interactive GlupeHub mode.\n";
@@ -115,12 +115,12 @@ int main(int argc, char* argv[]) {
     if (argc < 2) {
         cout << "GLUPE v" << CURRENT_VERSION << " (Multi-File)\nUsage: glupe file1 ... [-o output] [-cloud/-local] [-3d/-img] [-u] \"*Custom Instructions\"" << endl;
         cout << "Commands:\n  config <key> <val> : Update config.json\n  config model-local : Detect installed Ollama models\n";
-        cout << "  edit <f> --cont <n> \"p\" : Edit a container's prompt\n";
+        cout << "  edit <file> --cont <id> \"prompt\" : Edit a container's prompt\n";
         cout << "  clean cache        : Clear semantic cache\n";
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
-        cout << "  audit <spec> <impl> : Verify implementation against specification\n";
+        cout << "  audit <spec> <impl> [--ignore-scaffold] : Verify implementation against specification\n";
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         cout << "  update             : Check for and apply updates to glupe.\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
@@ -583,17 +583,19 @@ int main(int argc, char* argv[]) {
     // AUDIT COMMAND
     if (cmd == "audit") {
         if (argc < 4) {
-            cout << "Usage: glupe audit <expected_spec.glp> <actual_impl.glp> [-cloud/-local]" << endl;
+            cout << "Usage: glupe audit <expected_spec.glp> <actual_impl.glp> [-cloud/-local] [--ignore-scaffold]" << endl;
             return 1;
         }
         string expectedFile = argv[2];
         string actualFile = argv[3];
         string mode = "local";
+        bool ignoreScaffold = false;
 
         for(int i=4; i<argc; i++) {
             string arg = argv[i];
             if (arg == "-cloud") mode = "cloud";
             else if (arg == "-local") mode = "local";
+            else if (arg == "--ignore-scaffold") ignoreScaffold = true;
         }
 
         if (!loadConfig(mode)) return 1;
@@ -614,7 +616,7 @@ int main(int argc, char* argv[]) {
         fa.close();
 
         cout << "[AUDIT] Performing Semantic Subtraction (" << mode << ")..." << endl;
-        string report = compareBlueprints(expectedCode, actualCode);
+        string report = compareBlueprints(expectedCode, actualCode, ignoreScaffold);
 
         cout << "\n" << report << endl;
 

@@ -2453,15 +2453,14 @@ $$ Constants {
     6. use_type: bool
     7. add_prefix: bool
     8. use_bjdata: bool
-}
 
 }$$
+
 $$ Includes {
     1. #include <limits>
     2. #include <vector>
     3. #include <algorithm>
     4. #include <cstdint>
-}
 
 }$$
 $$ DetermineOutputType -> Constants {
@@ -2469,13 +2468,13 @@ $$ DetermineOutputType -> Constants {
     2. If true, determine output_type based on N using a switch-case
     3. If false, set output_type to 0xC4
     4. Set fixed to false if output_type is 0xC7 or 0xC4
-}
+
 
 }$$
 $$ WriteOutputType -> DetermineOutputType, Constants {
     1. Write output_type to oa
     2. If fixed is false, write N as uint8_t
-}
+
 
 }$$
 $$ HandleBinaryType -> WriteOutputType, Constants {
@@ -2483,35 +2482,35 @@ $$ HandleBinaryType -> WriteOutputType, Constants {
     2. Write output_type and N accordingly
     3. If use_ext, write subtype
     4. Write byte string
-}
+
 
 }$$
 $$ HandleObjectType -> Constants {
     1. Calculate object size N
     2. Write control byte and object size
     3. Write each element by calling write_msgpack
-}
+
 
 }$$
 $$ WriteUBJSON -> Constants {
     1. Handle null, boolean, number, string, array, binary, and object types
     2. Write prefixes and values based on type and flags
-}
+
 
 }$$
 $$ WriteBSONEntryHeader -> Constants {
     1. Write element type and name to output
-}
+
 
 }$$
 $$ WriteBSONBoolean -> WriteBSONEntryHeader, Constants {
     1. Write boolean value as BSON
-}
+
 
 }$$
 $$ WriteBSONDouble -> WriteBSONEntryHeader, Constants {
     1. Write double value as BSON
-}
+
 
 }$$
 $$ WriteBSONString -> WriteBSONEntryHeader, Constants {

@@ -1,5 +1,0 @@
-name: DecisionOrPatternName
-scope:
-  nodes:
-    - orders/order-service
-    - users/user-repository

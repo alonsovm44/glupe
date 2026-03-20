@@ -1,0 +1,13 @@
+# yg-aspect.yaml — Schema for cross-cutting aspects
+# Each aspect is a directory under .yggdrasil/aspects/ containing this file
+# plus any number of .md content files (requirements, rationale, guidance).
+# Aspect identifier = relative path from aspects/ to the directory (e.g. observability/logging).
+# Aspects can be organized in nested directories for hierarchy.
+
+name: CrossCuttingRequirementName  # required — display name
+description: "Short description for discovery via yg aspects"  # optional
+# implies: [other-aspect, another-aspect] # optional — other aspect identifiers included automatically (recursive, must be acyclic)
+# stability: protocol        # optional — schema | protocol | implementation
+                              # schema = enforced by data model (most stable)
+                              # protocol = enforced by convention/contract
+                              # implementation = specific mechanism (least stable, review after any code change)

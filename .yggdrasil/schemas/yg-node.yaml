@@ -1,0 +1,26 @@
+# yg-node.yaml — Schema for model nodes
+# Every node is a directory under .yggdrasil/model/ containing this file
+# plus artifact .md files defined in yg-config.yaml.
+
+name: ComponentName           # required — display name
+type: service                 # required — must match a type from config.node_types
+blackbox: false               # optional, default false — if true, coarse-grained coverage without deep artifacts
+
+aspects:                      # optional — list of aspect configurations
+  - aspect: aspect-id         # required — aspect identifier (directory path under aspects/)
+    exceptions:               # optional — how this node deviates from the aspect's pattern
+      - "Description of deviation and why"
+    anchors:                  # optional — code patterns for aspect staleness detection
+      - functionName          # yg validate checks each pattern exists in mapped source files (W014)
+      - CONSTANT_NAME
+
+relations:                    # optional — outgoing dependencies to other nodes
+  - target: other/module-path # required — path relative to model/
+    type: calls               # required — calls | uses | extends | implements | emits | listens
+    consumes: [methodA, methodB] # optional — what is consumed from target
+    failure: 'retry 3x, then circuit-break' # optional — failure handling strategy
+    # event_name: OrderPlaced # optional — display name for event relations (emits, listens)
+
+mapping:                      # optional — link to source files for ownership and drift detection
+  paths:                      # required when mapping is present — list of file or directory paths
+    - src/modules/component/  # paths are relative to repository root

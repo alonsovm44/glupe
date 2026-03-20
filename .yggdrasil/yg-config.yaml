@@ -1,0 +1,35 @@
+version: "2.0.0"
+
+name: "glupe"
+
+node_types:
+  module:
+    description: "Business logic unit with clear domain responsibility"
+  service:
+    description: "Component providing functionality to other nodes"
+  library:
+    description: "Shared utility code with no domain knowledge"
+  infrastructure:
+    description: "Guards, middleware, interceptors — invisible in call graphs but affect blast radius"
+
+artifacts:
+  responsibility.md:
+    required: always
+    description: "What this node is responsible for, and what it is not"
+    included_in_relations: true
+  interface.md:
+    required:
+      when: has_incoming_relations
+    description: "Public API — methods, parameters, return types, contracts, failure modes, exposed data structures"
+    included_in_relations: true
+  internals.md:
+    required: never
+    description: "How the node works and why — algorithms, business rules, state machines, design decisions with rejected alternatives"
+
+quality:
+  min_artifact_length: 50
+  max_direct_relations: 10
+  context_budget:
+    warning: 10000
+    error: 20000
+    own_warning: 5000

@@ -229,7 +229,7 @@ inline string performSemanticExponentiation(const string& base, const string& ex
 }
 
 // [NEW] Deep Subtraction: 2-Way Semantic Diffing for Inner Container Logic
-inline string performDeepSubtraction(const string& expected_intent, const string& actual_intent) {
+inline string performDeepSubtraction(const string& expected_intent, const string& actual_intent, bool ignoreScaffold = false) {
     stringstream prompt;
     prompt << "ROLE: Expert Software Auditor.\n";
     prompt << "TASK: Perform a deep semantic two-way subtraction between the EXPECTED specification and the ACTUAL implementation of a code container.\n";
@@ -238,6 +238,11 @@ inline string performDeepSubtraction(const string& expected_intent, const string
     prompt << "LOGIC:\n";
     prompt << "1. EXPECTED - ACTUAL = MISSING (What is explicitly in the spec but missing from the implementation?)\n";
     prompt << "2. ACTUAL - EXPECTED = HALLUCINATED (What is in the implementation but NOT requested/implied in the spec?)\n\n";
+    
+    if (ignoreScaffold) {
+        prompt << "STRICT RULE: Ignore 'architectural scaffolding'. If the actual implementation abstracts a requested command into a helper function (e.g., using a wrapper instead of a direct call), DO NOT flag it as hallucinated or missing, as long as the semantic intent is preserved.\n\n";
+    }
+
     prompt << "OUTPUT FORMAT:\n";
     prompt << "If both are semantically equivalent (meaning no missing and no hallucinated logic), return EXACTLY the word 'NULL'.\n";
     prompt << "Otherwise, list them like this:\n";
@@ -256,7 +261,7 @@ inline string performDeepSubtraction(const string& expected_intent, const string
 }
 
 // [NEW] Semantic Subtraction: Compare Expected Specification vs Actual Implementation
-inline string compareBlueprints(const string& expectedCode, const string& actualCode) {
+inline string compareBlueprints(const string& expectedCode, const string& actualCode, bool ignoreScaffold = false) {
     auto extractContainers = [](const string& code) -> map<string, string> {
         map<string, string> containers;
         YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
@@ -336,6 +341,35 @@ inline string compareBlueprints(const string& expectedCode, const string& actual
     for (const auto& [id, intent] : actual) {
         if (mappedActual.find(id) == mappedActual.end()) undocumented.push_back(id);
     }
+
+    if (ignoreScaffold && !undocumented.empty()) {
+        cout << "   [AUDIT] Filtering architectural scaffolding from extra containers..." << endl;
+        stringstream filterPrompt;
+        filterPrompt << "ROLE: Expert Software Auditor.\n";
+        filterPrompt << "TASK: Identify which of these extra containers are purely 'architectural scaffolding' (e.g. Includes, Constants, basic helper templates, standard boilerplate) versus actual unrequested business logic.\n";
+        filterPrompt << "CONTAINERS:\n";
+        for (const auto& id : undocumented) {
+            filterPrompt << "- " << id << ": " << actual[id].substr(0, 100) << "...\n";
+        }
+        filterPrompt << "OUTPUT FORMAT: Return ONLY a valid JSON list of strings containing the names of containers that are ACTUAL unrequested business logic (NOT scaffolding). If all are scaffolding, return [].\n";
+        string filterResponse = safeCallAI(filterPrompt.str());
+        
+        try {
+            size_t jsonStart = filterResponse.find('[');
+            size_t jsonEnd = filterResponse.rfind(']');
+            if (jsonStart != string::npos && jsonEnd != string::npos && jsonEnd >= jsonStart) {
+                filterResponse = filterResponse.substr(jsonStart, jsonEnd - jsonStart + 1);
+                json j = json::parse(filterResponse);
+                undocumented.clear();
+                for (auto& el : j) {
+                    if (el.is_string()) undocumented.push_back(el.get<string>());
+                }
+            }
+        } catch (...) {
+            cout << "   [WARN] Failed to parse scaffolding filter response. Keeping all undocumented containers." << endl;
+        }
+    }
+
     if (!undocumented.empty()) {
         report << "[?] UNDOCUMENTED/HALLUCINATED CONTAINERS (Code - Spec):\n";
         for (const auto& id : undocumented) report << "  - " << id << "\n";
@@ -347,7 +381,7 @@ inline string compareBlueprints(const string& expectedCode, const string& actual
         if (expectedToActual.find(id) != expectedToActual.end() && !expectedToActual[id].empty() && actual.find(expectedToActual[id]) != actual.end()) {
             string actual_id = expectedToActual[id];
             cout << "   [AUDIT] Deep Semantic Subtraction on container: " << id << " (mapped to " << actual_id << ")..." << endl;
-            string deepDiff = performDeepSubtraction(expected_intent, actual[actual_id]);
+            string deepDiff = performDeepSubtraction(expected_intent, actual[actual_id], ignoreScaffold);
             if (deepDiff != "NULL" && !deepDiff.empty() && deepDiff.find("NULL") == string::npos) {
                 report << "[~] LOGIC MISMATCH IN CONTAINER: " << id << " (Code: " << actual_id << ")\n" << deepDiff << "\n\n";
             }
