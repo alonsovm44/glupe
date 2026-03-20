@@ -321,6 +321,23 @@ if (all_files_match_target_extension && no_semantic_blocks) {
 
 This makes Glupe a **drop-in replacement** for native compilers when no AI features are needed.
 
+### 3.5 AST-Driven Structural Verification
+
+LLMs are notorious for being "lazy," often oversimplifying code when asked to refactor or comment, replacing critical logic with `// ... implementation goes here ...`. To counter this, Glupe integrates Tree-sitter for Abstract Syntax Tree (AST) manipulation. 
+
+During modification operations (like `fix` or `explain`), Glupe mathematically compares the node count of structural milestones (`function_definition`, `if_statement`, `for_statement`, etc.) between the original code and the AI-generated output. If the complexity ratio drops below a strict threshold (e.g., `< 0.7`), indicating the AI dropped significant structural logic, Glupe physically rejects the output and forces the AI to try again with an explicit system alert. This structural feedback loop forces non-deterministic AI models to maintain algorithmic fidelity.
+
+### 3.6 Semantic Subtraction (The "Omission Blindspot" Guardrail)
+
+A critical flaw in autonomous coding agents is their inability to detect omissions. LLMs are decent at catching contradictions but terrible at realizing what they forgot to implement from a specification. Standard unit tests only verify *if* written code runs, not *how* it was architected or if constraints were silently ignored.
+
+Glupe introduces a mathematical verification gate called **Semantic Subtraction ($Spec - Impl$)**. 
+1. The developer provides the Expected Intent (`spec.glp`).
+2. Glupe reverse-engineers the AI-generated code (`agent_output.cpp`) back into a semantic blueprint (`actual_impl.glp`) using AST-driven refinement.
+3. Glupe performs a two-way Set Subtraction between both blueprints.
+
+The `glupe audit` command mathematically evaluates the absence of requested logic, catching missed requirements (Missing) and architectural liberties (Hallucinated). Equipped with a `--ignore-scaffold` flag to forgive standard language boilerplate, this provides a deterministic, CI/CD-ready guardrail that can automatically block AI Pull Requests if they drift from the master architectural intent.
+
 ---
 
 ## 4. LLM Backend Architecture
@@ -532,6 +549,25 @@ glupe source.cpp -refine [-local | -cloud]
 - **Intent Recovery**: Recovers the "why" behind the code that is often lost in implementation details.
 - **Codebase Compression**: Reduces the cognitive load for developers reading the file, as they see the high-level logic first.
 - **It allows for 'no rot' software**: Unlike traditional code, intention does not age, a program coded in `.glp` can be recompiled into the same program in 10 or 20 years since it preserves the intent.
+
+### 5.6 Architectural Auditing (Semantic Subtraction)
+
+```bash
+glupe audit spec.glp implementation_refined.glp --ignore-scaffold
+```
+
+**Workflow:**
+1. Read the expected architectural blueprint (`spec.glp`).
+2. Read the actual refined blueprint of the generated code (`implementation_refined.glp`).
+3. Align containers semantically (resolving AI naming drift).
+4. Perform mathematical Set Subtraction to generate a report of missing and hallucinated features.
+5. Return a standard exit code (`0` for success, `1` for divergence) to act as a CI/CD pipeline guardrail.
+
+**Use cases:**
+- Mathematical verification of AI-generated Pull Requests.
+- Test-Driven Architecture (TDA).
+- Ensuring strict adherence to global security policies and architectures.
+
 ---
 
 ## 6. Language Support
@@ -888,25 +924,6 @@ This moves Semantic Containers closer to **Biological Metaphors.**
 *   You can evolve a codebase by evolving the "DNA" (the Parent Containers) rather than performing surgery on the "Cells" (the individual functions).
 
 It turns Glupe into a **Genetic Programming Environment.**
-
-### 11.1 AST-Based Compilation (Hard Isolation)
-
-The next major architectural shift (v6.0) involves moving from string-based processing to Abstract Syntax Tree (AST) manipulation using tools like Tree-sitter.
-
-**The Logic Flow:**
-1. **Normalization**: Pre-process source files to convert semantic containers (`$${...}$$`) into valid syntax placeholders (e.g., `__glupe_container("id");`) so standard parsers can read them.
-2. **Context Walking**: Instead of sending the full file text to the LLM, walk the AST from the container node upwards. Capture the enclosing function signature, class definitions, and imports. This reduces token usage and focuses the LLM on relevant scope.
-3. **Structural Verification**:
-   - Parse the original file $\rightarrow$ $AST_{orig}$
-   - Parse the LLM output $\rightarrow$ $AST_{new}$
-   - **Invariant Check**: $AST_{orig} - Node_{container} \equiv AST_{new} - Node_{container}$
-   
-   This provides **Hard Isolation**. If the LLM accidentally modifies a function name or deletes a bracket outside the container, the AST comparison will fail, and the compiler will reject the change automatically.
-
-**Benefits:**
-- **Guaranteed Safety**: Impossible for AI to break surrounding architecture.
-- **Smart Imports**: Automatically detect used symbols in generated code and inject missing imports/includes at the top of the file.
-- **Syntax-Aware Formatting**: Generated code automatically adopts the indentation style of the parent tree.
 
 **3. Interactive refinement:**
 ```
