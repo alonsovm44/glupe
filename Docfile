@@ -9,6 +9,11 @@ Track:
 Ignore:
     src/ref.md
     src/json.hpp
+    src/lex.yy.c
+    src/glupec.cpp.glp 
+    src/glupe.tab.c
+    src/glupe.tab.h
+    
 
 Style:
    no emojis

@@ -22,18 +22,21 @@ curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh 
 - **Installation Directory**: Creates `$HOME/.glupe` for storing files.
 - **Source Code Download**: Fetches Glupe source files and `json.hpp` from GitHub.
 
-### 3. **Compilation**
-- Compiles `glupec.cpp` using the detected C++ compiler with C++17 and optimizations.
-- Handles filesystem library linking on Linux.
+### 3. **Parser and Lexer Generation**
+- Generates parser (`glupe.tab.c`) and lexer (`lex.yy.c`) files using Bison and Flex. Warns if generation fails but continues.
 
-### 4. **Configuration**
+### 4. **Compilation**
+- Compiles `glupec.cpp`, `lex.yy.c`, and `glupe.tab.c` using the detected C++ compiler with C++17 and optimizations.
+- Handles filesystem library linking on Linux by adding `-lstdc++fs`.
+
+### 5. **Configuration**
 - Generates a default `config.json` if it doesn't exist.
 
-### 5. **PATH Integration**
+### 6. **PATH Integration**
 - Adds the installation directory to the user's `PATH` in their shell configuration file (`~/.bashrc`, `~/.zshrc`, or `~/.profile`).
 - Notifies the user to restart the terminal or source the config file.
 
-### 6. **Completion**
+### 7. **Completion**
 - Confirms successful installation and provides a command to get started.
 
 ## Error Handling

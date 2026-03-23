@@ -5,21 +5,21 @@
                 "system"
             ],
             "doc_path": ".docgen/docs/CHANGELOG.md.md",
-            "hash": "b6912c4422d0d885",
+            "hash": "26f018ea44006791",
             "path": "CHANGELOG.md",
-            "summary": "Below is a **clean, structured, comprehensive Markdown documentation** derived from the changelog you provided."
+            "summary": "*A high‑level technical overview of the system’s capabilities, workflows, and evolution.*"
         },
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/install.ps1.md",
-            "hash": "f52b947fa0c864c6",
+            "hash": "f585588e50fb694a",
             "path": "install.ps1",
-            "summary": "This PowerShell script automates the installation of Glupe, a C++ application, on Windows systems. It handles dependencies, compilation, and configuration, ensuring a seamless setup experience."
+            "summary": "Here is the updated documentation, revised **only where the code has changed**, while preserving the original structure and intent."
         },
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/install.sh.md",
-            "hash": "c2defddddd8640dc",
+            "hash": "919655922386a551",
             "path": "install.sh",
             "summary": "This Bash script automates the installation of Glupe, a CLI tool, on Linux and macOS systems. It handles dependencies, compilation, and configuration, ensuring a seamless setup process."
         },
@@ -28,7 +28,7 @@
                 "config.hpp"
             ],
             "doc_path": ".docgen/docs/src/ai.hpp.md",
-            "hash": "40dfd458315c64ab",
+            "hash": "16aa96af13e383ea",
             "path": "src/ai.hpp",
             "summary": "The AI Core module provides functionality to interact with various AI models and services, including local and cloud-based providers. It handles API calls, response parsing, and error handling, enabling seamless integration with different AI protocols."
         },
@@ -37,9 +37,9 @@
                 "common.hpp"
             ],
             "doc_path": ".docgen/docs/src/cache.hpp.md",
-            "hash": "3ff141a33d18f067",
+            "hash": "81623e5ed059340b",
             "path": "src/cache.hpp",
-            "summary": "Below is a comprehensive, purpose‑focused Markdown documentation for the provided code. It avoids restating trivial C++ behavior and instead explains design intent, semantics, and how the components interact."
+            "summary": "This module defines the core data structures and caching mechanisms used by the semantic‑processing engine introduced in version **6.0**. It provides:"
         },
         {
             "dependencies": [
@@ -68,9 +68,9 @@
                 "json.hpp"
             ],
             "doc_path": ".docgen/docs/src/common.hpp.md",
-            "hash": "4f9f573b5995346b",
+            "hash": "1c87d7c8d5ae2f59",
             "path": "src/common.hpp",
-            "summary": "This header provides foundational utilities and shared definitions for a larger C++ codebase. Its purpose is to centralize common includes, platform abstractions, JSON support, and lightweight global configuration. Nothing in this file performs application logic; instead, it establishes the environment that other modules rely on."
+            "summary": "Below is an updated version of the documentation with **only the sections that require changes** based on the new code."
         },
         {
             "dependencies": [
@@ -78,7 +78,7 @@
                 "languages.hpp"
             ],
             "doc_path": ".docgen/docs/src/config.hpp.md",
-            "hash": "97119290f2ea54e3",
+            "hash": "5c772497487b6de0",
             "path": "src/config.hpp",
             "summary": "This module provides a configuration system for managing settings related to AI providers, protocols, models, and toolchains. It includes functionality to load, update, and display configuration settings from a `config.json` file. The system supports both local and cloud-based AI providers, with customizable parameters for each."
         },
@@ -92,12 +92,12 @@
                 "cache.hpp",
                 "parser.hpp",
                 "processor.hpp",
+                "ast_utils.hpp",
                 "hub.hpp",
-                "map",
                 ") != string::npos || err.find("
             ],
             "doc_path": ".docgen/docs/src/glupec.cpp.md",
-            "hash": "ac7525eeaf119850",
+            "hash": "455c1bb2b4679410",
             "path": "src/glupec.cpp",
             "summary": "The GLUPE Compiler is a semantic compiler that translates high-level instructions, blueprints, or requirements into executable code, 3D models, or images. It supports multiple programming languages, 3D modeling formats, and image formats through a unified interface."
         },
@@ -115,7 +115,7 @@
                 "common.hpp"
             ],
             "doc_path": ".docgen/docs/src/languages.hpp.md",
-            "hash": "b09000aa41678e21",
+            "hash": "e062a3af94dbb421",
             "path": "src/languages.hpp",
             "summary": "This module provides a system for selecting programming languages, 3D model formats, and image formats based on file extensions or user input. It leverages a database of language profiles and format specifications to facilitate code generation, model creation, or image processing tasks."
         },
@@ -124,12 +124,14 @@
                 "utils.hpp",
                 "languages.hpp",
                 "cache.hpp",
+                "ast.hpp",
+                "ast_utils.hpp",
                 "started",
                 ");\r\n        if (incPos != string::npos) {\r\n            size_t startQuote = line.find_first_of(",
                 " << d << "
             ],
             "doc_path": ".docgen/docs/src/parser.hpp.md",
-            "hash": "b60757e25301fe2e",
+            "hash": "3bdf8371989c6dfe",
             "path": "src/parser.hpp",
             "summary": "**Purpose:**"
         },
@@ -142,10 +144,12 @@
                 "languages.hpp",
                 "algorithm",
                 "iostream",
-                "cctype"
+                "cctype",
+                "thread",
+                "chrono"
             ],
             "doc_path": ".docgen/docs/src/processor.hpp.md",
-            "hash": "dfa76b5ba8f1b069",
+            "hash": "5105e710c1b047c4",
             "path": "src/processor.hpp",
             "summary": "**Purpose:**"
         },
@@ -161,18 +165,87 @@
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/update.ps1.md",
-            "hash": "b6651f55bd244d71",
+            "hash": "8d5931e58a93e7ee",
             "path": "update.ps1",
-            "summary": "```markdown"
+            "summary": "This PowerShell script automates the process of updating the `glupe.exe` executable on a Windows system. It downloads the latest source code, generates parser and lexer files using Bison and Flex, compiles the code, and replaces the existing executable with the newly built version. The script ensures a safe update process by handling file locking and providing backup mechanisms."
         },
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/update.sh.md",
-            "hash": "371e68ae53504c6f",
+            "hash": "0024129752a27b97",
             "path": "update.sh",
+            "summary": "Here is the updated documentation with **only the sections that changed**, while preserving the original structure and wording wherever possible."
+        },
+        {
+            "dependencies": [
+                "string",
+                "vector",
+                "memory",
+                "iostream",
+                "utility"
+            ],
+            "doc_path": ".docgen/docs/src/ast.hpp.md",
+            "hash": "18adb9457f13cca4",
+            "path": "src/ast.hpp",
+            "summary": "```markdown"
+        },
+        {
+            "dependencies": [
+                "string",
+                "vector",
+                "memory",
+                "stdexcept",
+                "iostream",
+                "tree_sitter/api.h"
+            ],
+            "doc_path": ".docgen/docs/src/ast_utils.hpp.md",
+            "hash": "dae3a0e2c1b96e75",
+            "path": "src/ast_utils.hpp",
+            "summary": "```markdown"
+        },
+        {
+            "dependencies": [
+                "ast.hpp",
+                "glupe.tab.h",
+                "string"
+            ],
+            "doc_path": ".docgen/docs/src/glupe.l.md",
+            "hash": "d72cc02866e283ba",
+            "path": "src/glupe.l",
+            "summary": "This document provides a comprehensive overview of the lexer specification for the Glupe programming language. The lexer, written using Flex, defines the tokenization rules for Glupe's syntax, including variables, containers, and raw code handling. It integrates with Bison for parsing and utilizes the `ast.hpp` file for Abstract Syntax Tree (AST) node definitions."
+        },
+        {
+            "dependencies": [
+                "ast.hpp",
+                "iostream",
+                "vector",
+                "string"
+            ],
+            "doc_path": ".docgen/docs/src/glupe.y.md",
+            "hash": "030f39b4bea51cb8",
+            "path": "src/glupe.y",
+            "summary": "Below is a comprehensive, structured Markdown documentation for the provided Bison grammar. It focuses on purpose, behavior, and usage patterns rather than restating syntax that is already obvious from the code."
+        },
+        {
+            "dependencies": [
+                "iostream",
+                "string",
+                "ast.hpp",
+                "iostream"
+            ],
+            "doc_path": ".docgen/docs/src/parser_test.cpp.md",
+            "hash": "dfebb50943cb4502",
+            "path": "src/parser_test.cpp",
+            "summary": "Below is a comprehensive, structured Markdown documentation for the provided code. It focuses on purpose, behavior, and usage patterns rather than restating trivial syntax."
+        },
+        {
+            "dependencies": [],
+            "doc_path": ".docgen/docs/src/test.cpp.md",
+            "hash": "fcecf86691500ed7",
+            "path": "src/test.cpp",
             "summary": "```markdown"
         }
     ],
-    "last_update": "2026-03-08T04:10:31Z",
+    "last_update": "2026-03-23T05:24:32Z",
     "project_name": "glupe"
 }

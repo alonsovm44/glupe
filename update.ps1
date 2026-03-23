@@ -1,4 +1,4 @@
-$RepoBaseUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/main"
+$RepoBaseUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/master"
 $JsonUrl = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
 $glupeBinName = "glupe.exe"
 $tempBin = Join-Path $env:TEMP "$glupeBinName.new"

@@ -1,7 +1,3 @@
-Below is a comprehensive, purpose‑focused Markdown documentation for the provided code. It avoids restating trivial C++ behavior and instead explains design intent, semantics, and how the components interact.
-
----
-
 # Semantic Node & Cache System Documentation
 
 This module defines the core data structures and caching mechanisms used by the semantic‑processing engine introduced in version **6.0**. It provides:
@@ -19,10 +15,10 @@ The design centers on enabling **semantic reuse**, **persistent variables**, and
 
 ```cpp
 enum class NodeType {
-    CONTAINER,
-    VAR_EPHEMERAL,
-    VAR_PERSISTENT,
-    CONSTANT
+    CONTAINER,       // $...$ or $$...$$
+    VAR_EPHEMERAL,   // $:
+    VAR_PERSISTENT,  // $$:
+    CONSTANT         // $CONST:
 };
 ```
 
@@ -46,15 +42,17 @@ This classification drives how nodes are stored, cached, and reused.
 struct SemanticNode {
     NodeType type;
     string id;
-    string content;
+    string content; // Prompt or Value
     vector<string> parents;
-    vector<string> params;
-    vector<string> vectorContent;
-    bool isVector = false;
+    vector<string> params; // Parameters for context injection
+    string ir_content; // GIR representation
+    bool is_resolved_to_ir = false; // Flag for IR generation
+    vector<string> vectorContent; // For Semantic Vectors
+    bool isVector = false; // Flag for vector content
     bool isBlock = false;
     bool isAbstract = false;
     bool isCached = false;
-    string hash;
+    string hash; // Hash for caching
 };
 ```
 
@@ -73,10 +71,13 @@ struct SemanticNode {
 - **Parameterization** (`params`)  
   Allows context injection into semantic templates.
 
-- **Vector semantics** (`vectorContent`, `isVector`)  
+- **IR Representation** (`ir_content`, `is_resolved_to_ir`)  
+  Stores the intermediate representation (IR) and indicates if IR generation is complete.
+
+- **Vector Semantics** (`vectorContent`, `isVector`)  
   Supports multi‑element semantic vectors (e.g., lists of prompts or embeddings).
 
-- **Structural flags**  
+- **Structural Flags**  
   - `isBlock`: Node represents a block‑level construct.  
   - `isAbstract`: Node is a template requiring parameter substitution.  
   - `isCached`: Node was restored from cache rather than freshly computed.
@@ -84,7 +85,7 @@ struct SemanticNode {
 - **Hashing** (`hash`)  
   Used to determine whether cached content is still valid.
 
-This structure enables flexible semantic modeling while supporting caching, inheritance, and template expansion.
+This structure enables flexible semantic modeling while supporting caching, inheritance, template expansion, and IR generation.
 
 ---
 
@@ -135,6 +136,7 @@ Initializes the caching environment and restores persistent state.
 2. Loads `.glupe.lock` if present; otherwise initializes a new structure.
 3. Restores all `VAR_PERSISTENT` nodes into the global symbol table:
    - Their content
+   - Their IR representation
    - Their cached hash
    - Their `isCached` flag
 
@@ -154,7 +156,7 @@ Writes all persistent variables back to `.glupe.lock`.
 ### Behavior
 - Iterates through the symbol table.
 - Extracts only `VAR_PERSISTENT` nodes.
-- Saves their `content` and `hash`.
+- Saves their `content`, `ir_content`, and `hash`.
 - Writes the updated JSON to disk.
 
 This ensures that persistent variables remain consistent across sessions.
@@ -208,5 +210,6 @@ This module provides the foundational infrastructure for:
 - Tracking variables and containers (`SYMBOL_TABLE`)
 - Persisting state across runs (`initCache`, `saveCache`)
 - Avoiding redundant computation through hashing and caching
+- Supporting IR generation and vector semantics
 
 It is designed to support a semantic‑driven prompt engine where templates, variables, and containers can be reused efficiently and consistently.

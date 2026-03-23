@@ -19,9 +19,10 @@ This module provides a configuration system for managing settings related to AI 
 
 ### `loadConfig(string mode)`
 
-**Purpose**: Loads configuration settings from `config.json` based on the specified mode (`local` or `cloud`). If the file does not exist, default settings are applied.
+**Purpose**: Loads configuration settings from `config.json` based on the specified mode (`local` or `cloud`). If the file does not exist, default settings are applied or copied from a global configuration.
 
 **Behavior**:
+- Automatically generates a local `config.json` if it doesn't exist, either from a global configuration or with default settings.
 - Parses `config.json` if it exists.
 - Sets default values if the file is missing or the mode is not configured.
 - Updates global variables (`PROTOCOL`, `API_URL`, `MODEL_ID`, `API_KEY`, `MAX_RETRIES`) based on the configuration.
@@ -42,7 +43,7 @@ This module provides a configuration system for managing settings related to AI 
 **Supported Keys**:
 - `api-key`: Updates the API key for cloud providers.
 - `model-cloud`/`model-local`: Updates the model ID for cloud/local providers.
-- `url-cloud`/`url-local`: Updates the API URL for cloud/local providers.
+- `url-local`/`url-cloud`: Updates the API URL for local/cloud providers.
 - `cloud-protocol`: Updates the protocol for cloud providers (must be `google` or `openai`).
 - `max-retries`: Updates the maximum number of retries for API requests.
 
@@ -77,7 +78,7 @@ showConfig(); // Display current configuration settings
 
 ## Error Handling
 
-- **File Errors**: If `config.json` is missing or corrupted, default values are used or errors are logged.
+- **File Errors**: If `config.json` is missing, it is auto-generated. If corrupted, errors are logged.
 - **Validation Errors**: Invalid keys or values result in error messages without modifying the configuration.
 
 ## Dependencies
@@ -91,3 +92,4 @@ showConfig(); // Display current configuration settings
 - The configuration system is designed to be flexible, allowing users to override default settings for both local and cloud AI providers.
 - Toolchain overrides enable customization of build and version commands for specific programming languages.
 - Sensitive information like API keys is masked when displayed to prevent accidental exposure.
+- If `config.json` is missing, it is automatically generated from a global configuration or with default settings.

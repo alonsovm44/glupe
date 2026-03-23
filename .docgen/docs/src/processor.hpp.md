@@ -1,3 +1,19 @@
+### `safeCallAI` Function
+
+**Purpose:**  
+Executes an AI call with built-in retry logic and rate limit handling.
+
+**Usage:**  
+Used as a wrapper for `callAI` to handle transient errors and API rate limits.
+
+**Behavior:**  
+- Retries up to `MAX_RETRIES` times on errors.
+- Detects rate limit errors (429) and waits dynamically based on API response.
+- Handles other errors with exponential backoff.
+- Returns the AI response or an error message if all retries fail.
+
+---
+
 ### `substituteVariables` Function
 
 **Purpose:**  
@@ -11,6 +27,7 @@ Used to resolve variable references in prompts or code before processing.
 - Ignores special syntax like `$$`, `$:`, `${`, and `$ ` (dollar followed by space).
 - Looks up the variable in `SYMBOL_TABLE` and substitutes its value if found.
 - Handles nested variables and preserves non-variable `$` occurrences.
+- Supports file-specific prefixes for variable resolution.
 
 ---
 
@@ -89,6 +106,39 @@ Used in prompt arithmetic to handle the `^` operator.
 
 ---
 
+### `performDeepSubtraction` Function
+
+**Purpose:**  
+Performs a deep semantic comparison between expected and actual container logic using AI.
+
+**Usage:**  
+Used in blueprint validation to identify missing or hallucinated logic in generated code.
+
+**Behavior:**  
+- Constructs a prompt instructing the AI to compare expected and actual logic.
+- Identifies missing and hallucinated elements.
+- Optionally ignores architectural scaffolding.
+- Returns a structured report or "NULL" if semantically equivalent.
+
+---
+
+### `compareBlueprints` Function
+
+**Purpose:**  
+Compares expected and actual code blueprints semantically using AI.
+
+**Usage:**  
+Used in post-processing to validate generated code against specifications.
+
+**Behavior:**  
+- Extracts containers from both blueprints.
+- Maps expected containers to actual containers semantically.
+- Performs deep subtraction on container logic.
+- Generates a detailed comparison report.
+- Optionally ignores architectural scaffolding.
+
+---
+
 ### `resolvePromptArithmetic` Function
 
 **Purpose:**  
@@ -106,6 +156,35 @@ Core function for processing arithmetic operations in prompt logic.
 
 ---
 
+### `generateIR` Function
+
+**Purpose:**  
+Generates Glupe Intermediate Representation (GIR) from human intent.
+
+**Usage:**  
+Used in the semantic frontend pass during code generation.
+
+**Behavior:**  
+- Constructs a prompt instructing the AI to translate intent into GIR.
+- Handles interactive mode for ambiguous inputs.
+- Returns the generated GIR or an error message.
+
+---
+
+### `generateTargetCodeFromIR` Function
+
+**Purpose:**  
+Generates target code from Glupe Intermediate Representation (GIR).
+
+**Usage:**  
+Used in the semantic backend pass during code generation.
+
+**Behavior:**  
+- Constructs a prompt instructing the AI to translate GIR into target language code.
+- Returns the generated code or an error message.
+
+---
+
 ### `processInputWithCache` Function
 
 **Purpose:**  
@@ -120,6 +199,7 @@ First pass in the code processing pipeline.
 - Handles inheritance and context injection for containers.
 - Manages caching for containers based on hash comparison.
 - Generates code for containers in fill mode or wraps them in markers for global pass.
+- Supports interactive and IDE modes.
 
 ---
 

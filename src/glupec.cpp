@@ -1099,10 +1099,28 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // [FIX] Separate input files from update targets
+    // [FIX] Separate input files from update targets and support Directory Sucking
     for(const auto& arg : positionalArgs) {
         if (fs::exists(arg)) {
-            inputFiles.push_back(arg);
+            if (fs::is_directory(arg)) {
+                for (const auto& entry : fs::recursive_directory_iterator(arg)) {
+                    if (entry.is_regular_file()) {
+                        string ext = entry.path().extension().string();
+                        bool isCode = false;
+                        for (auto const& [key, val] : LANG_DB) {
+                            if (val.extension == ext) { isCode = true; break; }
+                        }
+                        string pathStr = entry.path().string();
+                        std::replace(pathStr.begin(), pathStr.end(), '\\', '/');
+                        // Exclude hidden directories and common build folders
+                        if (isCode && pathStr.find("/.") == string::npos && pathStr.find("build/") == string::npos && pathStr.find("node_modules/") == string::npos) {
+                            inputFiles.push_back(entry.path().string());
+                        }
+                    }
+                }
+            } else {
+                inputFiles.push_back(arg);
+            }
         } else if (updateMode) {
             updateTargets.push_back(arg);
         } else {
@@ -1129,16 +1147,31 @@ int main(int argc, char* argv[]) {
 
     // [NEW] Refine Mode: Semantic Compression
     if (refineMode) {
-        for (const auto& file : inputFiles) {
-            cout << "[REFINE] Processing " << file << "..." << endl;
-            if (!fs::exists(file)) {
-                cout << "[ERROR] File not found: " << file << endl;
+        string aggregatedBlueprint = "";
+        bool singleOutput = !outputName.empty();
+
+        if (singleOutput) {
+            cout << "[REFINE] Project-Level Directory Sucking enabled. Output will be aggregated into " << outputName << endl;
+        }
+
+        for (size_t fIdx = 0; fIdx < inputFiles.size(); ++fIdx) {
+            const auto& file = inputFiles[fIdx];
+            cout << "[REFINE] Processing " << file << " (" << (fIdx + 1) << "/" << inputFiles.size() << ")..." << endl;
+            
+            if (!fs::exists(file) || fs::is_directory(file)) {
+                cout << "[ERROR] File not found or is directory: " << file << endl;
                 continue;
             }
             
             ifstream f(file);
             string content((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
             f.close();
+
+            string ext = getExt(file);
+            string langId = "cpp"; // default fallback
+            for(auto const& [key, val] : LANG_DB) {
+                if(val.extension == ext) { langId = val.id; break; }
+            }
 
             if (scaffoldMode) {
                 cout << "[SCAFFOLD] Architecting blueprint from requirements..." << endl;
@@ -1166,20 +1199,23 @@ int main(int argc, char* argv[]) {
 
                 blueprint = sanitize_container_syntax(blueprint);
 
-                string outputFile = file + ".glp";
-                ofstream out(outputFile);
-                out << blueprint;
-                out.close();
-
-                cout << "[SUCCESS] Blueprint generated: " << outputFile << endl;
+                if (singleOutput) {
+                    aggregatedBlueprint += blueprint + "\n\n";
+                } else {
+                    string outputFile = file + ".glp";
+                    ofstream out(outputFile);
+                    out << blueprint;
+                    out.close();
+                    cout << "[SUCCESS] Blueprint generated: " << outputFile << endl;
+                }
                 continue;
             }
 
             // [v6.1] AST-Driven Slicing
-            vector<string> chunks = sliceSourceCodeAST(content, CURRENT_LANG.id);
+            vector<string> chunks = sliceSourceCodeAST(content, langId);
             
             // [v6.2] Phase 2: Build Global Symbol Graph
-            map<string, string> globalSymbolGraph = buildGlobalSymbolGraph(content, CURRENT_LANG.id);
+            map<string, string> globalSymbolGraph = buildGlobalSymbolGraph(content, langId);
             
             string fullRefinedCode = "";
 
@@ -1325,13 +1361,35 @@ int main(int argc, char* argv[]) {
             // [NEW] Sanitize syntax before saving
             fullRefinedCode = sanitize_container_syntax(fullRefinedCode);
 
-            string outputFile = file + ".glp";
-            ofstream out(outputFile);
-            out << fullRefinedCode;
-            out.close();
+            if (singleOutput) {
+                string exportPath = file;
+                std::replace(exportPath.begin(), exportPath.end(), '\\', '/');
+                aggregatedBlueprint += "EXPORT: \"" + exportPath + "\"\n";
+                aggregatedBlueprint += fullRefinedCode + "\n";
+                aggregatedBlueprint += "EXPORT: END\n\n";
+            } else {
+                string outputFile = file + ".glp";
+                ofstream out(outputFile);
+                out << fullRefinedCode;
+                out.close();
 
-            cout << "[SUCCESS] Semantic file generated: " << outputFile << endl;
-            redirector.output(fullRefinedCode + "\n");
+                cout << "[SUCCESS] Semantic file generated: " << outputFile << endl;
+                redirector.output(fullRefinedCode + "\n");
+            }
+        }
+
+        if (singleOutput && !scaffoldMode) {
+            ofstream out(outputName);
+            out << aggregatedBlueprint;
+            out.close();
+            cout << "[SUCCESS] Master project blueprint generated: " << outputName << endl;
+            redirector.output(aggregatedBlueprint + "\n");
+        } else if (singleOutput && scaffoldMode) {
+            ofstream out(outputName);
+            out << aggregatedBlueprint;
+            out.close();
+            cout << "[SUCCESS] Master scaffold blueprint generated: " << outputName << endl;
+            redirector.output(aggregatedBlueprint + "\n");
         }
         return 0;
     }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-REPO_URL="https://raw.githubusercontent.com/M-MACHINE/glupe/main"
+REPO_URL="https://raw.githubusercontent.com/M-MACHINE/glupe/master"
 JSON_URL="https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
 GLUPE_BIN_NAME="glupe"
 TEMP_BIN="/tmp/${GLUPE_BIN_NAME}.new"

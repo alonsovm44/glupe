@@ -14,7 +14,7 @@ This module provides a system for selecting programming languages, 3D model form
 - **Usage**: Determines which database (`LANG_DB`, `MODEL_DB`, or `IMAGE_DB`) to use during selection.
 
 ### **2. Language/Format Profiles (`LangProfile`)**
-- **Purpose**: Stores metadata for languages/formats, including file extensions, version commands, and build instructions.
+- **Purpose**: Stores metadata for languages/formats, including file extensions, version commands, build instructions, and optional syntax check commands.
 - **Fields**:
   - `id`: Unique identifier (e.g., "cpp", "obj").
   - `name`: Human-readable name (e.g., "C++", "Wavefront OBJ").
@@ -61,3 +61,4 @@ string buildCmd = CURRENT_LANG.buildCmd;
 - The system is designed to be extensible; new languages/formats can be added to the databases.
 - Platform-specific commands (e.g., `g++`, `rustc`) are assumed to be available in the environment.
 - Error handling for invalid user input is minimal; defaults are used if input is out of range.
+- The `LangProfile` struct now includes an optional `checkCmd` field for syntax validation.

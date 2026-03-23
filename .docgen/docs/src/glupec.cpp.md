@@ -12,6 +12,13 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - **Asset Generation**: Creates 3D models and images based on textual descriptions.
 - **Caching**: Reuses successful builds to speed up recompilation.
 - **Error Handling**: Detects fatal errors and provides AI-assisted explanations.
+- **Interactive Mode**: Allows user clarification for ambiguous containers.
+- **IDE Integration**: Supports interactive mode for IDEs with ambiguous prompt handling.
+- **Direct Compilation**: Attempts direct compilation for matching source files.
+- **Series Mode**: Generates files sequentially based on a blueprint.
+- **Tree Shaking**: Removes unused code from AI-generated output.
+- **Blind Mode**: Skips verification for unsupported toolchains.
+- **Custom Build Commands**: Override default build commands with `-build`.
 
 ## Command-Line Interface (CLI)
 
@@ -27,6 +34,8 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - `-run`: Run the output binary after compilation.
 - `-crono`: Measure execution time.
 - `-fill`: Fill containers in-place (preserves manual code).
+- `-i, --interactive`: Enable interactive mode for ambiguous containers.
+- `--ide`: Enable IDE mode (interactive with special ambiguous prompt handling).
 - `-dry-run`: Show prompt/context without calling AI.
 - `-verbose`: Enable verbose logging.
 - `-3d`: 3D model generation mode.
@@ -43,6 +52,7 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - `fix <file> "instr"`: AI-powered code repair.
 - `explain <file> [lang]`: Generate documentation.
 - `diff <f1> <f2> [lang]`: Semantic diff report.
+- `audit <spec> <impl> [--ignore-scaffold]`: Verify implementation against specification.
 - `sos [lang] "query"`: Ask AI for help.
 - `update`: Check for and apply updates to GLUPE.
 - `hub`: Enter interactive GlupeHub mode.
@@ -51,6 +61,7 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - `pull <file> <user>`: Download from GlupeHub.
 - `info <file.glp>`: Show file metadata.
 - `insert-metadata <path>`: Insert metadata template.
+- `ast-test <file>`: Test Tree-sitter AST parsing.
 
 ### Examples
 ```bash
@@ -58,6 +69,18 @@ glupe main.glp -o app.exe -cpp
 glupe idea.txt -make -series
 glupe legacy.c -refine
 glupe fix bug.py "fix index out of range"
+glupe explain main.cpp -local English
+glupe diff v1.cpp v2.cpp -cloud Spanish
+glupe audit spec.glp impl.glp --ignore-scaffold
+glupe sos Python "How to handle CSV files?"
+glupe update
+glupe hub
+glupe login
+glupe push project.glp "demo, tutorial"
+glupe pull example.glp john_doe
+glupe info project.glp
+glupe insert-metadata new_project/
+glupe ast-test main.cpp
 ```
 
 ## Configuration
@@ -90,6 +113,7 @@ GLUPE detects fatal errors (e.g., missing files, undefined references) and provi
 - **cache.hpp**: Caching mechanisms.
 - **parser.hpp**: Input parsing and blueprint handling.
 - **processor.hpp**: Code processing and generation.
+- **ast_utils.hpp**: AST-based code analysis and manipulation.
 - **hub.hpp**: GlupeHub integration.
 
 ## Usage Workflow
@@ -104,6 +128,8 @@ GLUPE detects fatal errors (e.g., missing files, undefined references) and provi
 - **Tree Shaking**: Removes unused code from AI-generated output.
 - **Blind Mode**: Skips verification for unsupported toolchains.
 - **Custom Build Commands**: Override default build commands with `-build`.
+- **Interactive Mode**: Allows user clarification for ambiguous containers.
+- **IDE Integration**: Supports interactive mode for IDEs with ambiguous prompt handling.
 
 ## Troubleshooting
 - **API Errors**: Check `config.json` for correct API keys and URLs.

@@ -1,7 +1,18 @@
+## v6.1.1 2026-03-22
+
+Added:
+
+- added directory sucking
+Removed:
+
+Improved/Fixed:
+
+- fixed update scripts fetching on main instead of master
 ## v6.1.0 2026-03-18
 
 Added:
 
+- added directory sucking
 - added audit command and --ignore-scaffold flags
 - added semantic equivalence verification loop
 - added global symbol graph using tree sitter

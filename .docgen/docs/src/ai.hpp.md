@@ -13,6 +13,8 @@ The AI Core module provides functionality to interact with various AI models and
 **Behavior:**
 - Constructs the API request based on the current `PROTOCOL` (Google, OpenAI, or Ollama).
 - Handles API-specific headers, authentication, and request body formatting.
+- Ensures `MODEL_ID` has a default value if not configured in `config.json`.
+- Handles APIFreeLLM divergence by adjusting the request body format.
 - Retries up to 3 times if the API returns a rate limit error (429) for Google.
 - Logs raw responses in verbose mode and checks for common error codes (401, 404).
 - Uses `curl` to send the HTTP request and `execCmd` to execute the command.
@@ -28,6 +30,7 @@ The AI Core module provides functionality to interact with various AI models and
 **Behavior:**
 - Parses the JSON response to locate the relevant content.
 - Handles different response formats based on the provider (Google, OpenAI, Ollama).
+- Strips extraneous text before the JSON payload.
 - Extracts code blocks enclosed in triple backticks (` ``` `) if present.
 - Returns error messages if the response is empty, malformed, or contains API errors.
 
@@ -56,6 +59,7 @@ The AI Core module provides functionality to interact with various AI models and
 - Queries the Ollama API (`/api/tags`) to retrieve installed models.
 - Displays the list of models and prompts the user to select one.
 - Updates the `config.json` file with the selected model under the `local` profile.
+- Handles custom Ollama API URLs from the configuration.
 
 **Usage:** Useful for switching between local models without manually editing the config.
 

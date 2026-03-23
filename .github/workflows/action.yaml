@@ -1,0 +1,48 @@
+name: 'Glupe Semantic Audit'
+description: 'Mathematically audits an AI-generated implementation (single file or entire repository) against a master .glp specification.'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  spec_file:
+    description: 'Path to the expected .glp specification blueprint'
+    required: true
+  impl_path:
+    description: 'Path to the generated source code file or project directory (e.g., ./src)'
+    required: true
+  api_key:
+    description: 'OpenAI / Google API Key for the Semantic Engine'
+    required: true
+  model:
+    description: 'The LLM model to use (default: gpt-4o)'
+    required: false
+    default: 'gpt-4o'
+  ignore_scaffold:
+    description: 'Set to "true" to ignore standard architectural boilerplate'
+    required: false
+    default: 'true'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Glupe
+      shell: bash
+      run: |
+        echo "Installing Glupe Semantic Compiler..."
+        curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure AI Backend
+      shell: bash
+      run: |
+        glupe config api-key "${{ inputs.api_key }}"
+        glupe config model-cloud "${{ inputs.model }}"
+
+    - name: Refine Implementation
+      shell: bash
+      run: glupe "${{ inputs.impl_path }}" -refine -cloud -o _temp_pr_architecture.glp
+
+    - name: Execute Audit
+      shell: bash
+      run: glupe audit "${{ inputs.spec_file }}" _temp_pr_architecture.glp -cloud ${{ inputs.ignore_scaffold == 'true' && '--ignore-scaffold' || '' }}

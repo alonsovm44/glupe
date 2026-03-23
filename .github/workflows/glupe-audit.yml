@@ -1,0 +1,43 @@
+name: Semantic Architecture Audit (Glupe)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  glupe-guardrail:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Glupe
+        run: |
+          echo "Installing Glupe Semantic Compiler..."
+          curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
+          
+          # Add Glupe to the runner's PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure AI Backend
+        env:
+          # Pull the API key safely from GitHub Secrets
+          GLUPE_API_KEY: ${{ secrets.OPENAI_API_KEY }} 
+        run: |
+          glupe config api-key "$GLUPE_API_KEY"
+          glupe config model-cloud gpt-4o
+
+      - name: Step 1 - Semantic Refinement (Reverse Engineering)
+        run: |
+          echo "Refining generated implementation into GIR..."
+          # Replace 'src/implementation.cpp' with the path to the actual code
+          glupe src/implementation.cpp -refine -cloud -o pr_architecture.glp
+
+      - name: Step 2 - Mathematical Audit
+        run: |
+          echo "Executing Semantic Subtraction: Master Spec vs PR Architecture..."
+          # Compare the original blueprint against the AI's newly refined blueprint
+          glupe audit architecture_spec.glp pr_architecture.glp -cloud --ignore-scaffold

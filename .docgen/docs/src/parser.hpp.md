@@ -53,25 +53,21 @@ This function is used to preprocess code that relies on external modules or file
 
 ---
 
-### `stripTemplates` Function
+### `stripAllContainers` Function
 
 **Purpose:**  
-Removes AI-generated template code (`$${...}$$`) from the source code while preserving valid Glupe syntax containers. This function ensures that only user-written code remains after template stripping.
+Removes all Glupe syntax containers from the code using AST parsing. This function ensures that only raw code remains, excluding any Glupe-specific syntax.
 
 **Behavior:**  
-1. **Template Detection:**  
-   - Identifies block templates (`$${...}$$`) and inline templates (`${...}$`).  
-   - Skips `ABSTRACT` and inheritance syntax during stripping.  
+1. **AST Parsing:**  
+   - Uses Flex/Bison to parse the code into an AST.  
+   - Identifies and skips `ContainerNode` and `VariableNode` elements.  
 
-2. **Template Removal:**  
-   - Removes template content while preserving surrounding code.  
-   - Handles nested and multiline templates.  
-
-3. **State Tracking:**  
-   - Uses `insideTemplate` to track whether the current position is inside a template block.  
+2. **Code Reconstruction:**  
+   - Rebuilds the code from `RawCodeNode` elements only.  
 
 **Usage:**  
-This function is used after code generation to clean up AI-generated templates, leaving only the final, user-intended code.
+This function is used to strip Glupe syntax for validation, execution, or further processing that requires raw code.
 
 ---
 
@@ -81,14 +77,13 @@ This function is used after code generation to clean up AI-generated templates, 
 Validates Glupe syntax containers in the code, ensuring they are properly named, unique, and correctly structured. It detects malformed containers and duplicate IDs.
 
 **Behavior:**  
-1. **Container Detection:**  
-   - Scans for block (`$$ ... $$`) and inline (`$ ... $`) containers.  
-   - Identifies container headers and checks for proper syntax.  
+1. **AST Parsing:**  
+   - Parses the code into an AST to identify container nodes.  
 
 2. **Validation:**  
    - Ensures container IDs are unique.  
-   - Checks for unclosed containers and malformed inline containers.  
-   - Skips `ABSTRACT` containers during validation.  
+   - Checks for unclosed containers and malformed syntax.  
+   - Tracks active (non-abstract) containers.  
 
 3. **Error Reporting:**  
    - Logs errors for duplicate IDs and malformed syntax.  
@@ -110,7 +105,7 @@ Processes `EXPORT:` directives in the code, writing specified content to files. 
 
 2. **File Writing:**  
    - Creates directories if necessary.  
-   - Writes content to the specified file, stripping templates using `stripTemplates`.  
+   - Writes content to the specified file, stripping templates using `stripAllContainers`.  
 
 3. **Error Handling:**  
    - Logs errors if file writing fails.  
@@ -175,6 +170,76 @@ Splits source code into semantic chunks for refined processing, such as AI-assis
 
 **Usage:**  
 This function is used to prepare code for refined processing, such as AI-assisted refactoring or generation.
+
+---
+
+### `sliceSourceCodeAST` Function
+
+**Purpose:**  
+Splits source code into semantic chunks using Tree-sitter AST parsing. This function ensures chunks are logically separated based on code structure.
+
+**Behavior:**  
+1. **AST Parsing:**  
+   - Uses Tree-sitter to parse the code into an AST.  
+   - Identifies structural blocks (functions, classes, etc.).  
+
+2. **Chunking:**  
+   - Groups smaller nodes (macros, includes) into header chunks.  
+   - Separates major structural blocks into individual chunks.  
+
+**Usage:**  
+This function is used for advanced code slicing, leveraging AST for precise chunking.
+
+---
+
+### `compareASTComplexity` Function
+
+**Purpose:**  
+Compares the structural complexity of two code versions using AST diffing. This function helps detect oversimplification or loss of complexity.
+
+**Behavior:**  
+1. **AST Parsing:**  
+   - Parses both original and new code into ASTs.  
+
+2. **Complexity Analysis:**  
+   - Counts critical structural nodes (functions, classes, etc.).  
+   - Calculates the ratio of new to original complexity.  
+
+**Usage:**  
+This function is used to validate that code refinements maintain structural integrity.
+
+---
+
+### `buildGlobalSymbolGraph` Function
+
+**Purpose:**  
+Builds a global symbol graph from the code, mapping symbols to their signatures. This function aids in context generation and symbol tracking.
+
+**Behavior:**  
+1. **AST Parsing:**  
+   - Uses Tree-sitter to parse the code into an AST.  
+   - Identifies functions, classes, and other symbols.  
+
+2. **Graph Construction:**  
+   - Maps symbol names to their signatures.  
+
+**Usage:**  
+This function is used to create a symbol graph for context-aware processing.
+
+---
+
+### `getRelevantContext` Function
+
+**Purpose:**  
+Extracts relevant context from a code chunk based on a global symbol graph. This function ensures that related symbols are included in the context.
+
+**Behavior:**  
+1. **Symbol Matching:**  
+   - Scans the chunk for symbol names present in the graph.  
+   - Includes matching symbol signatures in the context.  
+
+**Usage:**  
+This function is used to generate context for AI models or other tools requiring symbol-aware processing.
 
 ---
 

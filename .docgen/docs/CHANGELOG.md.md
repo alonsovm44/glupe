@@ -1,8 +1,3 @@
-Below is a **clean, structured, comprehensive Markdown documentation** derived from the changelog you provided.  
-I focus on **purpose, behavior, and usage patterns**, not on restating obvious version‑log details.
-
----
-
 # Project Documentation  
 *A high‑level technical overview of the system’s capabilities, workflows, and evolution.*
 
@@ -19,7 +14,8 @@ Over time, the tool has evolved from a simple code generator into a **full devel
 - Synchronizing source and binary artifacts  
 - Providing diagnostics, diffs, explanations, and automated fixes  
 - Supporting 20+ programming languages and embedded code blocks  
-- Integrating authentication, remote operations, and caching
+- Integrating authentication, remote operations, and caching  
+- Generating 3D assets and supporting advanced code analysis
 
 The following sections summarize the system’s functional domains and how they behave.
 
@@ -35,6 +31,8 @@ Recent additions include:
 
 - **Scaffold generation**: The tool can now produce export‑block project structures before refinement begins.
 - **Chunk‑based refinement fixes**: Ensures large files are processed reliably without losing context.
+- **AST-Driven source code slicing**: Prevents code fracturing during refinement.
+- **Tree-sitter C++ parsing**: Enhances context understanding for C++ code.
 
 **Purpose:**  
 To evolve existing codebases without regenerating them from scratch.
@@ -62,6 +60,7 @@ A build‑oriented mode that:
 - Detects build systems (Makefile, CMake, scripts) and executes them.
 - Supports language‑agnostic defaults.
 - Integrates with `-run` to build before execution.
+- Added `--ignore-scaffold` flag for skipping scaffold generation.
 
 **Purpose:**  
 To turn AI‑generated project descriptions into runnable software automatically.
@@ -88,6 +87,8 @@ The system uses **containers** as modular code units.
 - Semantic vectors for advanced context modeling  
 - `.yori.lock` for container hashing  
 - Cached containers for faster rebuilds  
+- Semantic equivalence verification loop  
+- Global symbol graph using Tree-sitter  
 
 **Purpose:**  
 To structure AI‑generated code into reusable, composable modules.
@@ -100,13 +101,14 @@ To structure AI‑generated code into reusable, composable modules.
 - Embedded code parsing inside comments (`// /**/`)
 - Explicit import markers for clarity
 - IMPORT/END blocks for controlled inclusion
+- Directory sucking for bulk imports
 
 ### Export Enhancements
 - Context detection: If content appears outside an export block, the tool requests a target language.
 - Scaffold generation for project layout
 
 **Purpose:**  
-To give the AI a deterministic, structured context for multi‑file generation.
+To give the AI a deterministic, structured context for multi-file generation.
 
 ---
 
@@ -157,6 +159,12 @@ yori sos [language] [-local | -cloud] "prompt"
 ```
 Requests targeted help from the model.
 
+### **Audit Command**
+```
+yori audit [--ignore-scaffold]
+```
+Verifies semantic equivalence and project structure.
+
 ### **See Command**
 ```
 yori config see
@@ -190,6 +198,8 @@ To support cloud‑based workflows and team collaboration.
 - 20+ programming languages  
 - Arduino and ESP32 support  
 - Kotlin support  
+- Flex/Bison support for Glupe  
+- Glupe IR integration  
 - Windows, macOS, and Linux installers  
 
 **Purpose:**  
@@ -225,3 +235,24 @@ Unrecoverable errors abort the operation and offer analysis options.
 The system remembers previous errors to avoid repeating them.
 
 ### Pre‑Flight Checks
+- Enhanced dependency checks before token generation.
+- Semantic equivalence verification loop.
+
+---
+
+## 10. **New Features (v6.x)**
+
+### **Directory Sucking**
+Automatically imports entire directories for bulk processing.
+
+### **Audit Command**
+Verifies project structure and semantic equivalence.
+
+### **Global Symbol Graph**
+Uses Tree-sitter for advanced code analysis and context modeling.
+
+### **Targeted Dependency Injection**
+Drastically reduces API token usage by injecting dependencies directly.
+
+**Purpose:**  
+To enhance project stability, reduce token usage, and improve code analysis.
