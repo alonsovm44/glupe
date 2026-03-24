@@ -407,10 +407,10 @@ int main(int argc, char* argv[]) {
         cout << "[UPDATE] Checking for new version..." << endl;
         
         #ifdef _WIN32
-        string updateUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/main/scripts/update.ps1";
+        string updateUrl = "https://raw.githubusercontent.com/alonsovm44/glupe/master/update.ps1";
         string command = "powershell -Command \"irm " + updateUrl + " | iex\"";
         #else
-        string updateUrl = "https://raw.githubusercontent.com/M-MACHINE/glupe/main/scripts/update.sh";
+        string updateUrl = "https://raw.githubusercontent.com/alonsovm44/glupe/master/update.sh";
         string command = "curl -sSL " + updateUrl + " | bash";
         #endif
 
