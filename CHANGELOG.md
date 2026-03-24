@@ -7,6 +7,8 @@ Removed:
 
 Improved/Fixed:
 
+- fixed update scripts resolving MMACHINE in url
+- fixed installers not working on 6.1
 - fixed update scripts fetching on main instead of master
 ## v6.1.0 2026-03-18
 
