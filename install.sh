@@ -58,7 +58,7 @@ echo -e "${GREEN}[OK] Created installation directory: $INSTALL_DIR${NC}"
 
 # 4. Download Source
 echo "[INFO] Downloading source code..."
-SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp ast.hpp glupe.l glupe.y"
+SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp ast.hpp ast_utils.hpp glupe.l glupe.y"
 for file in $SOURCE_FILES; do
     if ! curl -fsSL "$REPO_URL/src/$file" -o "$INSTALL_DIR/src/$file"; then
         echo -e "${RED}[ERROR] Failed to download $file${NC}"; exit 1
@@ -74,9 +74,32 @@ if ! bison -d -o "$INSTALL_DIR/src/glupe.tab.c" "$INSTALL_DIR/src/glupe.y" || ! 
     echo -e "${YELLOW}[WARN] Parser/Lexer generation failed. Compilation might fail if C files are missing. (Try: sudo apt install flex bison)${NC}"
 fi
 
+# 4.8 Download and Build Tree-sitter
+echo "[INFO] Downloading and Building Tree-sitter libraries..."
+mkdir -p "$INSTALL_DIR/vendor"
+if [ ! -d "$INSTALL_DIR/vendor/tree-sitter" ]; then
+    curl -fsSL "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.tar.gz" | tar -xz -C "$INSTALL_DIR/vendor"
+    mv "$INSTALL_DIR/vendor/tree-sitter-0.22.6" "$INSTALL_DIR/vendor/tree-sitter"
+fi
+if [ ! -d "$INSTALL_DIR/vendor/tree-sitter-cpp" ]; then
+    curl -fsSL "https://github.com/tree-sitter/tree-sitter-cpp/archive/refs/tags/v0.22.0.tar.gz" | tar -xz -C "$INSTALL_DIR/vendor"
+    mv "$INSTALL_DIR/vendor/tree-sitter-cpp-0.22.0" "$INSTALL_DIR/vendor/tree-sitter-cpp"
+fi
+
+C_COMPILER="gcc"
+if [ "$COMPILER" = "clang++" ]; then C_COMPILER="clang"; fi
+
+$C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter/lib/include" -I"$INSTALL_DIR/vendor/tree-sitter/lib/src" -c "$INSTALL_DIR/vendor/tree-sitter/lib/src/lib.c" -o "$INSTALL_DIR/vendor/tree-sitter.o"
+$C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter-cpp/src" -c "$INSTALL_DIR/vendor/tree-sitter-cpp/src/parser.c" -o "$INSTALL_DIR/vendor/parser.o"
+if [ -f "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.c" ]; then
+    $C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter-cpp/src" -c "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.c" -o "$INSTALL_DIR/vendor/scanner.o"
+elif [ -f "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.cc" ]; then
+    $COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter-cpp/src" -c "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.cc" -o "$INSTALL_DIR/vendor/scanner.o"
+fi
+
 # 5. Compile
 echo "[INFO] Compiling Glupe..."
-COMPILE_CMD="$COMPILER \"$INSTALL_DIR/src/glupec.cpp\" \"$INSTALL_DIR/src/lex.yy.c\" \"$INSTALL_DIR/src/glupe.tab.c\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread -I \"$INSTALL_DIR/src\""
+COMPILE_CMD="$COMPILER \"$INSTALL_DIR/src/glupec.cpp\" \"$INSTALL_DIR/src/lex.yy.c\" \"$INSTALL_DIR/src/glupe.tab.c\" \"$INSTALL_DIR/vendor/tree-sitter.o\" \"$INSTALL_DIR/vendor/parser.o\" \"$INSTALL_DIR/vendor/scanner.o\" -o \"$EXE_PATH\" -std=c++17 -O3 -pthread -I \"$INSTALL_DIR/src\" -I \"$INSTALL_DIR/vendor/tree-sitter/lib/include\""
 
 # Handle Filesystem linking
 # GCC on Linux usually needs -lstdc++fs for versions < 9, and it doesn't hurt to add it for newer versions.

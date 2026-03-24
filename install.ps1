@@ -74,7 +74,7 @@ if (-not (Test-Path $SrcDir)) {
 # 3. Download Source
 Write-Host "[INFO] Downloading source code..."
 try {
-    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp", "ast.hpp", "glupe.l", "glupe.y")
+    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp", "ast.hpp", "ast_utils.hpp", "glupe.l", "glupe.y")
     foreach ($file in $SourceFiles) {
         Invoke-WebRequest -Uri "$RepoUrl/src/$file" -OutFile "$SrcDir\$file"
     }
@@ -95,10 +95,38 @@ try {
     Write-Host "[WARN] Parser/Lexer generation failed. Compilation might fail if C files are missing." -ForegroundColor Yellow
 }
 
+# 3.8 Download and Build Tree-sitter
+Write-Host "[INFO] Downloading and Building Tree-sitter libraries..."
+$VendorDir = "$InstallDir\vendor"
+if (-not (Test-Path $VendorDir)) { New-Item -ItemType Directory -Force -Path $VendorDir | Out-Null }
+
+if (-not (Test-Path "$VendorDir\tree-sitter")) {
+    $tsZip = "$VendorDir\tree-sitter.zip"
+    Invoke-WebRequest -Uri "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.zip" -OutFile $tsZip
+    Expand-Archive -Path $tsZip -DestinationPath $VendorDir -Force
+    Rename-Item "$VendorDir\tree-sitter-0.22.6" -NewName "tree-sitter"
+    Remove-Item $tsZip
+}
+if (-not (Test-Path "$VendorDir\tree-sitter-cpp")) {
+    $tsCppZip = "$VendorDir\tree-sitter-cpp.zip"
+    Invoke-WebRequest -Uri "https://github.com/tree-sitter/tree-sitter-cpp/archive/refs/tags/v0.22.0.zip" -OutFile $tsCppZip
+    Expand-Archive -Path $tsCppZip -DestinationPath $VendorDir -Force
+    Rename-Item "$VendorDir\tree-sitter-cpp-0.22.0" -NewName "tree-sitter-cpp"
+    Remove-Item $tsCppZip
+}
+
+Invoke-Expression "gcc -O3 -I`"$VendorDir\tree-sitter\lib\include`" -I`"$VendorDir\tree-sitter\lib\src`" -c `"$VendorDir\tree-sitter\lib\src\lib.c`" -o `"$VendorDir\tree-sitter.o`""
+Invoke-Expression "gcc -O3 -I`"$VendorDir\tree-sitter-cpp\src`" -c `"$VendorDir\tree-sitter-cpp\src\parser.c`" -o `"$VendorDir\parser.o`""
+if (Test-Path "$VendorDir\tree-sitter-cpp\src\scanner.c") {
+    Invoke-Expression "gcc -O3 -I`"$VendorDir\tree-sitter-cpp\src`" -c `"$VendorDir\tree-sitter-cpp\src\scanner.c`" -o `"$VendorDir\scanner.o`""
+} elseif (Test-Path "$VendorDir\tree-sitter-cpp\src\scanner.cc") {
+    Invoke-Expression "g++ -O3 -I`"$VendorDir\tree-sitter-cpp\src`" -c `"$VendorDir\tree-sitter-cpp\src\scanner.cc`" -o `"$VendorDir\scanner.o`""
+}
+
 # 4. Compile
 Write-Host "[INFO] Compiling Glupe..."
 # [FIX] Added -static to ensure the exe runs on any machine without DLLs
- $BuildCmd = "g++ `"$SrcDir\glupec.cpp`" `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.tab.c`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`""
+ $BuildCmd = "g++ `"$SrcDir\glupec.cpp`" `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.tab.c`" `"$VendorDir\tree-sitter.o`" `"$VendorDir\parser.o`" `"$VendorDir\scanner.o`" -o `"$ExePath`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`" -I `"$VendorDir\tree-sitter\lib\include`""
 Invoke-Expression $BuildCmd
 
 if (-not (Test-Path $ExePath)) {
