@@ -7,6 +7,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed old wrong urls in glupec.cpp
 - fixed update scripts resolving MMACHINE in url
 - fixed installers not working on 6.1
 - fixed update scripts fetching on main instead of master
