@@ -631,7 +631,13 @@ int main(int argc, char* argv[]) {
         bool diverges = (!auditResult["missing"].empty() || !auditResult["hallucinated"].empty() || !auditResult["mismatches"].empty());
 
         if (!outputFile.empty()) {
+            std::time_t t = std::time(nullptr);
+            char timeBuf[64];
+            std::strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%dT%H:%M:%SZ", std::gmtime(&t));
+
             json jReport;
+            jReport["audit_timestamp"] = std::string(timeBuf);
+            jReport["glupe_version"] = CURRENT_VERSION;
             jReport["audit_passed"] = !diverges;
             jReport["divergence_detected"] = diverges;
             jReport["missing"] = auditResult["missing"];

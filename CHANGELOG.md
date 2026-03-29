@@ -2,6 +2,7 @@
 
 Added:
 
+- added report schema to documentation
 - handler for edge case: global missing and hallucinated containers
 - added --fedback flag for report.json
 - compareBlueprints now returns a json file so aduit consumes it
