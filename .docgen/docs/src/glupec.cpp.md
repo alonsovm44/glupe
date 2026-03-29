@@ -19,6 +19,8 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - **Tree Shaking**: Removes unused code from AI-generated output.
 - **Blind Mode**: Skips verification for unsupported toolchains.
 - **Custom Build Commands**: Override default build commands with `-build`.
+- **Audit Mode**: Verifies implementation against specification using semantic analysis.
+- **Feedback Integration**: Automatically fixes issues reported in audit JSON reports.
 
 ## Command-Line Interface (CLI)
 
@@ -34,6 +36,7 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - `-run`: Run the output binary after compilation.
 - `-crono`: Measure execution time.
 - `-fill`: Fill containers in-place (preserves manual code).
+- `--feedback <file>`: Use audit JSON report to auto-heal missing/hallucinated logic.
 - `-i, --interactive`: Enable interactive mode for ambiguous containers.
 - `--ide`: Enable IDE mode (interactive with special ambiguous prompt handling).
 - `-dry-run`: Show prompt/context without calling AI.
@@ -52,7 +55,7 @@ The GLUPE Compiler is a semantic compiler that translates high-level instruction
 - `fix <file> "instr"`: AI-powered code repair.
 - `explain <file> [lang]`: Generate documentation.
 - `diff <f1> <f2> [lang]`: Semantic diff report.
-- `audit <spec> <impl> [--ignore-scaffold]`: Verify implementation against specification.
+- `audit <spec> <impl> [--ignore-scaffold] [--output <file.json>]`: Verify implementation against specification.
 - `sos [lang] "query"`: Ask AI for help.
 - `update`: Check for and apply updates to GLUPE.
 - `hub`: Enter interactive GlupeHub mode.
@@ -71,7 +74,7 @@ glupe legacy.c -refine
 glupe fix bug.py "fix index out of range"
 glupe explain main.cpp -local English
 glupe diff v1.cpp v2.cpp -cloud Spanish
-glupe audit spec.glp impl.glp --ignore-scaffold
+glupe audit spec.glp impl.glp --ignore-scaffold --output report.json
 glupe sos Python "How to handle CSV files?"
 glupe update
 glupe hub
@@ -104,6 +107,9 @@ The compiler uses a cache to store successful builds, avoiding redundant AI call
 ## Error Handling
 GLUPE detects fatal errors (e.g., missing files, undefined references) and provides AI-assisted explanations. The `isFatalError` function checks for common error patterns, and `explainFatalError` provides detailed insights.
 
+## Audit Mode
+The `audit` command compares a specification `.glp` file with an implementation, generating a JSON report of missing, hallucinated, or mismatched logic. The `--feedback` flag allows automatic fixing of reported issues.
+
 ## Project Structure
 - **common.hpp**: Common utilities, structures, and global flags.
 - **utils.hpp**: Logger, system utilities, heuristics, and execution timer.
@@ -121,7 +127,8 @@ GLUPE detects fatal errors (e.g., missing files, undefined references) and provi
 2. **Write Instructions**: Create `.glp` files or use plain text files with instructions.
 3. **Compile**: Run `glupe <file>` with desired options.
 4. **Refine/Repair**: Use `-refine` or `fix` commands to improve code.
-5. **Deploy**: Use `-run` to execute the generated binary or view assets.
+5. **Audit**: Use `audit` to verify implementations against specifications.
+6. **Deploy**: Use `-run` to execute the generated binary or view assets.
 
 ## Advanced Features
 - **Series Mode**: Generates files sequentially based on a blueprint.
@@ -130,11 +137,13 @@ GLUPE detects fatal errors (e.g., missing files, undefined references) and provi
 - **Custom Build Commands**: Override default build commands with `-build`.
 - **Interactive Mode**: Allows user clarification for ambiguous containers.
 - **IDE Integration**: Supports interactive mode for IDEs with ambiguous prompt handling.
+- **Audit Feedback Integration**: Automatically fixes issues reported in audit reports.
 
 ## Troubleshooting
 - **API Errors**: Check `config.json` for correct API keys and URLs.
 - **Compilation Failures**: Use `-verbose` for detailed logging.
 - **Cache Issues**: Clear cache with `clean cache`.
+- **Audit Failures**: Use `--feedback` to automatically fix reported issues.
 
 ## Contributing
 Contributions are welcome! Fork the repository, make changes, and submit a pull request. Ensure all changes are well-documented and tested.

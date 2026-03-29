@@ -1,7 +1,7 @@
 # Code Documentation: Language and Format Selection System
 
 ## Overview
-This module provides a system for selecting programming languages, 3D model formats, and image formats based on file extensions or user input. It leverages a database of language profiles and format specifications to facilitate code generation, model creation, or image processing tasks.
+This module provides a system for selecting programming languages, 3D model formats, and image formats based on file extensions or user input. It leverages a database of language profiles and format specifications to facilitate code generation, model creation, or image processing tasks. The system integrates with Tree-sitter for language parsing and includes a comprehensive database of language and format profiles.
 
 ## Core Components
 
@@ -24,14 +24,20 @@ This module provides a system for selecting programming languages, 3D model form
   - `producesBinary`: Indicates if the output is a binary (e.g., `true` for C++).
   - `checkCmd` (optional): Command to validate syntax (e.g., `python -m py_compile`).
 
-### **3. Databases**
+### **3. Tree-sitter Integration**
+- **Purpose**: Provides language parsing capabilities using Tree-sitter.
+- **Functionality**:
+  - `get_ts_language`: Retrieves the Tree-sitter language parser for a given language name.
+  - Supports languages: C++, Python, JavaScript, Java, Go, Rust.
+
+### **4. Databases**
 - **Purpose**: Maps file extensions to their respective profiles.
 - **Databases**:
-  - `LANG_DB`: Programming languages (e.g., C++, Python, Rust).
-  - `MODEL_DB`: 3D model formats (e.g., OBJ, STL).
+  - `LANG_DB`: Programming languages (e.g., C++, Python, Rust, and many more).
+  - `MODEL_DB`: 3D model formats (e.g., OBJ, STL, glTF).
   - `IMAGE_DB`: Image formats (e.g., SVG, EPS).
 
-### **4. Selection Mechanism (`selectTarget`)**
+### **5. Selection Mechanism (`selectTarget`)**
 - **Purpose**: Handles ambiguous targets by prompting the user to select a language/format.
 - **Behavior**:
   1. Determines the appropriate database based on `CURRENT_MODE`.
@@ -43,6 +49,7 @@ This module provides a system for selecting programming languages, 3D model form
 - **Setting Mode**: Update `CURRENT_MODE` to switch between code, 3D model, or image generation contexts.
 - **Selecting Target**: Call `selectTarget()` when the target is ambiguous (e.g., multiple file extensions match).
 - **Accessing Profile**: Use `CURRENT_LANG` to retrieve the selected profile's metadata.
+- **Tree-sitter Parsing**: Use `get_ts_language` to obtain a Tree-sitter parser for a specific language.
 
 ## Examples
 ```cpp
@@ -55,10 +62,14 @@ selectTarget();
 // Access selected language profile
 string extension = CURRENT_LANG.extension;
 string buildCmd = CURRENT_LANG.buildCmd;
+
+// Get Tree-sitter parser for C++
+const TSLanguage* cppParser = get_ts_language("cpp");
 ```
 
 ## Notes
 - The system is designed to be extensible; new languages/formats can be added to the databases.
 - Platform-specific commands (e.g., `g++`, `rustc`) are assumed to be available in the environment.
 - Error handling for invalid user input is minimal; defaults are used if input is out of range.
-- The `LangProfile` struct now includes an optional `checkCmd` field for syntax validation.
+- Tree-sitter integration is limited to languages with available parsers in the provided code.
+- The `LangProfile` struct includes an optional `checkCmd` field for syntax validation.

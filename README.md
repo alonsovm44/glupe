@@ -1,7 +1,4 @@
-![Demo de Glupe](./demo.gif)
-Clone this repo to begin:
-https://github.com/alonsovm44/glupe-tutorial
-# Glupe 
+# Glupe
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Release](https://img.shields.io/github/v/release/alonsovm44/glupe)](https://github.com/alonsovm44/glupe/releases)
@@ -9,29 +6,29 @@ https://github.com/alonsovm44/glupe-tutorial
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20|%20Linux%20|%20macOS-lightgrey)
 ![AI-Powered](https://img.shields.io/badge/AI-Powered-purple)
 
-Glupe is a semantic metaprogramming language. Unlike traditional metaprogramming systems that operate within a single language (C++ templates, Lisp macros), Glupe operates at the level of human intent and can materialize that intent into any target programming language. This positions Glupe as a 'meta' language not just in the technical sense of generating code, but in the philosophical sense of being one level above all programming languages.
+## 🎬 Glupe in Action
 
-Example meta-program:
+| Generate | Build | Fix Errors |
+|----------|-------|------------|
+| ![](./assets/demo.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
+
+> **Glupe is a Semantic Compiler. Think of it as "Docker for Logic."**  
+> Docker freezes your Environment to make software independent of the machine. Glupe freezes your **Intent** to make software independent of the language.
+
+Unlike traditional AI coding assistants that blindly rewrite your files, **Glupe isolates AI logic into semantic containers (`$${ }$$`), so your manual architecture stays 100% safe.** Write your architectural "load-bearing walls" in pure code, and securely delegate the boilerplate to the AI.
+
+## 🚀 The "Wow" Factor: Intent-Driven Compilation
+
+Mix natural language intent directly with concrete code. Glupe will compile the `$${ }$$` blocks into native code (C++, Python, Rust, etc.) using your local or cloud LLM.
+
 ```glupe
-% this is a comment
-$$ include {
-    standard io library
-    vector library
+// my_program.glp
+$$ABSTRACT rules { every printed message must end with "!" }$$
 
-}$$
-$$ABSTRACT rules{
-    every printed message must end with "!"
-}$$
-
-$$ABSTRACT rules2{
-    every printed message must begin with "?"
-}$$
-
-$$ main -> rules, rules2 {
+$$ main -> rules {
  let v = vector[1,2,3]
  print v   
 }$$
-
 ```
 Result:
 ```

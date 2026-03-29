@@ -1,14 +1,14 @@
 ### `safeCallAI` Function
 
 **Purpose:**  
-Executes an AI call with built-in retry logic and rate limit handling.
+Executes an AI call with built-in retry logic, rate limit handling, and error recovery.
 
 **Usage:**  
-Used as a wrapper for `callAI` to handle transient errors and API rate limits.
+Used as a wrapper for `callAI` to handle transient errors, API rate limits, and exponential backoff.
 
 **Behavior:**  
 - Retries up to `MAX_RETRIES` times on errors.
-- Detects rate limit errors (429) and waits dynamically based on API response.
+- Detects rate limit errors (429) and waits dynamically based on API response or exponential backoff.
 - Handles other errors with exponential backoff.
 - Returns the AI response or an error message if all retries fail.
 
@@ -25,9 +25,9 @@ Used to resolve variable references in prompts or code before processing.
 **Behavior:**  
 - Scans the input string for `$` followed by a valid variable identifier.
 - Ignores special syntax like `$$`, `$:`, `${`, and `$ ` (dollar followed by space).
-- Looks up the variable in `SYMBOL_TABLE` and substitutes its value if found.
+- Looks up the variable in `SYMBOL_TABLE` and substitutes its value if found, respecting file-specific prefixes.
 - Handles nested variables and preserves non-variable `$` occurrences.
-- Supports file-specific prefixes for variable resolution.
+- Supports optional container resolution via the `allowContainers` flag.
 
 ---
 
@@ -188,7 +188,7 @@ Used in the semantic backend pass during code generation.
 ### `processInputWithCache` Function
 
 **Purpose:**  
-Pre-processes input code to handle containers, variables, and caching.
+Pre-processes input code to handle containers, variables, caching, and code generation.
 
 **Usage:**  
 First pass in the code processing pipeline.
@@ -199,7 +199,7 @@ First pass in the code processing pipeline.
 - Handles inheritance and context injection for containers.
 - Manages caching for containers based on hash comparison.
 - Generates code for containers in fill mode or wraps them in markers for global pass.
-- Supports interactive and IDE modes.
+- Supports interactive and IDE modes with user clarification handling.
 
 ---
 

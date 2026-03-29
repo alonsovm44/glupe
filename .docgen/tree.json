@@ -5,21 +5,24 @@
                 "system"
             ],
             "doc_path": ".docgen/docs/CHANGELOG.md.md",
-            "hash": "26f018ea44006791",
+            "hash": "011dcf440add3f17",
             "path": "CHANGELOG.md",
             "summary": "*A high‑level technical overview of the system’s capabilities, workflows, and evolution.*"
         },
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/install.ps1.md",
-            "hash": "f585588e50fb694a",
+            "hash": "bd3da217914cf43d",
             "path": "install.ps1",
-            "summary": "Here is the updated documentation, revised **only where the code has changed**, while preserving the original structure and intent."
+            "summary": "Here is the updated documentation, revised **only where the code has changed**, while preserving the original structure and intent:"
         },
         {
-            "dependencies": [],
+            "dependencies": [
+                "manager",
+                "manager."
+            ],
             "doc_path": ".docgen/docs/install.sh.md",
-            "hash": "919655922386a551",
+            "hash": "42fa246446cd59e1",
             "path": "install.sh",
             "summary": "This Bash script automates the installation of Glupe, a CLI tool, on Linux and macOS systems. It handles dependencies, compilation, and configuration, ensuring a seamless setup process."
         },
@@ -68,9 +71,9 @@
                 "json.hpp"
             ],
             "doc_path": ".docgen/docs/src/common.hpp.md",
-            "hash": "1c87d7c8d5ae2f59",
+            "hash": "0a6905c8cb3108cb",
             "path": "src/common.hpp",
-            "summary": "Below is an updated version of the documentation with **only the sections that require changes** based on the new code."
+            "summary": "This header continues to provide foundational utilities and shared definitions for the broader C++ codebase. The overall purpose remains the same, but the new version updates the bundled standard headers, platform abstractions, and global configuration values. The file still performs no application logic; it simply establishes a consistent environment for all dependent modules."
         },
         {
             "dependencies": [
@@ -97,7 +100,7 @@
                 ") != string::npos || err.find("
             ],
             "doc_path": ".docgen/docs/src/glupec.cpp.md",
-            "hash": "455c1bb2b4679410",
+            "hash": "9e98b50ac39a82f3",
             "path": "src/glupec.cpp",
             "summary": "The GLUPE Compiler is a semantic compiler that translates high-level instructions, blueprints, or requirements into executable code, 3D models, or images. It supports multiple programming languages, 3D modeling formats, and image formats through a unified interface."
         },
@@ -112,12 +115,15 @@
         },
         {
             "dependencies": [
-                "common.hpp"
+                "common.hpp",
+                "tree_sitter/api.h",
+                "functional",
+                "stdexcept"
             ],
             "doc_path": ".docgen/docs/src/languages.hpp.md",
-            "hash": "e062a3af94dbb421",
+            "hash": "92efe77ce52ac818",
             "path": "src/languages.hpp",
-            "summary": "This module provides a system for selecting programming languages, 3D model formats, and image formats based on file extensions or user input. It leverages a database of language profiles and format specifications to facilitate code generation, model creation, or image processing tasks."
+            "summary": "This module provides a system for selecting programming languages, 3D model formats, and image formats based on file extensions or user input. It leverages a database of language profiles and format specifications to facilitate code generation, model creation, or image processing tasks. The system integrates with Tree-sitter for language parsing and includes a comprehensive database of language and format profiles."
         },
         {
             "dependencies": [
@@ -149,7 +155,7 @@
                 "chrono"
             ],
             "doc_path": ".docgen/docs/src/processor.hpp.md",
-            "hash": "5105e710c1b047c4",
+            "hash": "6510eb93acc6fc4e",
             "path": "src/processor.hpp",
             "summary": "**Purpose:**"
         },
@@ -165,16 +171,16 @@
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/update.ps1.md",
-            "hash": "8d5931e58a93e7ee",
+            "hash": "0a76c6564f2d6deb",
             "path": "update.ps1",
-            "summary": "This PowerShell script automates the process of updating the `glupe.exe` executable on a Windows system. It downloads the latest source code, generates parser and lexer files using Bison and Flex, compiles the code, and replaces the existing executable with the newly built version. The script ensures a safe update process by handling file locking and providing backup mechanisms."
+            "summary": "Here is the updated documentation, modified **only where the code has changed**, while preserving the original structure and intent."
         },
         {
             "dependencies": [],
             "doc_path": ".docgen/docs/update.sh.md",
-            "hash": "0024129752a27b97",
+            "hash": "b43cdab646631083",
             "path": "update.sh",
-            "summary": "Here is the updated documentation with **only the sections that changed**, while preserving the original structure and wording wherever possible."
+            "summary": "Here is the updated documentation with **only the sections that changed**, preserving the original structure and wording as closely as possible."
         },
         {
             "dependencies": [
@@ -244,8 +250,15 @@
             "hash": "fcecf86691500ed7",
             "path": "src/test.cpp",
             "summary": "```markdown"
+        },
+        {
+            "dependencies": [],
+            "doc_path": ".docgen/docs/src/README.md.md",
+            "hash": "0862c3275854d560",
+            "path": "src/README.md",
+            "summary": "It looks like you want **comprehensive Markdown documentation**, but the “code” you provided is actually just a comment block explaining your choice of using header‑only files. There’s no functional code to document yet, so I need a bit more context before I can produce meaningful technical documentation."
         }
     ],
-    "last_update": "2026-03-23T05:24:32Z",
+    "last_update": "2026-03-29T22:51:37Z",
     "project_name": "glupe"
 }

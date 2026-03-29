@@ -15,7 +15,8 @@ Over time, the tool has evolved from a simple code generator into a **full devel
 - Providing diagnostics, diffs, explanations, and automated fixes  
 - Supporting 20+ programming languages and embedded code blocks  
 - Integrating authentication, remote operations, and caching  
-- Generating 3D assets and supporting advanced code analysis
+- Generating 3D assets and supporting advanced code analysis  
+- Verifying semantic equivalence and project structure  
 
 The following sections summarize the system’s functional domains and how they behave.
 
@@ -89,6 +90,7 @@ The system uses **containers** as modular code units.
 - Cached containers for faster rebuilds  
 - Semantic equivalence verification loop  
 - Global symbol graph using Tree-sitter  
+- Handler for missing and hallucinated containers  
 
 **Purpose:**  
 To structure AI‑generated code into reusable, composable modules.
@@ -161,9 +163,9 @@ Requests targeted help from the model.
 
 ### **Audit Command**
 ```
-yori audit [--ignore-scaffold]
+yori audit [--ignore-scaffold] [--output <file>]
 ```
-Verifies semantic equivalence and project structure.
+Verifies semantic equivalence and project structure, with optional JSON report generation.
 
 ### **See Command**
 ```
@@ -187,6 +189,7 @@ Enables secure communication with remote endpoints.
 ### Login / Push / Pull
 - Push and pull commands with improved error reporting
 - Integration with remote hubs for project synchronization
+- Added `--feedback` flag for generating `report.json` during operations
 
 **Purpose:**  
 To support cloud‑based workflows and team collaboration.
@@ -237,6 +240,7 @@ The system remembers previous errors to avoid repeating them.
 ### Pre‑Flight Checks
 - Enhanced dependency checks before token generation.
 - Semantic equivalence verification loop.
+- JSON report generation for audit results.
 
 ---
 
@@ -246,13 +250,16 @@ The system remembers previous errors to avoid repeating them.
 Automatically imports entire directories for bulk processing.
 
 ### **Audit Command**
-Verifies project structure and semantic equivalence.
+Verifies project structure and semantic equivalence, with JSON report generation.
 
 ### **Global Symbol Graph**
 Uses Tree-sitter for advanced code analysis and context modeling.
 
 ### **Targeted Dependency Injection**
 Drastically reduces API token usage by injecting dependencies directly.
+
+### **JSON Reporting**
+Added `--output` flag for generating JSON reports in audit and comparison operations.
 
 **Purpose:**  
 To enhance project stability, reduce token usage, and improve code analysis.

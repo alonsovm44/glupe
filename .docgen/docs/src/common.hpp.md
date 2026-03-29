@@ -1,8 +1,3 @@
-Below is an updated version of the documentation with **only the sections that require changes** based on the new code.  
-All unchanged sections are preserved exactly as they were.
-
----
-
 # Updated Documentation
 
 ## Overview
@@ -22,11 +17,35 @@ The platform‑normalization logic remains mostly unchanged, but the new code ad
 
 These additions slightly expand POSIX compatibility while preserving the unified process‑execution API.
 
----
-
 ### Standard library aggregation
 
 The new code adjusts the set of included standard headers. The updated list now includes:
 
 - **Newly added:**  
-  - `<functional>` — enabling function wrappers, callbacks
+  - `<functional>` — enabling function wrappers, callbacks  
+  - `<set>` — providing set container functionality  
+  - `<memory>` — supporting smart pointers and memory management  
+  - `<limits>` — offering numeric limits utilities
+
+**Updated List of Included Headers:**
+- `<iostream>`
+- `<fstream>`
+- `<string>`
+- `<vector>`
+- `<stringstream>`
+- `<array>`
+- `<cstdio>`
+- `<cstdlib>`
+- `<thread>`
+- `<chrono>`
+- `<map>`
+- `<algorithm>`
+- `<iomanip>`
+- `<filesystem>`
+- `<ctime>`
+- `<functional>`
+- `<set>`
+- `<memory>`
+- `<limits>`
+
+---
