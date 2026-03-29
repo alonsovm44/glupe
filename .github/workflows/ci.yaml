@@ -1,0 +1,16 @@
+name: Glupe Audit Workflow
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Glupe Semantic Audit
+        uses: ./github/actions/glupe
+        with:
+          spec_file: ./specs/master.glp
+          impl_path: ./src
+          api_key: ${{ secrets.API_KEY }}
+          model: gpt-4o
+          ignore_scaffold: true
