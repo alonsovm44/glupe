@@ -757,6 +757,9 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
             if (interactiveAnswers.count(cacheKey)) {
                 prompt += "\n[USER CLARIFICATION]: " + interactiveAnswers.at(cacheKey);
                 currentHash = getContainerHash(prompt); // Update hash so it matches new prompt
+            } else if (interactiveAnswers.count(id)) {
+                prompt += "\n[USER CLARIFICATION]: " + interactiveAnswers.at(id);
+                currentHash = getContainerHash(prompt); // Update hash so it matches new prompt
             }
 
             bool cacheHit = false;

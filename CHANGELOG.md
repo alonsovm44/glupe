@@ -2,6 +2,7 @@
 
 Added:
 
+- added --fedback flag for report.json
 - compareBlueprints now returns a json file so aduit consumes it
 - added json report for audit and --output (-o) flag
 Removed:

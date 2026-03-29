@@ -73,6 +73,7 @@ void showHelp() {
     cout << "  -run             : Run the output binary after compilation.\n";
     cout << "  -crono           : Measure execution time.\n";
     cout << "  -fill            : Fill containers in-place (preserves manual code).\n";
+    cout << "  --feedback <file>: Use audit JSON report to auto-heal missing/hallucinated logic.\n";
     cout << "  -i, --interactive: Prompt user to resolve ambiguous containers.\n";
     cout << "  -dry-run         : Show prompt/context without calling AI.\n";
     cout << "  -verbose         : Enable verbose logging.\n";
@@ -121,6 +122,7 @@ int main(int argc, char* argv[]) {
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
         cout << "  audit <spec> <impl> [--ignore-scaffold] [--output <file.json>] : Verify implementation against specification\n";
+        cout << "  --feedback <file>  : Use audit report to auto-heal missing logic\n";
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         cout << "  update             : Check for and apply updates to glupe.\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
@@ -1030,6 +1032,7 @@ int main(int argc, char* argv[]) {
     string mode = "local"; 
     string customBuildCmd = ""; // [NEW] Custom build command override
     string customInstructions = ""; 
+        string errorHistory = ""; 
     bool explicitLang = false;
     bool dryRun = false;
     bool updateMode = false; 
@@ -1073,6 +1076,36 @@ int main(int argc, char* argv[]) {
         else if (arg == "--answer" && i + 2 < argc) {
             interactiveAnswers[argv[i+1]] = argv[i+2];
             i += 2;
+        }
+        else if (arg == "--feedback" && i + 1 < argc) {
+            string feedbackFile = argv[i+1];
+            if (fs::exists(feedbackFile)) {
+                ifstream f(feedbackFile);
+                try {
+                    json jReport = json::parse(f);
+                    if (jReport.contains("report_text")) {
+                        errorHistory += "\n[AUDIT FEEDBACK]:\n" + jReport["report_text"].get<string>() + "\n";
+                    }
+                    if (jReport.contains("mismatches")) {
+                        for (const auto& mismatch : jReport["mismatches"]) {
+                            string containerId = mismatch["expected_container"];
+                            string feedbackText = "AUDIT FEEDBACK - PLEASE FIX THE FOLLOWING DIVERGENCE:\n" + mismatch["diff"].get<string>();
+                            interactiveAnswers[containerId] = feedbackText;
+                            updateTargets.push_back(containerId);
+                        }
+                    }
+                    updateMode = true; 
+                } catch(...) {
+                    f.clear();
+                    f.seekg(0);
+                    string raw((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+                    errorHistory += "\n[AUDIT FEEDBACK]:\n" + raw + "\n";
+                    updateMode = true;
+                }
+            } else {
+                cout << "[WARN] Feedback file not found: " << feedbackFile << endl;
+            }
+            i++;
         }
         else if (arg == "-3d") CURRENT_MODE = GenMode::MODEL_3D;
         else if (arg == "-img") CURRENT_MODE = GenMode::IMAGE;
@@ -1777,7 +1810,6 @@ int main(int argc, char* argv[]) {
 
     string tempSrc = "temp_build" + CURRENT_LANG.extension;
     string tempBin = "temp_build.exe"; 
-    string errorHistory = ""; 
 
     int passes = MAX_RETRIES;
 
