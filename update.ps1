@@ -1,114 +1,109 @@
-$RepoBaseUrl = "https://raw.githubusercontent.com/alonsovm44/glupe/master"
+<#
+ Safe updater for glupe (Windows PowerShell)
+ # Usage: .\update.ps1  (run in admin or normal session; will attempt to use writable locations / prompt)
+#>
+[CmdletBinding()]
+param()
+
+$RepoRaw = "https://raw.githubusercontent.com/alonsovm44/glupe/master"
 $JsonUrl = "https://github.com/nlohmann/json/releases/download/v3.11.3/json.hpp"
-$glupeBinName = "glupe.exe"
-$tempBin = Join-Path $env:TEMP "$glupeBinName.new"
 
-Write-Host "--- Glupe Update Script (Windows PowerShell) ---" -ForegroundColor Cyan
+Write-Host "--- Glupe Update Script (Windows) ---" -ForegroundColor Cyan
 
-# Get the path of the currently running glupe executable
-$currentGlupePath = (Get-Command glupe -ErrorAction SilentlyContinue).Source
-if (-not $currentGlupePath) {
-    Write-Error "Error: 'glupe.exe' command not found in PATH."
-    Write-Error "Please ensure glupe is installed and in your PATH."
+# locate installed glupe
+$cmd = Get-Command glupe -ErrorAction SilentlyContinue
+if (-not $cmd) {
+    Write-Error "glupe not found in PATH. Ensure it's installed."
     exit 1
 }
-$glupeDir = Split-Path -Path $currentGlupePath -Parent
-
+$currentGlupePath = $cmd.Source
+$glupeDir = Split-Path $currentGlupePath -Parent
 Write-Host "Current glupe path: $currentGlupePath"
 
 $SrcDir = Join-Path $glupeDir "src"
 if (-not (Test-Path $SrcDir)) { New-Item -ItemType Directory -Force -Path $SrcDir | Out-Null }
 
-Write-Host "Downloading source code from $RepoBaseUrl..."
-try {
-    $SourceFiles = @("glupec.cpp", "common.hpp", "utils.hpp", "config.hpp", "languages.hpp", "ai.hpp", "cache.hpp", "parser.hpp", "processor.hpp", "hub.hpp", "ast.hpp", "ast_utils.hpp", "glupe.l", "glupe.y")
-    foreach ($file in $SourceFiles) {
-        Invoke-WebRequest -Uri "$RepoBaseUrl/src/$file" -OutFile (Join-Path $SrcDir $file) -ErrorAction Stop
-    }
-    Invoke-WebRequest -Uri $JsonUrl -OutFile (Join-Path $SrcDir "json.hpp") -ErrorAction Stop
-} catch {
-    Write-Error "Error: Failed to download source files. $($_.Exception.Message)"
-    exit 1
+# download sources (best-effort)
+$files = @("glupec.cpp","common.hpp","utils.hpp","config.hpp","languages.hpp","ai.hpp","cache.hpp","parser.hpp","processor.hpp","hub.hpp","ast.hpp","ast_utils.hpp","glupe.l","glupe.y")
+foreach ($f in $files) {
+    $url = "$RepoRaw/src/$f"
+    try { Invoke-WebRequest -Uri $url -OutFile (Join-Path $SrcDir $f) -UseBasicParsing -ErrorAction Stop; Write-Host "Fetched $f" }
+    catch { Write-Warn "Could not fetch $f; continuing." }
 }
+try { Invoke-WebRequest -Uri $JsonUrl -OutFile (Join-Path $SrcDir "json.hpp") -UseBasicParsing -ErrorAction Stop; Write-Host "Fetched json.hpp" } catch { Write-Warn "Could not fetch json.hpp" }
 
-Write-Host "Generating parser with Bison..."
-try {
-    Invoke-Expression "bison -d -o `"$SrcDir\glupe.tab.c`" `"$SrcDir\glupe.y`""
-} catch { Write-Warning "Bison generation failed or Bison not found. Ensure w64devkit is in PATH." }
-
-Write-Host "Generating lexer with Flex..."
-try {
-    Invoke-Expression "flex -o `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.l`""
-} catch { Write-Warning "Flex generation failed or Flex not found. Ensure w64devkit is in PATH." }
-
-$VendorDir = Join-Path $glupeDir "vendor"
-if (-not (Test-Path $VendorDir)) { New-Item -ItemType Directory -Force -Path $VendorDir | Out-Null }
-Write-Host "Ensuring Tree-sitter libraries are available and built..."
-if (-not (Test-Path "$VendorDir\tree-sitter")) {
-    $tsZip = "$VendorDir\tree-sitter.zip"
-    Invoke-WebRequest -Uri "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.zip" -OutFile $tsZip
-    Expand-Archive -Path $tsZip -DestinationPath $VendorDir -Force
-    Rename-Item "$VendorDir\tree-sitter-0.22.6" -NewName "tree-sitter"
-    Remove-Item $tsZip
-}
-if (-not (Test-Path "$VendorDir\tree-sitter-cpp")) {
-    $tsCppZip = "$VendorDir\tree-sitter-cpp.zip"
-    Invoke-WebRequest -Uri "https://github.com/tree-sitter/tree-sitter-cpp/archive/refs/tags/v0.22.0.zip" -OutFile $tsCppZip
-    Expand-Archive -Path $tsCppZip -DestinationPath $VendorDir -Force
-    Rename-Item "$VendorDir\tree-sitter-cpp-0.22.0" -NewName "tree-sitter-cpp"
-    Remove-Item $tsCppZip
-}
-Invoke-Expression "gcc -O3 -I`"$VendorDir\tree-sitter\lib\include`" -I`"$VendorDir\tree-sitter\lib\src`" -c `"$VendorDir\tree-sitter\lib\src\lib.c`" -o `"$VendorDir\tree-sitter.o`""
-Invoke-Expression "gcc -O3 -I`"$VendorDir\tree-sitter-cpp\src`" -c `"$VendorDir\tree-sitter-cpp\src\parser.c`" -o `"$VendorDir\parser.o`""
-if (Test-Path "$VendorDir\tree-sitter-cpp\src\scanner.c") {
-    Invoke-Expression "gcc -O3 -I`"$VendorDir\tree-sitter-cpp\src`" -c `"$VendorDir\tree-sitter-cpp\src\scanner.c`" -o `"$VendorDir\scanner.o`""
-} elseif (Test-Path "$VendorDir\tree-sitter-cpp\src\scanner.cc") {
-    Invoke-Expression "g++ -O3 -I`"$VendorDir\tree-sitter-cpp\src`" -c `"$VendorDir\tree-sitter-cpp\src\scanner.cc`" -o `"$VendorDir\scanner.o`""
-}
-
-Write-Host "Compiling Glupe..."
-$BuildCmd = "g++ `"$SrcDir\glupec.cpp`" `"$SrcDir\lex.yy.c`" `"$SrcDir\glupe.tab.c`" `"$VendorDir\tree-sitter.o`" `"$VendorDir\parser.o`" `"$VendorDir\scanner.o`" -o `"$tempBin`" -std=c++17 -static -static-libgcc -static-libstdc++ -lstdc++fs -O3 -I `"$SrcDir`" -I `"$VendorDir\tree-sitter\lib\include`""
-try {
-    Invoke-Expression $BuildCmd
-} catch {
-    Write-Error "Error: Compilation failed. $($_.Exception.Message)"
-    exit 1
-}
-
-if (-not (Test-Path $tempBin)) {
-    Write-Error "Error: Compilation failed (Output file not found)."
-    exit 1
-}
-
-Write-Host "Replacing current glupe executable..."
-
-# Handle file locking: rename the old executable, then move the new one
-$oldGlupeBackup = "$currentGlupePath.old"
-try {
-    if (Test-Path $oldGlupeBackup) { Remove-Item $oldGlupeBackup -Force -ErrorAction SilentlyContinue }
-    Rename-Item -Path $currentGlupePath -NewName $oldGlupeBackup -Force -ErrorAction Stop
-} catch {
-    Write-Error "Error: Could not rename old glupe.exe. It might be in use. Please close all terminals and try again. $($_.Exception.Message)"
-    Remove-Item $tempBin -ErrorAction SilentlyContinue
-    exit 1
-}
-
-try {
-    Move-Item -Path $tempBin -Destination $currentGlupePath -Force -ErrorAction Stop
-    Write-Host "Successfully updated glupe to the latest version!" -ForegroundColor Green
-    Write-Host "The old executable was backed up to '$oldGlupeBackup'."
-    Write-Host "Please restart your terminal or shell to ensure the new version is loaded."
-    Remove-Item $oldGlupeBackup -ErrorAction SilentlyContinue # Clean up backup if successful
-} catch {
-    Write-Error "Error: Failed to move new glupe.exe into place. Attempting to restore old executable. $($_.Exception.Message)"
+# parser/lexer gen or fallback
+$genOk = $false
+if (Get-Command bison -ErrorAction SilentlyContinue -and Get-Command flex -ErrorAction SilentlyContinue) {
     try {
-        Move-Item -Path $oldGlupeBackup -Destination $currentGlupePath -Force -ErrorAction Stop
-        Write-Error "Old glupe.exe restored."
-    } catch {
-        Write-Error "CRITICAL ERROR: Failed to restore old glupe.exe. Your glupe installation might be corrupted. $($_.Exception.Message)"
-    }
-    Remove-Item $tempBin -ErrorAction SilentlyContinue
+        & bison -d -o (Join-Path $SrcDir "glupe.tab.c") (Join-Path $SrcDir "glupe.y")
+        & flex -o (Join-Path $SrcDir "lex.yy.c") (Join-Path $SrcDir "glupe.l")
+        $genOk = $true
+        Write-Host "Generated parser/lexer"
+    } catch { Write-Warn "bison/flex generation failed" }
+}
+if (-not $genOk) {
+    Write-Host "Attempting to download pre-generated parser/lexer..."
+    try { Invoke-WebRequest -Uri "$RepoRaw/src/glupe.tab.c" -OutFile (Join-Path $SrcDir "glupe.tab.c") -UseBasicParsing; Write-Host "Fetched glupe.tab.c" } catch { }
+    try { Invoke-WebRequest -Uri "$RepoRaw/src/lex.yy.c" -OutFile (Join-Path $SrcDir "lex.yy.c") -UseBasicParsing; Write-Host "Fetched lex.yy.c" } catch { }
+}
+
+# choose compiler (prefer g++/clang++)
+$compiler = (Get-Command g++ -ErrorAction SilentlyContinue)?.Source
+if (-not $compiler) { $compiler = (Get-Command clang++ -ErrorAction SilentlyContinue)?.Source }
+if (-not $compiler) {
+    Write-Error "No g++/clang++ compiler found. Install MSYS2/w64devkit or Visual Studio build tools and retry."
+    exit 1
+}
+Write-Host "Using compiler: $compiler"
+
+# compile to temp exe
+$tempExe = Join-Path $env:TEMP ("glupe_new_{0}.exe" -f ([System.Guid]::NewGuid().ToString()))
+$srcGlupec = Join-Path $SrcDir "glupec.cpp"
+$lex = Join-Path $SrcDir "lex.yy.c"
+$tab = Join-Path $SrcDir "glupe.tab.c"
+
+$tsObjs = @()
+$vendor = Join-Path $glupeDir "vendor"
+if (Test-Path (Join-Path $vendor "tree-sitter.o")) { $tsObjs += (Join-Path $vendor "tree-sitter.o") }
+if (Test-Path (Join-Path $vendor "parser.o")) { $tsObjs += (Join-Path $vendor "parser.o") }
+if (Test-Path (Join-Path $vendor "scanner.o")) { $tsObjs += (Join-Path $vendor "scanner.o") }
+
+$args = @("-std=c++17","-O3","-I",$SrcDir,$srcGlupec)
+if (Test-Path $lex) { $args += $lex }
+if (Test-Path $tab) { $args += $tab }
+$args += $tsObjs
+$args += @("-o",$tempExe)
+
+Write-Host "Compiling to $tempExe ..."
+$proc = Start-Process -FilePath $compiler -ArgumentList $args -NoNewWindow -Wait -PassThru -ErrorAction SilentlyContinue
+if ($proc.ExitCode -ne 0) {
+    Write-Error "Compilation failed (exit $($proc.ExitCode)). See compiler output in your shell."
+    if (Test-Path $tempExe) { Remove-Item $tempExe -ErrorAction SilentlyContinue }
     exit 1
 }
 
-Write-Host "--- Update Complete ---" -ForegroundColor Cyan
+if (-not (Test-Path $tempExe)) {
+    Write-Error "Compilation did not produce $tempExe"
+    exit 1
+}
+
+# backup and attempt replace
+$backup = "$currentGlupePath.$([DateTime]::UtcNow.ToString('yyyyMMddHHmmss')).bak"
+try {
+    Copy-Item -Path $currentGlupePath -Destination $backup -Force -ErrorAction Stop
+    Write-Host "Backup created: $backup"
+} catch { Write-Warn "Could not create backup; continuing." }
+
+# Try move; if file locked, instruct user
+try {
+    Move-Item -Path $tempExe -Destination $currentGlupePath -Force -ErrorAction Stop
+    Write-Host "Updated glupe executable in place. Old backup: $backup" -ForegroundColor Green
+} catch {
+    Write-Error "Failed to move new exe into place. The file might be in use. Close terminals using glupe and re-run updater, or manually replace $currentGlupePath."
+    # attempt restore cleanup
+    if (Test-Path $tempExe) { Remove-Item $tempExe -ErrorAction SilentlyContinue }
+    exit 1
+}
+
+Write-Host "Update complete. Restart terminals if necessary." -ForegroundColor Cyan
