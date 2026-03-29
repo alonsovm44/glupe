@@ -41,18 +41,6 @@ This code can be compiled into 40+ supported languages or native executables.
 "Glupe isolates AI logic into semantic containers, so your manual code stays safe." 
 ---
 
-Think of Glupe as "Docker for Logic."
-
-Just as Docker packages the Environment to make software independent of the machine, Glupe packages the Intent to make software independent of the language.
-
-They both solve "It works on my machine," but at different layers:
-
-- Docker freezes the Operating System. It ensures your code runs the same on your laptop, the cloud, or a server in 2015.
-- Glupe freezes the Algorithm. It ensures your code can be compiled to C++ today, Rust in 2030, or whatever language exists in 2050.
-Docker solves Space. Glupe solves Time.
-
-Best of all, they work together. You can store your .glp blueprints in a Docker container—creating software that is immortal in both environment and logic.
-
 ## Installation
 
 ### Quick Install (Recommended)
