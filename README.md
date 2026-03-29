@@ -1,12 +1,13 @@
-# Read the White Paper
-https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/WHITE_PAPER.md
-# Syntax highlight extension
-In the releases section
-https://github.com/alonsovm44/glupe-tutorial 
-
 ![Demo de Glupe](./demo.gif)
 
 # Glupe 
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/alonsovm44/glupe)](https://github.com/alonsovm44/glupe/releases)
+![C++17](https://img.shields.io/badge/C++-17-blue.svg?logo=c%2B%2B)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20|%20Linux%20|%20macOS-lightgrey)
+![AI-Powered](https://img.shields.io/badge/AI-Powered-purple)
+
 Glupe is a semantic metaprogramming language. Unlike traditional metaprogramming systems that operate within a single language (C++ templates, Lisp macros), Glupe operates at the level of human intent and can materialize that intent into any target programming language. This positions Glupe as a 'meta' language not just in the technical sense of generating code, but in the philosophical sense of being one level above all programming languages.
 
 Example meta-program:
@@ -291,7 +292,11 @@ Glupe transforms the compiler from a syntax checker into a partner in creation.
 https://github.com/alonsovm44/glupe-tutorial
 --- 
 
-License & Contributing
+# Read the White Paper
+https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/WHITE_PAPER.md
+# Syntax highlight extension
+In the releases section
+https://github.com/alonsovm44/glupe-tutorial 
 
 ## CONTRIBUTORS
 Thanks very much for all contributions to Glupe
