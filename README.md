@@ -1,5 +1,8 @@
 # Read the White Paper
 https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/WHITE_PAPER.md
+# Syntax highlight extension
+In the releases section
+https://github.com/alonsovm44/glupe-tutorial 
 
 # Glupe 
 Glupe is a semantic metaprogramming language. Unlike traditional metaprogramming systems that operate within a single language (C++ templates, Lisp macros), Glupe operates at the level of human intent and can materialize that intent into any target programming language. This positions Glupe as a 'meta' language not just in the technical sense of generating code, but in the philosophical sense of being one level above all programming languages.
@@ -282,6 +285,10 @@ Programming has traditionally required years of study to master syntax and memor
 
 Glupe transforms the compiler from a syntax checker into a partner in creation.
 ---
+## VS Code extension
+https://github.com/alonsovm44/glupe-tutorial
+--- 
+
 License & Contributing
 
 ## CONTRIBUTORS
