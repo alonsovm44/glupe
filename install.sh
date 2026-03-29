@@ -158,10 +158,23 @@ if [ ! -d "$INSTALL_DIR/vendor/tree-sitter" ]; then
   curl -fsSL "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.tar.gz" | tar -xz -C "$INSTALL_DIR/vendor" || true
   mv "$INSTALL_DIR/vendor/tree-sitter-0.22.6" "$INSTALL_DIR/vendor/tree-sitter" 2>/dev/null || true
 fi
-if [ ! -d "$INSTALL_DIR/vendor/tree-sitter-cpp" ]; then
-  curl -fsSL "https://github.com/tree-sitter/tree-sitter-cpp/archive/refs/tags/v0.22.0.tar.gz" | tar -xz -C "$INSTALL_DIR/vendor" || true
-  mv "$INSTALL_DIR/vendor/tree-sitter-cpp-0.22.0" "$INSTALL_DIR/vendor/tree-sitter-cpp" 2>/dev/null || true
-fi
+
+download_ts_lang() {
+  local lang=$1
+  local ver=$2
+  if [ ! -d "$INSTALL_DIR/vendor/tree-sitter-$lang" ]; then
+    echo "[INFO] Downloading tree-sitter-$lang ($ver)..."
+    curl -fsSL "https://github.com/tree-sitter/tree-sitter-$lang/archive/refs/tags/v$ver.tar.gz" | tar -xz -C "$INSTALL_DIR/vendor" || true
+    mv "$INSTALL_DIR/vendor/tree-sitter-$lang-$ver" "$INSTALL_DIR/vendor/tree-sitter-$lang" 2>/dev/null || true
+  fi
+}
+
+download_ts_lang cpp 0.22.0
+download_ts_lang python 0.21.0
+download_ts_lang javascript 0.21.2
+download_ts_lang java 0.21.0
+download_ts_lang go 0.21.2
+download_ts_lang rust 0.21.2
 
 C_COMPILER="gcc"
 if [ "$COMPILER" = "clang++" ]; then C_COMPILER="clang"; fi
@@ -170,19 +183,33 @@ if [ "$COMPILER" = "clang++" ]; then C_COMPILER="clang"; fi
 if [ -f "$INSTALL_DIR/vendor/tree-sitter/lib/src/lib.c" ]; then
   $C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter/lib/include" -I"$INSTALL_DIR/vendor/tree-sitter/lib/src" -c "$INSTALL_DIR/vendor/tree-sitter/lib/src/lib.c" -o "$INSTALL_DIR/vendor/tree-sitter.o" || true
 fi
-if [ -f "$INSTALL_DIR/vendor/tree-sitter-cpp/src/parser.c" ]; then
-  $C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter-cpp/src" -c "$INSTALL_DIR/vendor/tree-sitter-cpp/src/parser.c" -o "$INSTALL_DIR/vendor/parser.o" || true
-fi
-if [ -f "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.c" ]; then
-  $C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter-cpp/src" -c "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.c" -o "$INSTALL_DIR/vendor/scanner.o" || true
-fi
-if [ -f "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.cc" ]; then
-  $COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter-cpp/src" -c "$INSTALL_DIR/vendor/tree-sitter-cpp/src/scanner.cc" -o "$INSTALL_DIR/vendor/scanner.o" || true
-fi
+
+for lang in cpp python javascript java go rust; do
+  src_dir="$INSTALL_DIR/vendor/tree-sitter-$lang/src"
+  if [ -f "$src_dir/parser.c" ]; then
+    $C_COMPILER -O3 -I"$src_dir" -c "$src_dir/parser.c" -o "$INSTALL_DIR/vendor/${lang}_parser.o" || true
+  fi
+  if [ -f "$src_dir/scanner.c" ]; then
+    $C_COMPILER -O3 -I"$src_dir" -c "$src_dir/scanner.c" -o "$INSTALL_DIR/vendor/${lang}_scanner.o" || true
+  elif [ -f "$src_dir/scanner.cc" ]; then
+    $COMPILER -O3 -I"$src_dir" -c "$src_dir/scanner.cc" -o "$INSTALL_DIR/vendor/${lang}_scanner.o" || true
+  fi
+done
 
 # 5) Compile
 echo "[INFO] Compiling Glupe..."
-COMPILE_CMD=("$COMPILER" "$INSTALL_DIR/src/glupec.cpp" "$INSTALL_DIR/src/lex.yy.c" "$INSTALL_DIR/src/glupe.tab.c" "$INSTALL_DIR/vendor/tree-sitter.o" "$INSTALL_DIR/vendor/parser.o" "$INSTALL_DIR/vendor/scanner.o" -o "$EXE_PATH" -std=c++17 -O3 -pthread -I"$INSTALL_DIR/src" -I"$INSTALL_DIR/vendor/tree-sitter/lib/include")
+COMPILE_CMD=("$COMPILER" "$INSTALL_DIR/src/glupec.cpp" "$INSTALL_DIR/src/lex.yy.c" "$INSTALL_DIR/src/glupe.tab.c" "$INSTALL_DIR/vendor/tree-sitter.o")
+
+for lang in cpp python javascript java go rust; do
+  if [ -f "$INSTALL_DIR/vendor/${lang}_parser.o" ]; then
+    COMPILE_CMD+=("$INSTALL_DIR/vendor/${lang}_parser.o")
+  fi
+  if [ -f "$INSTALL_DIR/vendor/${lang}_scanner.o" ]; then
+    COMPILE_CMD+=("$INSTALL_DIR/vendor/${lang}_scanner.o")
+  fi
+done
+
+COMPILE_CMD+=(-o "$EXE_PATH" -std=c++17 -O3 -pthread -I"$INSTALL_DIR/src" -I"$INSTALL_DIR/vendor/tree-sitter/lib/include")
 
 if [[ "$(uname -s)" == "Linux" ]]; then
   COMPILE_CMD+=("-lstdc++fs")

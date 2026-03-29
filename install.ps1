@@ -157,20 +157,28 @@ if (-not $genOk) {
 # 4) Download tree-sitter sources (best-effort)
 try {
     $tsUrl = "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.zip"
-    $tsCppUrl = "https://github.com/tree-sitter/tree-sitter-cpp/archive/refs/tags/v0.22.0.zip"
     $tsZip = Join-Path $VendorDir "tree-sitter.zip"
-    $tsCppZip = Join-Path $VendorDir "tree-sitter-cpp.zip"
     if (-not (Test-Path (Join-Path $VendorDir "tree-sitter"))) {
+        Write-Info "Downloading tree-sitter (0.22.6)..."
         Invoke-WebRequest -Uri $tsUrl -OutFile $tsZip -UseBasicParsing
         Expand-Archive -Path $tsZip -DestinationPath $VendorDir -Force
         Remove-Item $tsZip -Force
         Get-ChildItem $VendorDir -Directory | Where-Object { $_.Name -like "tree-sitter-*" } | ForEach-Object { Rename-Item $_.FullName -NewName "tree-sitter" -Force }
     }
-    if (-not (Test-Path (Join-Path $VendorDir "tree-sitter-cpp"))) {
-        Invoke-WebRequest -Uri $tsCppUrl -OutFile $tsCppZip -UseBasicParsing
-        Expand-Archive -Path $tsCppZip -DestinationPath $VendorDir -Force
-        Remove-Item $tsCppZip -Force
-        Get-ChildItem $VendorDir -Directory | Where-Object { $_.Name -like "tree-sitter-cpp-*" } | ForEach-Object { Rename-Item $_.FullName -NewName "tree-sitter-cpp" -Force }
+    
+    $tsLangs = [ordered]@{ "cpp"="0.22.0"; "python"="0.21.0"; "javascript"="0.21.2"; "java"="0.21.0"; "go"="0.21.2"; "rust"="0.21.2" }
+    foreach ($lang in $tsLangs.Keys) {
+        $ver = $tsLangs[$lang]
+        $langDir = "tree-sitter-$lang"
+        if (-not (Test-Path (Join-Path $VendorDir $langDir))) {
+            Write-Info "Downloading $langDir ($ver)..."
+            $langUrl = "https://github.com/tree-sitter/$langDir/archive/refs/tags/v$ver.zip"
+            $langZip = Join-Path $VendorDir "$langDir.zip"
+            Invoke-WebRequest -Uri $langUrl -OutFile $langZip -UseBasicParsing
+            Expand-Archive -Path $langZip -DestinationPath $VendorDir -Force
+            Remove-Item $langZip -Force
+            Get-ChildItem $VendorDir -Directory | Where-Object { $_.Name -like "$langDir-*" } | ForEach-Object { Rename-Item $_.FullName -NewName $langDir -Force }
+        }
     }
     Write-Ok "Fetched tree-sitter sources (best-effort)."
 } catch {
@@ -188,21 +196,30 @@ $srcFilesToPass = @(
 # Collect object files for tree-sitter if present
 $tsObjs = @()
 $tsTree = Join-Path $VendorDir "tree-sitter"
-$tsCpp = Join-Path $VendorDir "tree-sitter-cpp"
 if (Test-Path (Join-Path $tsTree "lib/src/lib.c")) {
     $tsObj = Join-Path $VendorDir "tree-sitter.o"
     & $env:COMSPEC /c "gcc -O3 -I`"$tsTree\lib\include`" -I`"$tsTree\lib\src`" -c `"$tsTree\lib\src\lib.c`" -o `"$tsObj`"" 2>&1 | Out-Null
     if (Test-Path $tsObj) { $tsObjs += "`"$tsObj`"" }
 }
-if (Test-Path (Join-Path $tsCpp "src/parser.c")) {
-    $pObj = Join-Path $VendorDir "parser.o"
-    & $env:COMSPEC /c "gcc -O3 -I`"$tsCpp\src`" -c `"$tsCpp\src\parser.c`" -o `"$pObj`"" 2>&1 | Out-Null
-    if (Test-Path $pObj) { $tsObjs += "`"$pObj`"" }
-}
-if (Test-Path (Join-Path $tsCpp "src/scanner.c")) {
-    $sObj = Join-Path $VendorDir "scanner.o"
-    & $env:COMSPEC /c "gcc -O3 -I`"$tsCpp\src`" -c `"$tsCpp\src\scanner.c`" -o `"$sObj`"" 2>&1 | Out-Null
-    if (Test-Path $sObj) { $tsObjs += "`"$sObj`"" }
+$langs = @("cpp", "python", "javascript", "java", "go", "rust")
+foreach ($lang in $langs) {
+    $langDir = Join-Path $VendorDir "tree-sitter-$lang"
+    $srcDirTS = Join-Path $langDir "src"
+    if (Test-Path (Join-Path $srcDirTS "parser.c")) {
+        $pObj = Join-Path $VendorDir "${lang}_parser.o"
+        & $env:COMSPEC /c "gcc -O3 -I`"$srcDirTS`" -c `"$srcDirTS\parser.c`" -o `"$pObj`"" 2>&1 | Out-Null
+        if (Test-Path $pObj) { $tsObjs += "`"$pObj`"" }
+    }
+    if (Test-Path (Join-Path $srcDirTS "scanner.c")) {
+        $sObj = Join-Path $VendorDir "${lang}_scanner.o"
+        & $env:COMSPEC /c "gcc -O3 -I`"$srcDirTS`" -c `"$srcDirTS\scanner.c`" -o `"$sObj`"" 2>&1 | Out-Null
+        if (Test-Path $sObj) { $tsObjs += "`"$sObj`"" }
+    } elseif (Test-Path (Join-Path $srcDirTS "scanner.cc")) {
+        $sObj = Join-Path $VendorDir "${lang}_scanner.o"
+        $cxx = if ($Compiler) { $Compiler } else { "g++" }
+        & $env:COMSPEC /c "$cxx -O3 -I`"$srcDirTS`" -c `"$srcDirTS\scanner.cc`" -o `"$sObj`"" 2>&1 | Out-Null
+        if (Test-Path $sObj) { $tsObjs += "`"$sObj`"" }
+    }
 }
 
 # Build command

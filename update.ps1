@@ -66,10 +66,14 @@ $tab = Join-Path $SrcDir "glupe.tab.c"
 $tsObjs = @()
 $vendor = Join-Path $glupeDir "vendor"
 if (Test-Path (Join-Path $vendor "tree-sitter.o")) { $tsObjs += (Join-Path $vendor "tree-sitter.o") }
-if (Test-Path (Join-Path $vendor "parser.o")) { $tsObjs += (Join-Path $vendor "parser.o") }
-if (Test-Path (Join-Path $vendor "scanner.o")) { $tsObjs += (Join-Path $vendor "scanner.o") }
+$langs = @("cpp", "python", "javascript", "java", "go", "rust")
+foreach ($lang in $langs) {
+    if (Test-Path (Join-Path $vendor "${lang}_parser.o")) { $tsObjs += (Join-Path $vendor "${lang}_parser.o") }
+    if (Test-Path (Join-Path $vendor "${lang}_scanner.o")) { $tsObjs += (Join-Path $vendor "${lang}_scanner.o") }
+}
 
-$args = @("-std=c++17","-O3","-I",$SrcDir,$srcGlupec)
+$tsInclude = Join-Path $vendor "tree-sitter\lib\include"
+$args = @("-std=c++17","-O3","-I",$SrcDir,"-I",$tsInclude,$srcGlupec)
 if (Test-Path $lex) { $args += $lex }
 if (Test-Path $tab) { $args += $tab }
 $args += $tsObjs

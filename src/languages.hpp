@@ -1,5 +1,32 @@
 #pragma once
 #include "common.hpp"
+#include <tree_sitter/api.h>
+#include <functional>
+#include <stdexcept>
+
+// Forward-declare the C-style functions from each compiled grammar.
+extern "C" {
+    TSLanguage *tree_sitter_cpp();
+    TSLanguage *tree_sitter_python();
+    TSLanguage *tree_sitter_javascript();
+    TSLanguage *tree_sitter_java();
+    TSLanguage *tree_sitter_go();
+    TSLanguage *tree_sitter_rust();
+}
+
+// This function retrieves the correct TSLanguage pointer for a given language name.
+inline TSLanguage* get_ts_language(const string& language_name) {
+    static const map<string, std::function<TSLanguage*()>> language_map = {
+        {"cpp",        tree_sitter_cpp},
+        {"python",     tree_sitter_python},
+        {"javascript", tree_sitter_javascript},
+        {"java",       tree_sitter_java},
+        {"go",         tree_sitter_go},
+        {"rust",       tree_sitter_rust}
+    };
+    auto it = language_map.find(language_name);
+    return (it != language_map.end()) ? it->second() : nullptr;
+}
 
 enum class GenMode { CODE, MODEL_3D, IMAGE };
 inline GenMode CURRENT_MODE = GenMode::CODE;
