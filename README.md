@@ -1,5 +1,6 @@
 ![Demo de Glupe](./demo.gif)
-
+Clone this repo to begin:
+https://github.com/alonsovm44/glupe-tutorial
 # Glupe 
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

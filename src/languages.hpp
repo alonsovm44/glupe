@@ -6,17 +6,17 @@
 
 // Forward-declare the C-style functions from each compiled grammar.
 extern "C" {
-    TSLanguage *tree_sitter_cpp();
-    TSLanguage *tree_sitter_python();
-    TSLanguage *tree_sitter_javascript();
-    TSLanguage *tree_sitter_java();
-    TSLanguage *tree_sitter_go();
-    TSLanguage *tree_sitter_rust();
+    const TSLanguage *tree_sitter_cpp();
+    const TSLanguage *tree_sitter_python();
+    const TSLanguage *tree_sitter_javascript();
+    const TSLanguage *tree_sitter_java();
+    const TSLanguage *tree_sitter_go();
+    const TSLanguage *tree_sitter_rust();
 }
 
 // This function retrieves the correct TSLanguage pointer for a given language name.
-inline TSLanguage* get_ts_language(const string& language_name) {
-    static const map<string, std::function<TSLanguage*()>> language_map = {
+inline const TSLanguage* get_ts_language(const string& language_name) {
+    static const map<string, std::function<const TSLanguage*()>> language_map = {
         {"cpp",        tree_sitter_cpp},
         {"python",     tree_sitter_python},
         {"javascript", tree_sitter_javascript},
