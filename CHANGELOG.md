@@ -1,8 +1,17 @@
+## v6.1.3 2026-03-29
+
+Added:
+
+- compareBlueprints now returns a json file so aduit consumes it
+- added json report for audit and --output (-o) flag
+Removed:
+
+Improved/Fixed:
+
 ## v6.1.1 2026-03-22
 
 Added:
 
-- added json report for audit and --output (-o) flag
 - added directory sucking
 Removed:
 

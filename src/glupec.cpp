@@ -621,16 +621,20 @@ int main(int argc, char* argv[]) {
         fa.close();
 
         cout << "[AUDIT] Performing Semantic Subtraction (" << mode << ")..." << endl;
-        string report = compareBlueprints(expectedCode, actualCode, ignoreScaffold);
+        json auditResult = compareBlueprints(expectedCode, actualCode, ignoreScaffold);
+        string report = auditResult.value("report_text", "");
 
         cout << "\n" << report << endl;
 
-        bool diverges = (report.find("[!]") != string::npos || report.find("[?]") != string::npos || report.find("[~]") != string::npos);
+        bool diverges = (!auditResult["missing"].empty() || !auditResult["hallucinated"].empty() || !auditResult["mismatches"].empty());
 
         if (!outputFile.empty()) {
             json jReport;
             jReport["audit_passed"] = !diverges;
             jReport["divergence_detected"] = diverges;
+            jReport["missing"] = auditResult["missing"];
+            jReport["hallucinated"] = auditResult["hallucinated"];
+            jReport["mismatches"] = auditResult["mismatches"];
             jReport["report_text"] = report;
             
             ofstream out(outputFile);

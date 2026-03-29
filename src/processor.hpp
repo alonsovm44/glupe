@@ -261,7 +261,7 @@ inline string performDeepSubtraction(const string& expected_intent, const string
 }
 
 // [NEW] Semantic Subtraction: Compare Expected Specification vs Actual Implementation
-inline string compareBlueprints(const string& expectedCode, const string& actualCode, bool ignoreScaffold = false) {
+inline json compareBlueprints(const string& expectedCode, const string& actualCode, bool ignoreScaffold = false) {
     auto extractContainers = [](const string& code) -> map<string, string> {
         map<string, string> containers;
         YY_BUFFER_STATE buffer = yy_scan_string(code.c_str());
@@ -320,6 +320,8 @@ inline string compareBlueprints(const string& expectedCode, const string& actual
     stringstream report;
     report << "=== SEMANTIC SUBTRACTION REPORT ===\n\n";
 
+    json result;
+
     // 1. Structural Subtraction (Missing Containers)
     vector<string> missing;
     for (const auto& [id, intent] : expected) {
@@ -332,6 +334,7 @@ inline string compareBlueprints(const string& expectedCode, const string& actual
         for (const auto& id : missing) report << "  - " << id << "\n";
         report << "\n";
     }
+    result["missing"] = missing;
 
     // 2. Structural Subtraction (Hallucinated Containers)
     set<string> mappedActual;
@@ -375,8 +378,10 @@ inline string compareBlueprints(const string& expectedCode, const string& actual
         for (const auto& id : undocumented) report << "  - " << id << "\n";
         report << "\n";
     }
+    result["hallucinated"] = undocumented;
 
     // 3. Deep Subtraction (Intent Diffing)
+    json mismatches = json::array();
     for (const auto& [id, expected_intent] : expected) {
         if (expectedToActual.find(id) != expectedToActual.end() && !expectedToActual[id].empty() && actual.find(expectedToActual[id]) != actual.end()) {
             string actual_id = expectedToActual[id];
@@ -384,10 +389,14 @@ inline string compareBlueprints(const string& expectedCode, const string& actual
             string deepDiff = performDeepSubtraction(expected_intent, actual[actual_id], ignoreScaffold);
             if (deepDiff != "NULL" && !deepDiff.empty() && deepDiff.find("NULL") == string::npos) {
                 report << "[~] LOGIC MISMATCH IN CONTAINER: " << id << " (Code: " << actual_id << ")\n" << deepDiff << "\n\n";
+                mismatches.push_back({{"expected_container", id}, {"actual_container", actual_id}, {"diff", deepDiff}});
             }
         }
     }
-    return report.str();
+    result["mismatches"] = mismatches;
+    result["report_text"] = report.str();
+    
+    return result;
 }
 
 // [UPDATED] Resolve Prompt Arithmetic (Addition & Subtraction)
