@@ -23,7 +23,7 @@ Mix natural language intent directly with concrete code. Glupe will compile the 
 
 ```glupe
 // my_program.glp
-$$ABSTRACT rules { every printed message must end with "!" }$$
+$$ABSTRACT rules { every printed message must begin with "?" and end with "!" }$$
 
 $$ main -> rules {
  let v = vector[1,2,3]
