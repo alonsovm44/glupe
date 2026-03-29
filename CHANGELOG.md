@@ -2,6 +2,7 @@
 
 Added:
 
+- added json report for audit and --output (-o) flag
 - added directory sucking
 Removed:
 

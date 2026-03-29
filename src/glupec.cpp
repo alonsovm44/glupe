@@ -90,7 +90,7 @@ void showHelp() {
     cout << "  fix <file> \"instr\"      : AI-powered code repair.\n";
     cout << "  explain <file> [lang]   : Generate documentation.\n";
     cout << "  diff <f1> <f2> [lang]   : Semantic diff report.\n";
-    cout << "  audit <spec> <impl> [--ignore-scaffold] : Verify implementation against specification.\n";
+    cout << "  audit <spec> <impl> [--ignore-scaffold] [--output <file.json>] : Verify implementation against specification.\n";
     cout << "  sos [lang] \"query\"      : Ask AI for help.\n";
     cout << "  update                  : Check for and apply updates to glupe.\n";
     cout << "  hub                     : Enter interactive GlupeHub mode.\n";
@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
         cout << "  fix <file> \"desc\"  : AI-powered code repair\n";
         cout << "  explain <file> [lg] : Generate commented documentation\n";
         cout << "  diff <f1> <f2> [lg] : Generate semantic diff report\n";
-        cout << "  audit <spec> <impl> [--ignore-scaffold] : Verify implementation against specification\n";
+        cout << "  audit <spec> <impl> [--ignore-scaffold] [--output <file.json>] : Verify implementation against specification\n";
         cout << "  sos [lang] \"error\" : Ask AI for help on error/problem (no file needed)\n";
         cout << "  update             : Check for and apply updates to glupe.\n";
         cout << "  info <file.glp>    : Show metadata for GlupeHub\n";
@@ -583,19 +583,24 @@ int main(int argc, char* argv[]) {
     // AUDIT COMMAND
     if (cmd == "audit") {
         if (argc < 4) {
-            cout << "Usage: glupe audit <expected_spec.glp> <actual_impl.glp> [-cloud/-local] [--ignore-scaffold]" << endl;
+            cout << "Usage: glupe audit <expected_spec.glp> <actual_impl.glp> [-cloud/-local] [--ignore-scaffold] [--output <report.json>]" << endl;
             return 1;
         }
         string expectedFile = argv[2];
         string actualFile = argv[3];
         string mode = "local";
         bool ignoreScaffold = false;
+        string outputFile = "";
 
         for(int i=4; i<argc; i++) {
             string arg = argv[i];
             if (arg == "-cloud") mode = "cloud";
             else if (arg == "-local") mode = "local";
             else if (arg == "--ignore-scaffold") ignoreScaffold = true;
+            else if ((arg == "--output" || arg == "-o") && i + 1 < argc) {
+                outputFile = argv[i+1];
+                i++;
+            }
         }
 
         if (!loadConfig(mode)) return 1;
@@ -620,7 +625,25 @@ int main(int argc, char* argv[]) {
 
         cout << "\n" << report << endl;
 
-        if (report.find("[!]") != string::npos || report.find("[?]") != string::npos || report.find("[~]") != string::npos) {
+        bool diverges = (report.find("[!]") != string::npos || report.find("[?]") != string::npos || report.find("[~]") != string::npos);
+
+        if (!outputFile.empty()) {
+            json jReport;
+            jReport["audit_passed"] = !diverges;
+            jReport["divergence_detected"] = diverges;
+            jReport["report_text"] = report;
+            
+            ofstream out(outputFile);
+            if (out.is_open()) {
+                out << jReport.dump(4);
+                out.close();
+                cout << "[INFO] JSON report saved to: " << outputFile << endl;
+            } else {
+                cout << "[ERROR] Could not write to output file: " << outputFile << endl;
+            }
+        }
+
+        if (diverges) {
             cout << "[FAIL] Audit rejected: Implementation diverges from specification." << endl;
             return 1; // Fails the CI/CD pipeline
         } else {
