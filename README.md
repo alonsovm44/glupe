@@ -289,12 +289,10 @@ Programming has traditionally required years of study to master syntax and memor
 
 Glupe transforms the compiler from a syntax checker into a partner in creation.
 ---
-## VS Code extension
-https://github.com/alonsovm44/glupe-tutorial
---- 
 
 # Read the White Paper
-https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/WHITE_PAPER.md
+https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/paper.md
+
 # Syntax highlight extension
 In the releases section
 https://github.com/alonsovm44/glupe-tutorial 

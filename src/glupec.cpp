@@ -1050,6 +1050,7 @@ int main(int argc, char* argv[]) {
     bool interactiveMode = false;
     bool ideMode = false;
     map<string, string> interactiveAnswers;
+    bool hasStructuralFeedback = false;
 
     for(int i=1; i<argc; i++) {
         string arg = argv[i];
@@ -1093,6 +1094,18 @@ int main(int argc, char* argv[]) {
                             interactiveAnswers[containerId] = feedbackText;
                             updateTargets.push_back(containerId);
                         }
+                    }
+                    if (jReport.contains("missing") && !jReport["missing"].empty()) {
+                        hasStructuralFeedback = true;
+                        string missingList;
+                        for (const auto& m : jReport["missing"]) missingList += "- " + m.get<string>() + "\n";
+                        customInstructions += "\n[CRITICAL AUDIT FAILURE] You previously OMITTED the following required semantic containers. You MUST implement them in this pass:\n" + missingList;
+                    }
+                    if (jReport.contains("hallucinated") && !jReport["hallucinated"].empty()) {
+                        hasStructuralFeedback = true;
+                        string hallList;
+                        for (const auto& h : jReport["hallucinated"]) hallList += "- " + h.get<string>() + "\n";
+                        customInstructions += "\n[CRITICAL AUDIT FAILURE] You previously hallucinated the following containers which were NOT in the specification. DO NOT generate them:\n" + hallList;
                     }
                     updateMode = true; 
                 } catch(...) {
@@ -1186,6 +1199,12 @@ int main(int argc, char* argv[]) {
         } else {
             inputFiles.push_back(arg); // Let validation fail later
         }
+    }
+
+    if (hasStructuralFeedback && fillMode) {
+        cout << "[WARN] Audit reports missing/hallucinated containers. '-fill' mode cannot fix structural issues. Automatically upgrading to global update (-u)..." << endl;
+        fillMode = false;
+        updateMode = true;
     }
 
     if (inputFiles.empty() && !useStdin) { cerr << "No input files." << endl; return 1; }
