@@ -1,3 +1,12 @@
+## v6.1.4 2026-03-29
+
+Added:
+
+- added tree sitter suport for c ts js py 
+Removed:
+
+Improved/Fixed:
+
 ## v6.1.3 2026-03-29
 
 Added:

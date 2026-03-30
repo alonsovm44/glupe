@@ -63,7 +63,7 @@ chmod 700 "$TMP_BIN"
 COMPILE_ARGS=( "$SRC_DIR/glupec.cpp" "$SRC_DIR/lex.yy.c" "$SRC_DIR/glupe.tab.c" -o "$TMP_BIN" -std=c++17 -O3 -pthread -I "$SRC_DIR" )
 # Add tree-sitter objects if present
 if [ -f "$GLUPE_DIR/vendor/tree-sitter.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/tree-sitter.o" ); fi
-for lang in cpp python javascript java go rust; do
+for lang in cpp python javascript java go rust ruby c typescript; do
   if [ -f "$GLUPE_DIR/vendor/${lang}_parser.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/${lang}_parser.o" ); fi
   if [ -f "$GLUPE_DIR/vendor/${lang}_scanner.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/${lang}_scanner.o" ); fi
 done

@@ -175,6 +175,9 @@ download_ts_lang javascript 0.21.2
 download_ts_lang java 0.21.0
 download_ts_lang go 0.21.2
 download_ts_lang rust 0.21.2
+download_ts_lang ruby 0.21.0
+download_ts_lang c 0.21.4
+download_ts_lang typescript 0.21.2
 
 C_COMPILER="gcc"
 if [ "$COMPILER" = "clang++" ]; then C_COMPILER="clang"; fi
@@ -184,8 +187,11 @@ if [ -f "$INSTALL_DIR/vendor/tree-sitter/lib/src/lib.c" ]; then
   $C_COMPILER -O3 -I"$INSTALL_DIR/vendor/tree-sitter/lib/include" -I"$INSTALL_DIR/vendor/tree-sitter/lib/src" -c "$INSTALL_DIR/vendor/tree-sitter/lib/src/lib.c" -o "$INSTALL_DIR/vendor/tree-sitter.o" || true
 fi
 
-for lang in cpp python javascript java go rust; do
+for lang in cpp python javascript java go rust ruby c typescript; do
   src_dir="$INSTALL_DIR/vendor/tree-sitter-$lang/src"
+  if [ "$lang" = "typescript" ]; then
+    src_dir="$INSTALL_DIR/vendor/tree-sitter-$lang/typescript/src"
+  fi
   if [ -f "$src_dir/parser.c" ]; then
     $C_COMPILER -O3 -I"$src_dir" -c "$src_dir/parser.c" -o "$INSTALL_DIR/vendor/${lang}_parser.o" || true
   fi
@@ -200,7 +206,7 @@ done
 echo "[INFO] Compiling Glupe..."
 COMPILE_CMD=("$COMPILER" "$INSTALL_DIR/src/glupec.cpp" "$INSTALL_DIR/src/lex.yy.c" "$INSTALL_DIR/src/glupe.tab.c" "$INSTALL_DIR/vendor/tree-sitter.o")
 
-for lang in cpp python javascript java go rust; do
+for lang in cpp python javascript java go rust ruby c typescript; do
   if [ -f "$INSTALL_DIR/vendor/${lang}_parser.o" ]; then
     COMPILE_CMD+=("$INSTALL_DIR/vendor/${lang}_parser.o")
   fi
