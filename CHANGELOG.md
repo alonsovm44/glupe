@@ -1,3 +1,11 @@
+## v6.2.0 2026-03-29
+
+Added:
+
+Removed:
+
+Improved/Fixed:
+
 ## v6.1.4 2026-03-29
 
 Added:

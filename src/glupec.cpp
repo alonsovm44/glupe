@@ -12,6 +12,69 @@
 #include "ast_utils.hpp"
 #include "hub.hpp"
 
+//! @brief Wraps a command to be executed inside a Docker container.
+//!
+//! This function implements the hybrid sandbox model. It checks for a `.glupe-deps` file
+//! in the current directory. If found, it builds a custom Docker image with the specified
+//! dependencies. Otherwise, it uses a pre-built generic builder image.
+//!
+//! @param cmd The command string to execute inside the sandbox.
+//! @param isProjectBuild A boolean indicating if this is a project-level build (like `make`),
+//!        which helps in selecting the right base image logic.
+//! @return A string containing the full `docker run` command.
+string wrapInSandbox(string cmd, bool isProjectBuild) {
+    string imageName = "alonsovm44/glupe-builder:latest";
+    string projectHash = "";
+
+    if (fs::exists(".glupe-deps")) {
+        cout << "[SANDBOX] '.glupe-deps' found. Preparing custom environment..." << endl;
+        
+        try {
+            projectHash = to_string(hash<string>{}(fs::canonical(fs::current_path()).string()));
+        } catch(...) {
+            projectHash = to_string(hash<string>{}(fs::current_path().string()));
+        }
+        string customImageName = "glupe-project:" + projectHash;
+
+        if (execCmd("docker image inspect " + customImageName).exitCode != 0) {
+            cout << "   -> Building custom Docker image '" << customImageName << "'..." << endl;
+            
+            ofstream df("Dockerfile.glupe.tmp");
+            df << "FROM " << imageName << "\n";
+            df << "COPY .glupe-deps /tmp/.glupe-deps\n";
+            df << "RUN apt-get update && apt-get install -y $(cat /tmp/.glupe-deps | grep -v '^#') && rm -rf /var/lib/apt/lists/*\n";
+            df.close();
+
+            CmdResult buildRes = execCmd("docker build -t " + customImageName + " -f Dockerfile.glupe.tmp .");
+            fs::remove("Dockerfile.glupe.tmp");
+
+            if (buildRes.exitCode != 0) {
+                cout << "[ERROR] Failed to build custom sandbox environment. Aborting." << endl;
+                cout << "Docker output:\n" << buildRes.output << endl;
+                exit(1);
+            }
+            cout << "   -> Custom image built successfully." << endl;
+        } else {
+            cout << "   -> Using cached custom image '" << customImageName << "'." << endl;
+        }
+        imageName = customImageName;
+    }
+
+    // Escape double quotes in the command to prevent issues with sh -c
+    size_t pos = 0;
+    while ((pos = cmd.find("\"", pos)) != string::npos) {
+        cmd.replace(pos, 1, "\\\"");
+        pos += 2;
+    }
+
+    #ifdef _WIN32
+        return "docker run --rm -v \"%cd%:/app\" -w /app " + imageName + " sh -c \"" + cmd + "\"";
+    #else
+        // Use user mapping to prevent root-owned files on Linux/macOS
+        return "docker run --rm -u $(id -u):$(id -g) -v \"$(pwd):/app\" -w /app " + imageName + " sh -c \"" + cmd + "\"";
+    #endif
+}
+
 void runAutoBuild(bool runOutput, string outputName) {
     bool buildSuccess = false;
     if (fs::exists("Makefile")) {
@@ -57,6 +120,65 @@ void runAutoBuild(bool runOutput, string outputName) {
     }
 }
 
+void runAutoBuild(bool runOutput, string outputName, bool sandboxMode) {
+    bool buildSuccess = false;
+    string buildCmd = "";
+
+    if (fs::exists("Makefile")) {
+        cout << "[MAKE] Makefile detected. Executing 'make'..." << endl;
+        buildCmd = "make";
+    } else if (fs::exists("CMakeLists.txt")) {
+        cout << "[MAKE] CMakeLists.txt detected. Configuring and building..." << endl;
+        if (!fs::exists("build")) fs::create_directory("build");
+        buildCmd = "cd build && cmake .. && cmake --build .";
+    } else if (fs::exists("build.sh")) {
+        cout << "[MAKE] build.sh detected. Executing..." << endl;
+        #ifndef _WIN32
+        buildCmd = "chmod +x build.sh && ./build.sh";
+        #else
+        buildCmd = "bash build.sh";
+        #endif
+    } else if (fs::exists("build.bat")) {
+        cout << "[MAKE] build.bat detected. Executing..." << endl;
+        buildCmd = "build.bat";
+    }
+
+    if (!buildCmd.empty()) {
+        if (sandboxMode) {
+            cout << "[SANDBOX] Running build command in sandbox..." << endl;
+            buildCmd = wrapInSandbox(buildCmd, true);
+        }
+        if (system(buildCmd.c_str()) == 0) buildSuccess = true;
+    } else {
+        cout << "[MAKE] No build script found. Skipping build step." << endl;
+        // If no build script, but we want to run, we can assume success to try running the output
+        if (runOutput) buildSuccess = true;
+    }
+
+    if (runOutput) {
+        if (buildSuccess && fs::exists(outputName)) {
+            cout << "\n[RUN] Executing " << outputName << "..." << endl;
+            string cmd = outputName;
+            #ifndef _WIN32
+            if (cmd.find('/') == string::npos) cmd = "./" + cmd;
+            std::error_code ec;
+            fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
+            #endif
+            string sysCmd = "\"" + cmd + "\"";
+            if (sandboxMode) {
+                cout << "[SANDBOX] Running executable in sandbox..." << endl;
+                sysCmd = wrapInSandbox(sysCmd, true);
+            }
+            system(sysCmd.c_str());
+        } else if (buildSuccess) {
+            cout << "[WARN] Output binary '" << outputName << "' not found for execution." << endl;
+            cout << "       (Hint: Use -o <filename> to specify the expected binary name)" << endl;
+        } else {
+            cout << "[WARN] Build failed or missing. Skipping execution." << endl;
+        }
+    }
+}
+
 void showHelp() {
     cout << "GLUPE v" << CURRENT_VERSION << " - The Semantic Compiler\n";
     cout << "Usage: glupe [files...] [options] [\"*instructions\"]\n\n";
@@ -71,6 +193,7 @@ void showHelp() {
     cout << "  -scaffold        : (with -refine) Generate project structure from requirements.\n";
     cout << "  -t, --transpile  : Transpile only (do not compile binary).\n";
     cout << "  -run             : Run the output binary after compilation.\n";
+    cout << "  --sandbox        : [EXPERIMENTAL] Run build and execution in a Docker sandbox.\n";
     cout << "  -crono           : Measure execution time.\n";
     cout << "  -fill            : Fill containers in-place (preserves manual code).\n";
     cout << "  --feedback <file>: Use audit JSON report to auto-heal missing/hallucinated logic.\n";
@@ -1055,6 +1178,7 @@ int main(int argc, char* argv[]) {
     bool useStdout = false;
     bool interactiveMode = false;
     bool ideMode = false;
+    bool sandboxMode = false;
     map<string, string> interactiveAnswers;
     bool hasStructuralFeedback = false;
 
@@ -1076,6 +1200,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "-scaffold") scaffoldMode = true;
         else if (arg == "-fill") fillMode = true;
         else if (arg == "-crono") cronoTimer.enabled = true;
+        else if (arg == "--sandbox") sandboxMode = true;
         else if (arg == "--stdin") useStdin = true;
         else if (arg == "--stdout") useStdout = true;
         else if (arg == "-i" || arg == "--interactive") interactiveMode = true;
@@ -1814,7 +1939,7 @@ int main(int argc, char* argv[]) {
             cout << "[SERIES] All tasks completed." << endl;
             
             if (makeMode) {
-                runAutoBuild(runOutput, outputName);
+                runAutoBuild(runOutput, outputName, sandboxMode);
             }
             
             return 0;
@@ -1903,6 +2028,10 @@ int main(int argc, char* argv[]) {
                 fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
                 #endif
                 string sysCmd = "\"" + runCmd + "\"";
+                if (sandboxMode) {
+                    cout << "[SANDBOX] Running command in sandbox..." << endl;
+                    sysCmd = wrapInSandbox(sysCmd, makeMode);
+                }
                 system(sysCmd.c_str());
             }
             return 0;
@@ -2138,7 +2267,7 @@ int main(int argc, char* argv[]) {
             } else {
                 cout << "[MAKE] Generation complete. Files exported." << endl;
 
-                runAutoBuild(runOutput, outputName);
+                runAutoBuild(runOutput, outputName, sandboxMode);
                 return 0;
             }
         }
@@ -2186,12 +2315,20 @@ int main(int argc, char* argv[]) {
             if (fPos != string::npos) cmd.replace(fPos, 6, tempSrc);
             size_t oPos = cmd.find("%OUT%");
             if (oPos != string::npos) cmd.replace(oPos, 5, tempBin);
+            if (sandboxMode) {
+                cout << "[SANDBOX] Running custom build command in sandbox..." << endl;
+                cmd = wrapInSandbox(cmd, makeMode);
+            }
             build = execCmd(cmd);
         } else if (CURRENT_LANG.buildCmd.empty()) {
             build.exitCode = 0;
         } else {
             string valCmd = CURRENT_LANG.buildCmd + " \"" + tempSrc + "\"";
             if (CURRENT_LANG.producesBinary) valCmd += " -o \"" + tempBin + "\""; 
+            if (sandboxMode) {
+                cout << "[SANDBOX] Running verification command in sandbox..." << endl;
+                valCmd = wrapInSandbox(valCmd, makeMode);
+            }
             build = execCmd(valCmd);
         }
         
@@ -2254,6 +2391,10 @@ int main(int argc, char* argv[]) {
                     fs::permissions(outputName, fs::perms::owner_exec, fs::perm_options::add, ec);
                     #endif
                     cmd = "\"" + cmd + "\"";
+                }
+                if (sandboxMode) {
+                    cout << "[SANDBOX] Running command in sandbox..." << endl;
+                    cmd = wrapInSandbox(cmd, makeMode);
                 }
                 system(cmd.c_str());
                 }
