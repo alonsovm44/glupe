@@ -2,6 +2,7 @@
 
 Added:
 
+- added --sandbox flag to run produced objects inside docker containers
 Removed:
 
 Improved/Fixed:
