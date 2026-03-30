@@ -8,6 +8,7 @@ Removed:
 
 Improved/Fixed:
 
+- fixed installer not working
 - fixed fill mode spilling into executable file, -fill no longer defaults to executable extension
 ## v6.1.4 2026-03-29
 

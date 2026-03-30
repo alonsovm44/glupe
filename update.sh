@@ -60,8 +60,14 @@ echo "Using compiler: $COMPILER"
 # compile to safe temporary file
 TMP_BIN="$(mktemp "/tmp/glupe.XXXXXX")"
 chmod 700 "$TMP_BIN"
+TS_INCLUDE_DIR="$GLUPE_DIR/vendor/tree-sitter/lib/include"
 COMPILE_ARGS=( "$SRC_DIR/glupec.cpp" "$SRC_DIR/lex.yy.c" "$SRC_DIR/glupe.tab.c" -o "$TMP_BIN" -std=c++17 -O3 -pthread -I "$SRC_DIR" )
+
 # Add tree-sitter objects if present
+if [ -d "$TS_INCLUDE_DIR" ]; then
+  COMPILE_ARGS+=( -I "$TS_INCLUDE_DIR" )
+fi
+
 if [ -f "$GLUPE_DIR/vendor/tree-sitter.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/tree-sitter.o" ); fi
 for lang in cpp python javascript java go rust ruby c typescript; do
   if [ -f "$GLUPE_DIR/vendor/${lang}_parser.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/${lang}_parser.o" ); fi
