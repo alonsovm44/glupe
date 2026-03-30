@@ -14,9 +14,9 @@ Glupe is an AI-powered compiler that generates code only inside explicit regions
 
 ## 🎬 Glupe in Action
 
-| Generate (from intent) | Build (multi-file)      | Fix Errors (auto-retry) |
+| Refine | Build  | Fix Errors (auto-retry) |
 | ---------------------- | ----------------------- | ----------------------- |
-| ![](./assets/demo.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
+| ![](./assets/demo4.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
 
 ---
 
