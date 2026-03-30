@@ -14,7 +14,7 @@
 
 ---
 
-## 🚀 AI code generation — without losing control
+## AI code generation — without losing control
 
 > **Glupe lets you use AI to write code without ever letting it modify your real code.**
 
@@ -27,7 +27,7 @@ Most AI coding tools are **all-or-nothing**:
 
 ---
 
-## 🧠 The idea: Semantic Containers
+## The idea: Semantic Containers
 
 Glupe introduces **semantic containers**:
 
@@ -45,18 +45,20 @@ $${
 
 ---
 
-## ⚡ Example: Safe AI in real code
+## Example: Safe AI in real code
 
 ```cpp
 #include <iostream>
 #include <vector>
 
 void process_data(std::vector<int>& data) {
+    /*
     $${
-        // 1. Remove negative numbers
-        // 2. Sort descending
-        // 3. Remove duplicates
+         1. Remove negative numbers
+         2. Sort descending
+         3. Remove duplicates
     }$$
+    */
 }
 ```
 
@@ -66,12 +68,12 @@ Run:
 glupe main.cpp -fill -local
 ```
 
-👉 Glupe fills the block with real C++ code  
-👉 Your structure stays exactly the same  
+Glupe fills the block with real C++ code  
+Your structure stays exactly the same  
 
 ---
 
-## 💥 Why this matters
+## Why this matters
 
 AI is powerful—but unpredictable.
 
@@ -80,13 +82,13 @@ Using AI on code today is like:
 
 Glupe changes that:
 
-- ✅ You control structure  
-- ✅ AI only fills what you allow  
-- ✅ Your code is never rewritten  
+- You control structure  
+- AI only fills what you allow  
+- Your code is never rewritten  
 
 ---
 
-## 🔑 Core Workflow
+## Core Workflow
 
 ### 1. Write your architecture
 Define your program normally.
@@ -101,7 +103,7 @@ glupe main.cpp -fill -local
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Quick Install (Recommended)
 
@@ -120,7 +122,7 @@ curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh 
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ```bash
 # Create sample project
@@ -135,21 +137,21 @@ glupe hello.glp -o hello.exe -cpp -local
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🎯 Surgical AI Control
+### Surgical AI Control
 - AI writes **only inside `$$ { } $$`**
 - Your architecture is **guaranteed untouched**
 
 ---
 
-### ⚡ Cached Containers
+### Cached Containers
 - Containers are hashed
 - No repeated LLM calls if unchanged
 
 ---
 
-### 🔁 Self-Healing Compilation
+### Self-Healing Compilation
 ```bash
 [Pass 1] Missing include
 [Pass 2] Type error
@@ -158,7 +160,7 @@ glupe hello.glp -o hello.exe -cpp -local
 
 ---
 
-### 🧩 Multi-File Project Generation
+### Multi-File Project Generation
 
 ```glupe
 EXPORT: "main.cpp"
@@ -194,14 +196,14 @@ glupe sos english -local "KeyError in pandas"
 
 ---
 
-## 🧠 What Glupe is (and isn't)
+## What Glupe is (and isn't)
 
-### ✅ What it is
+### What it is
 - A **safe AI code generation layer**
 - A tool to bridge **intent → implementation**
 - A way to make AI **predictable**
 
-### ❌ What it is NOT
+### What it is NOT
 - Not a compiler
 - Not deterministic
 - Not a traditional build system
@@ -209,7 +211,7 @@ glupe sos english -local "KeyError in pandas"
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 ### Local AI (recommended)
 ```bash
@@ -224,7 +226,7 @@ glupe config model-cloud gemini-1.5-flash
 
 ---
 
-## 🎯 Philosophy
+## Philosophy
 
 > You define **what**  
 > AI handles **how**  
@@ -232,22 +234,22 @@ glupe config model-cloud gemini-1.5-flash
 
 ---
 
-## 📄 White Paper
+## White Paper
 https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/paper.md
 
 ---
 
-## 🎨 Syntax Highlight Extension
+## Syntax Highlight Extension
 https://github.com/alonsovm44/glupe-tutorial 
 
 ---
 
-## 👥 Contributors
+## Contributors
 
 - Alonso Velazquez (Mexico)
 - Krzysztof Dudek (Poland)
 
 ---
 
-## 📜 License
+## License
 MIT
