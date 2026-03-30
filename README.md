@@ -8,7 +8,7 @@
 
 > **Use LLMs in your codebase without letting them rewrite your codebase.**
 
-Glupe is a CLI tool that lets you **constrain where AI can generate code** — and keep everything else untouched.
+LLMs are powerful, but unconstrained generation is dangerous. Glupe is a CLI tool that acts as a **strict constraint layer** (or firewall) for AI code generation. You write the load-bearing architecture; the AI is only allowed to fill in the explicit blanks.
 
 ---
 
@@ -124,9 +124,13 @@ Glupe is useful when:
 
 ---
 
-## ⚡ Install in 5 seconds
+## ⚡ Installation
 
-### Quick Install (Recommended)
+### Recommended: Pre-compiled Binaries
+Download the standalone executable for your OS directly from the [Releases page](https://github.com/alonsovm44/glupe/releases).
+
+### Alternative: Quick Install Scripts
+> **Note:** Piping scripts directly to your shell carries inherent security risks. We recommend using the pre-compiled binaries above, but provide these scripts for convenience. You can review `install.ps1` and `install.sh` in the repository.
 
 **Windows**
 
@@ -165,6 +169,16 @@ Glupe is a thin layer between your code and an LLM:
 3. sends only those blocks to the model  
 4. injects generated code  
 5. optionally compiles + retries on failure  
+
+---
+
+## 🔒 Determinism & Caching
+
+A major issue with AI code generation is non-determinism: regenerating an app might introduce completely new bugs. 
+
+Glupe solves this via **caching**. Once a `$$ block { ... } $$` block successfully compiles and passes your tests, its hash is locked in a `.glupe.lock` file. 
+
+Re-running the CLI will **not** regenerate that block unless you explicitly change the prompt inside the container. It behaves like incremental compilation: once a block works, it stays frozen safely.
 
 ---
 
