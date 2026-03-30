@@ -6,9 +6,9 @@
 ![Platforms](https://img.shields.io/badge/platforms-Windows%20|%20Linux%20|%20macOS-lightgrey)
 ![AI-Powered](https://img.shields.io/badge/AI-Powered-purple)
 
-> **Let AI write code — without touching your code.**
+> **Use LLMs in your codebase without letting them rewrite your codebase.**
 
-Glupe is an AI-powered compiler that generates code only inside explicit regions (`$${...}$$`), keeping your architecture safe, predictable, and under your control.
+Glupe is a CLI tool that lets you **constrain where AI can generate code** — and keep everything else untouched.
 
 ---
 
@@ -20,45 +20,51 @@ Glupe is an AI-powered compiler that generates code only inside explicit regions
 
 ---
 
-## 🧠 Why Glupe exists
+## 🧠 The problem
 
-AI coding tools today operate in an **all-or-nothing** way:
+Using LLMs for code today looks like this:
 
-* They rewrite entire files
-* Break structure and intent
-* Introduce subtle bugs
+- paste prompt → get code → paste into project  
+- or let an agent rewrite entire files  
 
-This makes them hard to trust in real projects.
+This creates real issues:
 
-**Glupe fixes this by isolating where AI is allowed to write.**
+- ❌ no boundaries (AI can change anything)  
+- ❌ hard to review (what actually changed?)  
+- ❌ not reproducible  
+- ❌ easy to break working code  
 
 ---
 
-## 🧩 The Core Idea: Semantic Containers
+## ✅ What Glupe does
+
+Glupe adds **explicit boundaries** around AI-generated code.
 
 ```cpp
-$${
-  // describe what you want here
-}$$
+int add(int a, int b) {
+    $${
+        // implement addition
+    }$$
+}
 ```
 
-* AI can **only** generate code inside these blocks
-* Everything outside remains untouched
-* You keep full architectural control
+- AI can **only write inside `$$ { ... } $$`**
+- Everything else is **guaranteed unchanged**
+- You control structure, AI fills implementation
 
 ---
 
 ## ⚡ TL;DR
 
-* You write structure
-* AI fills `$${ ... }$$`
-* Your code stays safe
+- You write the structure  
+- AI fills small, isolated regions  
+- Your codebase stays stable  
 
 ---
 
-## 🔧 The Core Workflow
+## 🔧 The workflow
 
-### 1. Define structure + intent
+### 1. Write normal code + intent
 
 ```cpp
 #include <vector>
@@ -74,17 +80,47 @@ void process_data(std::vector<int>& data) {
 
 ---
 
-### 2. Fill in-place
+### 2. Run Glupe
 
 ```bash
 glupe main.cpp -fill -local
 ```
 
-Glupe:
+Glupe will:
 
-* reads your file
-* sends the container prompt to an LLM
-* injects generated code into the block
+- extract the container
+- send only that part to the LLM
+- inject the result back into the file
+
+---
+
+## 🤔 Why not just prompt?
+
+You can — and for small tasks, you probably should.
+
+Glupe is useful when:
+
+- you care about **not touching the rest of the file**
+- you want **repeatable structure**
+- you want **reviewable diffs**
+- you’re integrating AI into a **real codebase**
+
+---
+
+## ⚖️ What this is (and isn’t)
+
+### ✔️ This is
+
+- a **constraint layer for LLM code generation**
+- a way to **keep AI edits local and predictable**
+- a tool for **gradual adoption of AI in real projects**
+
+### ❌ This is NOT
+
+- not a new programming language  
+- not a replacement for compilers  
+- not deterministic (LLMs are still LLMs)  
+- not magic — bad prompts still produce bad code  
 
 ---
 
@@ -94,8 +130,8 @@ Glupe:
 
 **Windows**
 
-1. Press `Win + R`, type `cmd`, and press Enter.
-2. In the command prompt, type `powershell` and press Enter.
+1. Press `Win + R`, type `cmd`, and press Enter.  
+2. In the command prompt, type `powershell` and press Enter.  
 3. Run:
 
 ```powershell
@@ -122,28 +158,25 @@ glupe hello.glp -o hello.exe -cpp -local
 
 ## ⚙️ How it works
 
-Glupe sits between your intent and your compiler:
+Glupe is a thin layer between your code and an LLM:
 
-* Reads your file
-* Extracts semantic containers
-* Sends prompts to an LLM
-* Injects generated code
-* Runs your build
-* Retries on failure using compiler feedback
-
----
-
-## 🔥 Key Features
-
-### AI-Powered Code Generation
-
-```bash
-glupe utils.py myalgorithm.c -o myprogram.exe -cpp -cloud
-```
+1. scans your file  
+2. finds `$$ { ... } $$` blocks  
+3. sends only those blocks to the model  
+4. injects generated code  
+5. optionally compiles + retries on failure  
 
 ---
 
-### Multi-File Project Generation
+## 🔥 Features
+
+### Scoped AI generation
+
+Only touch what you explicitly allow.
+
+---
+
+### Multi-file output
 
 ```glupe
 EXPORT: "mylib.h"
@@ -153,7 +186,7 @@ EXPORT: END
 
 ---
 
-### Self-Healing Compilation
+### Auto-fix compile errors
 
 ```bash
 [Pass 1] Missing include
@@ -163,7 +196,7 @@ EXPORT: END
 
 ---
 
-### One-Step Execution
+### One-step run
 
 ```bash
 glupe app.glp -o app.exe -cpp -local -run
@@ -171,31 +204,23 @@ glupe app.glp -o app.exe -cpp -local -run
 
 ---
 
-## ⚖️ How Glupe is different
+## 👤 Who this is for
 
-| Tool              | Behavior                         |
-| ----------------- | -------------------------------- |
-| Copilot / ChatGPT | Rewrite entire files             |
-| Glupe             | Writes only inside `$${ ... }$$` |
-
-👉 Glupe gives control. Others take it away.
+- developers experimenting with LLM-assisted coding  
+- people who **don’t want AI rewriting entire files**  
+- teams that want **controlled integration of AI**  
 
 ---
 
-## 👤 Who is this for?
+## ⚠️ Tradeoffs
 
-* Developers who don’t trust AI rewriting their code
-* People building real systems (not just demos)
-* Anyone who wants AI as a precise tool
+- LLM output is still **non-deterministic**
+- requires writing inside containers
+- adds an extra step vs raw prompting
 
----
+This is intentional:
 
-## ⚠️ What Glupe is NOT
-
-* Not a compiler (uses existing compilers)
-* Not deterministic (LLM-based)
-* Not a build system
-* Not a transpiler
+> Glupe trades speed for **control and safety**
 
 ---
 
@@ -246,13 +271,11 @@ glupe sos english -local "KeyError in pandas"
 
 ## 🌍 Vision
 
-Programming is limited by syntax and complexity.
+LLMs are useful, but unsafe by default.
 
-Glupe aims to:
+Glupe’s goal is simple:
 
-* lower the barrier to building software
-* let developers focus on structure and intent
-* turn AI into a controlled, reliable tool
+> make LLM-assisted programming **controllable enough to use in real systems**
 
 ---
 
@@ -270,8 +293,8 @@ https://github.com/alonsovm44/glupe-tutorial
 
 ## 👥 Contributors
 
-* Alonso Velazquez (Mexico)
-* Krzysztof Dudek (Poland)
+- Alonso Velazquez (Mexico)  
+- Krzysztof Dudek (Poland)  
 
 ---
 
