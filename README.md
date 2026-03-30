@@ -207,7 +207,7 @@ Glupe is a semantic meta-compiler that:
 - Parses EXPORT: blocks to create project files
 - Copies your literal code exactly as written
 - Lets AI fill only the $${ ... }$$ blocks you designate
-- Uses -series to build files sequentially (prevents AI fatigue)
+- Uses -make to build files sequentially (prevents AI fatigue)
 - Gives you full control—unlike black-box AI generators
 
 ## Configuration
@@ -257,3 +257,4 @@ Thanks very much for all contributions to Glupe
 
 MIT License
 ---
+
