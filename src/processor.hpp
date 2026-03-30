@@ -557,7 +557,7 @@ inline string generateIR(const string& id, const string& intent, const string& c
 }
 
 // [NEW] Backend Pass: Generate Target Code from IR
-inline string generateTargetCodeFromIR(const string& ir, const string& targetLang, const string& context, const string& id) {
+inline string generateTargetCodeFromIR(const string& ir, const string& targetLang, const string& context, const string& id, const string& signature = "") {
     stringstream codePrompt;
     codePrompt << "ROLE: Semantic Backend Compiler.\n";
     codePrompt << "TASK: Translate the following Glupe Intermediate Representation (GIR) into strict " << targetLang << " code.\n";
@@ -567,6 +567,9 @@ inline string generateTargetCodeFromIR(const string& ir, const string& targetLan
     codePrompt << "3. Map GIR operations (ASYNC CALL, TRY/CATCH) to native " << targetLang << " constructs.\n";
     codePrompt << "4. Do not omit any logic from the GIR.\n";
     codePrompt << "5. EXTREMELY IMPORTANT: Output ONLY the code intended to replace the /* [GLUPE_INSERTION_POINT: " << id << "] */ marker in the CONTEXT. If the insertion point is inside a function, output ONLY inner statements, NO wrapper functions, NO #includes.\n";
+    if (!signature.empty()) {
+        codePrompt << "6. CONSTRAINT: You are implementing the body for the following signature:\n   " << signature << "\n   Return ONLY the internal body (including braces if needed). DO NOT repeat the signature.\n";
+    }
     codePrompt << "\nCONTEXT:\n" << context << "\n";
     codePrompt << "\nGIR:\n" << ir << "\n";
     codePrompt << "OUTPUT: Return ONLY the raw code implementation. No markdown blocks. No explanations.";
@@ -737,12 +740,20 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                 prompt = "CONTEXT:\n" + contextStr + "\nRESOLUTION RULES:\n1. Child logic overrides parent logic.\n2. Use injected context as data/functions.\n\n--- CHILD LOGIC (" + id + ") ---\n" + childLogic;
             }
 
+            // [NEW v6.2] Phase 1 & 2: Formal Signature Extraction and Prompt Injection
+            string signature = extractPrecedingSignature(result);
+            if (!signature.empty() && (signature.find('(') != string::npos || signature.find('=') != string::npos || signature.find("class ") != string::npos || signature.find("struct ") != string::npos)) {
+                cout << "   [CONSTRAINT] Formal signature detected: " << signature << endl;
+                prompt += "\n\nCONSTRAINT: You are implementing the body for the following signature:\n" + signature + "\nReturn ONLY the internal logic/body. DO NOT repeat the signature.";
+            }
+
             SemanticNode sNode;
             sNode.type = NodeType::CONTAINER;
             sNode.id = id;
             sNode.content = prompt;
             sNode.parents = contNode->parents;
             sNode.params = contNode->params;
+            sNode.signature = signature;
             SYMBOL_TABLE[id] = sNode;
 
             if (contNode->isAbstract) {
@@ -857,7 +868,7 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                     string cleanGenerated;
                     int codeRetries = 0;
                     while (codeRetries < MAX_RETRIES) {
-                        cleanGenerated = generateTargetCodeFromIR(generatedIR, CURRENT_LANG.name, currentContext, id);
+                        cleanGenerated = generateTargetCodeFromIR(generatedIR, CURRENT_LANG.name, currentContext, id, signature);
                         if (cleanGenerated.find("ERROR:") == 0) {
                             cout << "   [!] API Error on Target Code (Attempt " << (codeRetries + 1) << "/" << MAX_RETRIES << "): " << cleanGenerated.substr(6) << endl;
                             int waitTime = 5 * (codeRetries + 1);
@@ -875,6 +886,32 @@ inline string processInputWithCache(const string& code, bool useCache, const vec
                             codeRetries++;
                         } else {
                             break;
+                        }
+                    }
+                    
+                    // [NEW v6.2] Phase 3: Output Sanitization
+                    if (!signature.empty()) {
+                        string cleanGeneratedTrimmed = cleanGenerated;
+                        cleanGeneratedTrimmed.erase(0, cleanGeneratedTrimmed.find_first_not_of(" \t\r\n"));
+                        if (cleanGeneratedTrimmed.find(signature) == 0) {
+                            cleanGenerated = cleanGeneratedTrimmed.substr(signature.length());
+                            cout << "   [SANITIZE] Stripped regurgitated signature from AI output." << endl;
+                        } else {
+                            // Try a more lenient check (e.g., matching the prefix before '(' to strip variations)
+                            size_t parenPos = signature.find('(');
+                            if (parenPos != string::npos) {
+                                string funcName = signature.substr(0, parenPos);
+                                size_t lastSpace = funcName.find_last_of(" \t\n*&");
+                                if (lastSpace != string::npos) funcName = funcName.substr(lastSpace + 1);
+                                
+                                if (!funcName.empty() && cleanGenerated.find(funcName) != string::npos && cleanGenerated.find(funcName) < 50) {
+                                    size_t bodyStart = cleanGenerated.find('{');
+                                    if (bodyStart != string::npos && bodyStart < 150) {
+                                        cleanGenerated = cleanGenerated.substr(bodyStart);
+                                        cout << "   [SANITIZE] Aggressively stripped regurgitated signature." << endl;
+                                    }
+                                }
+                            }
                         }
                     }
                     

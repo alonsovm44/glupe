@@ -23,6 +23,7 @@ struct SemanticNode {
     bool isAbstract = false;
     bool isCached = false;
     string hash; // [NEW] Hash for caching
+    string signature; // [NEW v6.2] Formal Type Constraints
 };
 
 // [NEW] Global Symbol Table

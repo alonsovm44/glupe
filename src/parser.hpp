@@ -739,6 +739,39 @@ inline string extractSignatures(const string& code) {
     return result;
 }
 
+// [NEW v6.2] Phase 1: Backward scanner to extract preceding signatures for formal constraints
+inline string extractPrecedingSignature(const string& code) {
+    if (code.empty()) return "";
+    int i = code.length() - 1;
+    
+    // Skip trailing whitespace between the container and the signature
+    while (i >= 0 && isspace(code[i])) i--;
+    if (i < 0) return "";
+    
+    int endPos = i;
+    int startPos = 0;
+    
+    // Scan backward until we hit a statement terminator or a structural boundary
+    while (i >= 0) {
+        char c = code[i];
+        if (c == ';' || c == '{' || c == '}' || c == '#') {
+            startPos = i + 1;
+            break;
+        }
+        i--;
+    }
+    
+    string sig = code.substr(startPos, endPos - startPos + 1);
+    size_t first = sig.find_first_not_of(" \t\r\n");
+    if (first == string::npos) return "";
+    sig = sig.substr(first);
+    
+    // Filter out basic structural keywords that aren't formal signatures
+    if (sig == "public:" || sig == "private:" || sig == "protected:" || sig == "else") return "";
+    
+    return sig;
+}
+
 // [NEW] Metadata System for GlupeHub
 inline string stripMetadata(const string& code) {
     size_t start = code.find("META_START");

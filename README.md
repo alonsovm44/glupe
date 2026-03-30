@@ -1,9 +1,15 @@
-# Glupe — Intent-first AI codeblocks for C++ 🙏🌹
+# Glupe — Intent-first AI codeblocks for C++ 🌹🌹
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Release](https://img.shields.io/github/v/release/alonsovm44/glupe)](https://github.com/alonsovm44/glupe/releases) ![C++17](https://img.shields.io/badge/C++-17-blue.svg?logo=c%2B%2B) ![Platforms](https://img.shields.io/badge/platforms-Windows%20|%20Linux%20|%20macOS-lightgrey)
 
 One-line pitch
 Glupe uses small, well-scoped code containers so AI can implement behavior without ever rewriting your architecture — add a $$ { } $$ block, ask Glupe to fill it, and keep full control.
+
+## 🎬 Glupe in Action
+
+| Refine | Fill | Auto Fix Errors |
+|----------|-------|------------|
+| ![](./assets/demo4.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
 
 Try it now (copy-paste)
 Linux / macOS:
@@ -21,11 +27,6 @@ glupe --init
 glupe hello.glp -o hello.exe -cpp -local
 .\hello.exe
 ```
-
-🎬 Glupe in action
-- Add a $$ { } $$ block where you want AI to work.
-- Run `glupe <file> -fill -local` and the container will be filled with working C++ code.
-- GIF: see ./assets/demo.gif — shows add → fill → run (6–8s).
 
 What makes Glupe different
 - Isolation: AI can only write inside your marked containers (no file rewrites).
@@ -87,10 +88,6 @@ Contributing & Community
 - Good first issues: help improve the top-of-readme “Try it now”, add extra examples under examples/cpp, and add a CI workflow.  
 - To contribute: fork → branch → PR. Add tests / small examples for any change.
 
-GIF recipe (make the demo)
-- Record a terminal session that runs `glupe --init`, `glupe hello.glp -o hello.exe -cpp -local`, `./hello.exe`.
-- Use asciinema → convert to mp4 → ffmpeg → demo.gif (6–8s, ~720px width).
-- Alt text: “Terminal showing Glupe filling a $$ { } $$ block and running the generated program, printing ‘hello glupe’.”
 
 Roadmap & Philosophy
 - You define what. AI handles how. You stay in control.
