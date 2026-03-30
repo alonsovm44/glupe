@@ -1630,7 +1630,7 @@ int main(int argc, char* argv[]) {
 
     // [FIX] Smart default output name:
     // If language produces binary and we are NOT in transpile-only mode, default to executable extension.
-    if (outputName.empty()) {
+    if (outputName.empty() && !fillMode) {
         string baseName = !inputFiles.empty() ? stripExt(inputFiles[0]) : "out";
         if (CURRENT_LANG.producesBinary && !transpileMode) {
             #ifdef _WIN32
@@ -1969,8 +1969,33 @@ int main(int argc, char* argv[]) {
         if (useStdout) {
             redirector.output(aggregatedContext);
         } else {
-            if (!outputName.empty()) { ofstream out(outputName); out << aggregatedContext; out.close(); cout << "[SUCCESS] Saved to " << outputName << endl; }
-            else { ofstream out(tempSrc); out << aggregatedContext; out.close(); }
+            if (!outputName.empty()) { 
+                ofstream out(outputName); out << aggregatedContext; out.close(); 
+                cout << "[SUCCESS] Saved to " << outputName << endl; 
+            } else { 
+                // Write back to original files in-place
+                for (const auto& file : inputFiles) {
+                    string startMarker = "// --- START FILE: " + file + " ---";
+                    string endMarker = "// --- END FILE: " + file + " ---";
+                    
+                    size_t startPos = aggregatedContext.find(startMarker);
+                    size_t endPos = aggregatedContext.find(endMarker, startPos);
+                    
+                    if (startPos != string::npos && endPos != string::npos) {
+                        startPos += startMarker.length();
+                        if (startPos < aggregatedContext.length() && aggregatedContext[startPos] == '\n') startPos++;
+                        
+                        size_t len = endPos - startPos;
+                        if (len > 0 && aggregatedContext[startPos + len - 1] == '\n') len--;
+                        
+                        string fileContent = aggregatedContext.substr(startPos, len);
+                        ofstream out(file);
+                        out << fileContent;
+                        out.close();
+                        cout << "[SUCCESS] Filled " << file << " in-place." << endl;
+                    }
+                }
+            }
         }
         return 0;
     } else {
