@@ -1,101 +1,280 @@
-# Glupe — Intent-first AI codeblocks for C++ 🌹🌹
+# Glupe
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Release](https://img.shields.io/github/v/release/alonsovm44/glupe)](https://github.com/alonsovm44/glupe/releases) ![C++17](https://img.shields.io/badge/C++-17-blue.svg?logo=c%2B%2B) ![Platforms](https://img.shields.io/badge/platforms-Windows%20|%20Linux%20|%20macOS-lightgrey)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Release](https://img.shields.io/github/v/release/alonsovm44/glupe)](https://github.com/alonsovm44/glupe/releases)
+![C++17](https://img.shields.io/badge/C++-17-blue.svg?logo=c%2B%2B)
+![Platforms](https://img.shields.io/badge/platforms-Windows%20|%20Linux%20|%20macOS-lightgrey)
+![AI-Powered](https://img.shields.io/badge/AI-Powered-purple)
 
-One-line pitch
-Glupe uses small, well-scoped code containers so AI can implement behavior without ever rewriting your architecture — add a $$ { } $$ block, ask Glupe to fill it, and keep full control.
+> **Let AI write code — without touching your code.**
+
+Glupe is an AI-powered compiler that generates code only inside explicit regions (`$${...}$$`), keeping your architecture safe, predictable, and under your control.
+
+---
 
 ## 🎬 Glupe in Action
 
-| Refine | Fill | Auto Fix Errors |
-|----------|-------|------------|
-| ![](./assets/demo4.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
+| Generate (from intent) | Build (multi-file)      | Fix Errors (auto-retry) |
+| ---------------------- | ----------------------- | ----------------------- |
+| ![](./assets/demo.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
 
-Try it now (copy-paste)
-Linux / macOS:
-```bash
-curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash \
-  && glupe --init \
-  && glupe hello.glp -o hello.exe -cpp -local \
-  && ./hello.exe
-```
-Windows (PowerShell):
-```powershell
-irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
-# then open PowerShell and run:
-glupe --init
-glupe hello.glp -o hello.exe -cpp -local
-.\hello.exe
-```
+---
 
-What makes Glupe different
-- Isolation: AI can only write inside your marked containers (no file rewrites).
-- Predictable outputs: containers are hashed and cached; unchanged blocks skip LLM calls.
-- Self-healing builds: Glupe iteratively fixes missing includes and simple type issues until compilation succeeds.
+## 🧠 Why Glupe exists
 
-Quick example
+AI coding tools today operate in an **all-or-nothing** way:
+
+* They rewrite entire files
+* Break structure and intent
+* Introduce subtle bugs
+
+This makes them hard to trust in real projects.
+
+**Glupe fixes this by isolating where AI is allowed to write.**
+
+---
+
+## 🧩 The Core Idea: Semantic Containers
+
 ```cpp
-#include <iostream>
+$${
+  // describe what you want here
+}$$
+```
+
+* AI can **only** generate code inside these blocks
+* Everything outside remains untouched
+* You keep full architectural control
+
+---
+
+## ⚡ TL;DR
+
+* You write structure
+* AI fills `$${ ... }$$`
+* Your code stays safe
+
+---
+
+## 🔧 The Core Workflow
+
+### 1. Define structure + intent
+
+```cpp
 #include <vector>
 
 void process_data(std::vector<int>& data) {
-    /*
-    $${ 
-        1. Remove negative numbers
-        2. Sort descending
-        3. Remove duplicates
+    $${
+        // 1. Remove negative numbers
+        // 2. Sort descending
+        // 3. Remove duplicates
     }$$
-    */
-}
-
-int main() {
-    std::vector<int> data = {3, -1, 2, 2};
-    process_data(data);
-    for (auto v : data) std::cout << v << " ";
-    return 0;
 }
 ```
-Run:
+
+---
+
+### 2. Fill in-place
+
 ```bash
 glupe main.cpp -fill -local
 ```
 
-Core workflow (3 steps)
-1. Write your architecture (files, types, APIs).  
-2. Mark containers with $$ { } $$.  
-3. Fill: `glupe <file> -fill -local` (or use `-cloud` to call a cloud LLM).
+Glupe:
 
-Key commands
-- Fill a block: `glupe main.cpp -fill -local`
-- Fix code: `glupe fix file.cpp "fix segmentation fault" -local`
-- Explain file: `glupe explain main.cpp -cloud english`
-- Diff: `glupe diff v1.py v2.py -cloud`
+* reads your file
+* sends the container prompt to an LLM
+* injects generated code into the block
 
-Installation
-- Quick install: see Try it now above.
-- Manual: run the platform-specific installer scripts in the repo (install.sh / install.ps1).
+---
 
-Configuration
-- Local model (recommended): `glupe config model-local qwen2.5-coder:latest`
-- Cloud: `glupe config api-key "YOUR_KEY"` and `glupe config model-cloud gemini-1.5-flash`
+## ⚡ Install in 5 seconds
 
-Documentation & White paper
-- White paper: .DOCUMENTATION/paper.md  
-- Developer docs: .docgen/docs
+### Quick Install (Recommended)
 
-Contributing & Community
-- Contributors: Alonso Velazquez (Mexico), Krzysztof Dudek (Poland)  
-- Good first issues: help improve the top-of-readme “Try it now”, add extra examples under examples/cpp, and add a CI workflow.  
-- To contribute: fork → branch → PR. Add tests / small examples for any change.
+**Windows**
 
+1. Press `Win + R`, type `cmd`, and press Enter.
+2. In the command prompt, type `powershell` and press Enter.
+3. Run:
 
-Roadmap & Philosophy
-- You define what. AI handles how. You stay in control.
-- Planned: first-class IDE plugin, more sample projects (networking, parsing), CI-run demos on releases.
+```powershell
+irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
+```
 
-License
-- MIT
+**Linux/macOS**
 
-Links
-- White paper: https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/paper.md
-- Syntax highlight / tutorial: https://github.com/alonsovm44/glupe-tutorial
+```bash
+curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
+```
+
+---
+
+## 🚀 Quick Start
+
+```bash
+glupe --init
+glupe hello.glp -o hello.exe -cpp -local
+./hello.exe
+```
+
+---
+
+## ⚙️ How it works
+
+Glupe sits between your intent and your compiler:
+
+* Reads your file
+* Extracts semantic containers
+* Sends prompts to an LLM
+* Injects generated code
+* Runs your build
+* Retries on failure using compiler feedback
+
+---
+
+## 🔥 Key Features
+
+### AI-Powered Code Generation
+
+```bash
+glupe utils.py myalgorithm.c -o myprogram.exe -cpp -cloud
+```
+
+---
+
+### Multi-File Project Generation
+
+```glupe
+EXPORT: "mylib.h"
+$$ myfunc { define a function that returns square }$$
+EXPORT: END
+```
+
+---
+
+### Self-Healing Compilation
+
+```bash
+[Pass 1] Missing include
+[Pass 2] Type error
+[Pass 3] BUILD SUCCESSFUL
+```
+
+---
+
+### One-Step Execution
+
+```bash
+glupe app.glp -o app.exe -cpp -local -run
+```
+
+---
+
+## ⚖️ How Glupe is different
+
+| Tool              | Behavior                         |
+| ----------------- | -------------------------------- |
+| Copilot / ChatGPT | Rewrite entire files             |
+| Glupe             | Writes only inside `$${ ... }$$` |
+
+👉 Glupe gives control. Others take it away.
+
+---
+
+## 👤 Who is this for?
+
+* Developers who don’t trust AI rewriting their code
+* People building real systems (not just demos)
+* Anyone who wants AI as a precise tool
+
+---
+
+## ⚠️ What Glupe is NOT
+
+* Not a compiler (uses existing compilers)
+* Not deterministic (LLM-based)
+* Not a build system
+* Not a transpiler
+
+---
+
+## ⚙️ Configuration
+
+### Local model
+
+```bash
+glupe config model-local qwen2.5-coder:latest
+```
+
+### Cloud model
+
+```bash
+glupe config api-key "YOUR_KEY"
+glupe config model-cloud gemini-1.5-flash
+```
+
+---
+
+## 🧰 Utility Commands
+
+### fix
+
+```bash
+glupe fix project.c "fix segfault" -local
+```
+
+### explain
+
+```bash
+glupe explain main.cpp -cloud english
+```
+
+### diff
+
+```bash
+glupe diff v1.py v2.py -cloud
+```
+
+### sos
+
+```bash
+glupe sos english -local "KeyError in pandas"
+```
+
+---
+
+## 🌍 Vision
+
+Programming is limited by syntax and complexity.
+
+Glupe aims to:
+
+* lower the barrier to building software
+* let developers focus on structure and intent
+* turn AI into a controlled, reliable tool
+
+---
+
+## 📄 White Paper
+
+https://github.com/alonsovm44/glupe/blob/master/.DOCUMENTATION/paper.md
+
+---
+
+## 🧩 Syntax Highlight Extension
+
+https://github.com/alonsovm44/glupe-tutorial
+
+---
+
+## 👥 Contributors
+
+* Alonso Velazquez (Mexico)
+* Krzysztof Dudek (Poland)
+
+---
+
+## 📜 License
+
+MIT License
