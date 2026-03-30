@@ -18,6 +18,11 @@ echo "Current glupe path: $CURRENT_GLUPE_PATH"
 SRC_DIR="$GLUPE_DIR/src"
 mkdir -p "$SRC_DIR"
 
+VENDOR_DIR="$GLUPE_DIR/vendor"
+if [ ! -d "$VENDOR_DIR" ] && [ -d "$HOME/.glupe/vendor" ]; then
+  VENDOR_DIR="$HOME/.glupe/vendor"
+fi
+
 # download sources (best-effort)
 SOURCE_FILES="glupec.cpp common.hpp utils.hpp config.hpp languages.hpp ai.hpp cache.hpp parser.hpp processor.hpp hub.hpp ast.hpp ast_utils.hpp glupe.l glupe.y"
 for f in $SOURCE_FILES; do
@@ -60,7 +65,7 @@ echo "Using compiler: $COMPILER"
 # compile to safe temporary file
 TMP_BIN="$(mktemp "/tmp/glupe.XXXXXX")"
 chmod 700 "$TMP_BIN"
-TS_INCLUDE_DIR="$GLUPE_DIR/vendor/tree-sitter/lib/include"
+TS_INCLUDE_DIR="$VENDOR_DIR/tree-sitter/lib/include"
 COMPILE_ARGS=( "$SRC_DIR/glupec.cpp" "$SRC_DIR/lex.yy.c" "$SRC_DIR/glupe.tab.c" -o "$TMP_BIN" -std=c++17 -O3 -pthread -I "$SRC_DIR" )
 
 # Add tree-sitter objects if present
@@ -68,10 +73,10 @@ if [ -d "$TS_INCLUDE_DIR" ]; then
   COMPILE_ARGS+=( -I "$TS_INCLUDE_DIR" )
 fi
 
-if [ -f "$GLUPE_DIR/vendor/tree-sitter.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/tree-sitter.o" ); fi
+if [ -f "$VENDOR_DIR/tree-sitter.o" ]; then COMPILE_ARGS+=( "$VENDOR_DIR/tree-sitter.o" ); fi
 for lang in cpp python javascript java go rust ruby c typescript; do
-  if [ -f "$GLUPE_DIR/vendor/${lang}_parser.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/${lang}_parser.o" ); fi
-  if [ -f "$GLUPE_DIR/vendor/${lang}_scanner.o" ]; then COMPILE_ARGS+=( "$GLUPE_DIR/vendor/${lang}_scanner.o" ); fi
+  if [ -f "$VENDOR_DIR/${lang}_parser.o" ]; then COMPILE_ARGS+=( "$VENDOR_DIR/${lang}_parser.o" ); fi
+  if [ -f "$VENDOR_DIR/${lang}_scanner.o" ]; then COMPILE_ARGS+=( "$VENDOR_DIR/${lang}_scanner.o" ); fi
 done
 # older libstdc++ may need -lstdc++fs on Linux
 if [ "$(uname -s)" = "Linux" ]; then COMPILE_ARGS+=( -lstdc++fs ); fi

@@ -65,6 +65,10 @@ $tab = Join-Path $SrcDir "glupe.tab.c"
 
 $tsObjs = @()
 $vendor = Join-Path $glupeDir "vendor"
+$fallbackVendor = Join-Path $env:USERPROFILE ".glupe\vendor"
+if (-not (Test-Path $vendor) -and (Test-Path $fallbackVendor)) {
+    $vendor = $fallbackVendor
+}
 if (Test-Path (Join-Path $vendor "tree-sitter.o")) { $tsObjs += (Join-Path $vendor "tree-sitter.o") }
 $langs = @("cpp", "python", "javascript", "java", "go", "rust")
 foreach ($lang in $langs) {
