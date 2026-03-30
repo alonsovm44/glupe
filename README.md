@@ -12,8 +12,8 @@
 |----------|-------|------------|
 | ![](./assets/demo.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
 
-> **Glupe is a Semantic Compiler. Think of it as "Docker for Logic."**  
-> It attempts to solve one of the biggest problem in AI code generation: **trust**.
+> **Glupe is a Semantic Meta-Compiler. Glupe lets you use AI to write code without ever letting it modify your real code."**  
+It attempts to solve one of the biggest problem in AI code generation: **trust**.
 
 Standard AI tools operate on an "all-or-nothing" basis, rewriting entire files and risking your existing architecture. Glupe introduces **Semantic Containers (`$${...}$$`)**—isolated blocks where AI can generate code without touching your hand-written structure.
 
