@@ -13,32 +13,45 @@
 | ![](./assets/demo.gif) | ![](./assets/demo2.gif) | ![](./assets/demo3.gif) |
 
 > **Glupe is a Semantic Compiler. Think of it as "Docker for Logic."**  
-> Docker freezes your Environment to make software independent of the machine. Glupe freezes your **Intent** to make software independent of the language.
+> It attempts to solve one of the biggest problem in AI code generation: **trust**.
 
-Unlike traditional AI coding assistants that blindly rewrite your files, **Glupe isolates AI logic into semantic containers (`$${ }$$`), so your manual architecture stays 100% safe.** Write your architectural "load-bearing walls" in pure code, and securely delegate the boilerplate to the AI.
+Standard AI tools operate on an "all-or-nothing" basis, rewriting entire files and risking your existing architecture. Glupe introduces **Semantic Containers (`$${...}$$`)**—isolated blocks where AI can generate code without touching your hand-written structure.
 
-## 🚀 The "Wow" Factor: Intent-Driven Compilation
+You define the architecture, and the AI fills in the blanks. Your code stays safe. 
 
-Mix natural language intent directly with concrete code. Glupe will compile the `$${ }$$` blocks into native code (C++, Python, Rust, etc.) using your local or cloud LLM.
+### The Core Workflow: Isolate and Fill
 
-```glupe
-// my_program.glp
-$$ABSTRACT rules { every printed message must begin with "?" and end with "!" }$$
+1.  **Isolate Intent:** Write your high-level architecture and place semantic containers where you need implementation details.
 
-$$ main -> rules {
- let v = vector[1,2,3]
- print v   
-}$$
-```
-Result:
-```
-? 1,2,3 ! 
-```
-This code can be compiled into 40+ supported languages or native executables.
---- 
-## But what does Glupe do?
-### The one liner
-"Glupe isolates AI logic into semantic containers, so your manual code stays safe." 
+    ```cpp
+    // file: main.cpp
+    #include <iostream>
+    #include <vector>
+
+    void process_data(std::vector<int>& data) {
+        // The AI is only allowed to write code inside this block.
+        $${
+            // 1. Filter out all negative numbers.
+            // 2. Sort the remaining data in descending order.
+            // 3. Remove any duplicate values.
+        }$$
+    }
+
+    int main() {
+        std::vector<int> my_data = {5, -1, 10, 2, 10, -5, 2};
+        process_data(my_data);
+        // ... print the result ...
+    }
+    ```
+
+2.  **Fill In-Place:** Use the `-fill` command to populate the containers directly within your source file.
+
+    ```bash
+    glupe main.cpp -fill -local
+    ```
+
+    Glupe reads `main.cpp`, sends the container's intent (`"Filter out..."`) to the LLM, and injects the generated C++ code back into the `$${...}$$` block, leaving your `main` function and includes untouched. This gives you surgical precision and control over AI-assisted development.
+
 ---
 
 ## Installation
@@ -46,32 +59,29 @@ This code can be compiled into 40+ supported languages or native executables.
 ### Quick Install (Recommended)
 
 **Windows**
-Installation guide
-1. Press `Win + R` and type `cmd` or open cmd.exe
-2. Type  `Powershell`
-3. Run this command:
-```Powershell 
- irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
-```
-If you install Ollama be sure to accept all pop up windows.
-The installer automatically installs the latest version of Glupe.
+1.  Press `Win + R`, type `cmd`, and press Enter.
+2.  In the command prompt, type `powershell` and press Enter.
+3.  Run this command:
+    ```powershell
+    irm https://raw.githubusercontent.com/alonsovm44/glupe/master/install.ps1 | iex
+    ```
 
-**Linux/macOS:**
-Installation in Linux/macOS
-1. Open bash terminal and run the following command:
-```bash
-curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
-``` 
-**Manual Build**
+**Linux/macOS**
+1.  Open your terminal and run the following command:
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/alonsovm44/glupe/master/install.sh | bash
+    ```
 
-````bash
-g++ glupec.cpp -o glupe -std=c++17 -lstdc++fs
-```` 
-### **Quick Sart**
+### Quick Start
 ```bash
+# Initialize a sample project
 glupe --init
+
+# Fill the containers in the sample file and compile it
 glupe hello.glp -o hello.exe -cpp -local
-.\hello
+
+# Run the output
+./hello.exe
 ```
 --- 
 
@@ -132,7 +142,7 @@ EXPORT: END
 ```
 Run this script
 ```bash
-glupe idea.txt -make -cloud -series
+glupe idea.txt -make -cloud
 ```
 ### Full Control: You Drive, AI Fills
 Unlike "all-or-nothing" AI generators, Glupe lets you decide exactly where AI touches your code:
@@ -140,21 +150,6 @@ Unlike "all-or-nothing" AI generators, Glupe lets you decide exactly where AI to
 You control structure, includes, and architecture
 AI only fills $${ ... }$$ blocks
 Perfect for production code where safety matters
-
-### Series Mode (Prevents Prompt Fatigue)
-```bash
-glupe project.glp -make -series
-```
-Generates files sequentially (not parallel) to ensure AI maintains context and delivers complete, coherent outputs.
-
-### Automatic Build Detection
-Glupe automatically detects and runs your build system:
-
-Makefile → runs make
-
-CMakeLists.txt → configures and builds
-
-build.sh / build.bat → executes directly
 
 ### Self-Healing Compilation
 Failed build? Glupe retries with compiler feedback:
@@ -179,6 +174,7 @@ Cloud: OpenAI, Google Gemini (more power)
 Custom: Any OpenAI-compatible API
 
 Utility Commands
+
 ### fix – Apply Smart Edits
 Add changes to your code via natural language:
 
@@ -207,40 +203,12 @@ Get AI help without leaving your terminal:
 glupe sos english -local "KeyError: 'name' in my pandas script"
 ```
 ### TL;DR
-Glupe is a semantic compiler that:
+Glupe is a semantic meta-compiler that:
 - Parses EXPORT: blocks to create project files
 - Copies your literal code exactly as written
 - Lets AI fill only the $${ ... }$$ blocks you designate
 - Uses -series to build files sequentially (prevents AI fatigue)
 - Gives you full control—unlike black-box AI generators
-
-## Why use Glupe?
-1. A different approach to build automation
-
-Traditional build systems (Make, CMake, etc.) focus on compiling and linking source code you already wrote, since they won't write code for you. Glupe aims to help bridge the gap between intent and implementation by generating source code and build files based on a text description.
-
-With CMake: you write configuration files and provide source code.
-
-With Glupe: you describe what you want in plain text, and Glupe attempts to generate the source code and build scripts, then run the build.
-
-2. Faster prototyping (with caveats)
-
-Glupe can accelerate early-stage prototyping by letting you express ideas in your own jargon or pseudo-code, then generating and compiling an initial implementation or MVP.
-
-Input: Intent or pseudo-code
-Output: Source code and optionally a compiled binary
-
-Note: Results depend on the model, the explicitness and quality of the input. The output may also require refinement. Glupe is not guaranteed to produce production-ready code. Treat the output Glupe makes as a fresh piece out of a 3D printer.
-
-3. Self-healing build loop
-
-Glupe can reduce time spent debugging compilation errors by using an automated feedbacks loop:
-
-A. Generate code
-B. Compile
-C. If the build fails, send the compiler output back to the model
-D. Retry (up to a configured number of attempts)
-This can help with common compilation issues, but it is not a replacement for understanding the underlying code or dependencies.
 
 ## Configuration
 Setup Local AI (Privacy First)
@@ -253,7 +221,6 @@ Setup Cloud AI (Max Reasoning)
 glupe config api-key "YOUR_KEY"
 glupe config model-cloud gemini-1.5-flash
 ```
-
 
 ### Usage Examples
 1. Basic Compilation
