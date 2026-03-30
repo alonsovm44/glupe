@@ -24,7 +24,6 @@ __pycache__/
 
 *.tsx
 SUGGESTIONS.md
-*.html
 version.txt
 yori_cache
 .yori.lock
