@@ -69,6 +69,50 @@ $fallbackVendor = Join-Path $env:USERPROFILE ".glupe\vendor"
 if (-not (Test-Path $vendor) -and (Test-Path $fallbackVendor)) {
     $vendor = $fallbackVendor
 }
+
+if (-not (Test-Path $vendor)) { New-Item -ItemType Directory -Force -Path $vendor | Out-Null }
+
+if (-not (Test-Path (Join-Path $vendor "tree-sitter.o")) -or -not (Test-Path (Join-Path $vendor "cpp_parser.o"))) {
+    Write-Host "Tree-sitter objects missing. Fetching and building..." -ForegroundColor Cyan
+    try {
+        $tsUrl = "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.zip"
+        $tsZip = Join-Path $vendor "tree-sitter.zip"
+        if (-not (Test-Path (Join-Path $vendor "tree-sitter"))) {
+            Write-Host "Downloading tree-sitter (0.22.6)..."
+            Invoke-WebRequest -Uri $tsUrl -OutFile $tsZip -UseBasicParsing
+            Expand-Archive -Path $tsZip -DestinationPath $vendor -Force
+            Remove-Item $tsZip -Force
+            Get-ChildItem $vendor -Directory | Where-Object { $_.Name -like "tree-sitter-*" } | ForEach-Object { Rename-Item $_.FullName -NewName "tree-sitter" -Force }
+        }
+        
+        $tsTree = Join-Path $vendor "tree-sitter"
+        if (Test-Path (Join-Path $tsTree "lib\src\lib.c")) {
+            $tsObj = Join-Path $vendor "tree-sitter.o"
+            & $env:COMSPEC /c "gcc -O3 -I`"$tsTree\lib\include`" -I`"$tsTree\lib\src`" -c `"$tsTree\lib\src\lib.c`" -o `"$tsObj`"" 2>&1 | Out-Null
+        }
+        
+        $tsLangs = [ordered]@{ "cpp"="0.22.0"; "python"="0.21.0"; "javascript"="0.21.2"; "java"="0.21.0"; "go"="0.21.2"; "rust"="0.21.2" }
+        foreach ($lang in $tsLangs.Keys) {
+            $ver = $tsLangs[$lang]
+            $langDir = "tree-sitter-$lang"
+            if (-not (Test-Path (Join-Path $vendor $langDir))) {
+                Write-Host "Downloading $langDir ($ver)..."
+                $langUrl = "https://github.com/tree-sitter/$langDir/archive/refs/tags/v$ver.zip"
+                $langZip = Join-Path $vendor "$langDir.zip"
+                Invoke-WebRequest -Uri $langUrl -OutFile $langZip -UseBasicParsing
+                Expand-Archive -Path $langZip -DestinationPath $vendor -Force
+                Remove-Item $langZip -Force
+                Get-ChildItem $vendor -Directory | Where-Object { $_.Name -like "$langDir-*" } | ForEach-Object { Rename-Item $_.FullName -NewName $langDir -Force }
+            }
+            
+            $srcDirTS = Join-Path $vendor "$langDir\src"
+            if (Test-Path (Join-Path $srcDirTS "parser.c")) { & $env:COMSPEC /c "gcc -O3 -I`"$srcDirTS`" -c `"$srcDirTS\parser.c`" -o `"$vendor\${lang}_parser.o`"" 2>&1 | Out-Null }
+            if (Test-Path (Join-Path $srcDirTS "scanner.c")) { & $env:COMSPEC /c "gcc -O3 -I`"$srcDirTS`" -c `"$srcDirTS\scanner.c`" -o `"$vendor\${lang}_scanner.o`"" 2>&1 | Out-Null }
+            elseif (Test-Path (Join-Path $srcDirTS "scanner.cc")) { $cxx = if ($compiler) { $compiler } else { "g++" }; & $env:COMSPEC /c "$cxx -O3 -I`"$srcDirTS`" -c `"$srcDirTS\scanner.cc`" -o `"$vendor\${lang}_scanner.o`"" 2>&1 | Out-Null }
+        }
+    } catch { Write-Warn "Failed to fetch/build tree-sitter. Compilation may fail." }
+}
+
 if (Test-Path (Join-Path $vendor "tree-sitter.o")) { $tsObjs += (Join-Path $vendor "tree-sitter.o") }
 $langs = @("cpp", "python", "javascript", "java", "go", "rust")
 foreach ($lang in $langs) {

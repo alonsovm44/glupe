@@ -62,6 +62,46 @@ if [ -z "$COMPILER" ]; then
 fi
 echo "Using compiler: $COMPILER"
 
+CC_COMPILER="gcc"
+if ! command -v gcc >/dev/null 2>&1; then
+  if command -v clang >/dev/null 2>&1; then CC_COMPILER="clang"
+  else CC_COMPILER="$COMPILER"; fi
+fi
+
+# Download and build tree-sitter objects if missing
+if [ ! -f "$VENDOR_DIR/tree-sitter.o" ] || [ ! -f "$VENDOR_DIR/cpp_parser.o" ]; then
+  echo "Tree-sitter objects missing. Fetching and building..."
+  mkdir -p "$VENDOR_DIR"
+  
+  if [ ! -d "$VENDOR_DIR/tree-sitter" ]; then
+    echo "Downloading tree-sitter (0.22.6)..."
+    curl -fsSL "https://github.com/tree-sitter/tree-sitter/archive/refs/tags/v0.22.6.tar.gz" | tar -xz -C "$VENDOR_DIR"
+    mv "$VENDOR_DIR/tree-sitter-0.22.6" "$VENDOR_DIR/tree-sitter" 2>/dev/null || true
+  fi
+  
+  if [ -f "$VENDOR_DIR/tree-sitter/lib/src/lib.c" ]; then
+    "$CC_COMPILER" -O3 -I"$VENDOR_DIR/tree-sitter/lib/include" -I"$VENDOR_DIR/tree-sitter/lib/src" -c "$VENDOR_DIR/tree-sitter/lib/src/lib.c" -o "$VENDOR_DIR/tree-sitter.o" || echo "Warning: Failed to compile tree-sitter core"
+  fi
+
+  for lang in cpp python javascript java go rust; do
+    if [ "$lang" = "cpp" ] || [ "$lang" = "java" ]; then ver="0.22.0"; elif [ "$lang" = "python" ]; then ver="0.21.0"; else ver="0.21.2"; fi
+    if [ ! -d "$VENDOR_DIR/tree-sitter-$lang" ]; then
+      echo "Downloading tree-sitter-$lang ($ver)..."
+      curl -fsSL "https://github.com/tree-sitter/tree-sitter-$lang/archive/refs/tags/v${ver}.tar.gz" | tar -xz -C "$VENDOR_DIR"
+      mv "$VENDOR_DIR/tree-sitter-${lang}-${ver}" "$VENDOR_DIR/tree-sitter-$lang" 2>/dev/null || true
+    fi
+    srcDirTS="$VENDOR_DIR/tree-sitter-$lang/src"
+    if [ -f "$srcDirTS/parser.c" ]; then
+      "$CC_COMPILER" -O3 -I"$srcDirTS" -c "$srcDirTS/parser.c" -o "$VENDOR_DIR/${lang}_parser.o" || echo "Warning: Failed to compile $lang parser"
+    fi
+    if [ -f "$srcDirTS/scanner.c" ]; then
+      "$CC_COMPILER" -O3 -I"$srcDirTS" -c "$srcDirTS/scanner.c" -o "$VENDOR_DIR/${lang}_scanner.o" || echo "Warning: Failed to compile $lang scanner"
+    elif [ -f "$srcDirTS/scanner.cc" ]; then
+      "$COMPILER" -O3 -I"$srcDirTS" -c "$srcDirTS/scanner.cc" -o "$VENDOR_DIR/${lang}_scanner.o" || echo "Warning: Failed to compile $lang scanner"
+    fi
+  done
+fi
+
 # compile to safe temporary file
 TMP_BIN="$(mktemp "/tmp/glupe.XXXXXX")"
 chmod 700 "$TMP_BIN"
