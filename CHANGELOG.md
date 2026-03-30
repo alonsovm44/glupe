@@ -2,6 +2,7 @@
 
 Added:
 
+- added type aware containers
 - added --sandbox flag to run produced objects inside docker containers
 Removed:
 
